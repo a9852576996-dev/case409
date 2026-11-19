@@ -1,5 +1,5 @@
 window.GameStory = window.GameStory || { clues: {}, suspects: {}, veiledHints: [], nodes: {} };
-
+window.registerStoryNodes = function(n) { Object.assign(window.GameStory.nodes, n); };
 window.GameStory.suspects = {
   gromov: {
     id: 'gromov',
