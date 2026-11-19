@@ -105,10 +105,13 @@
   var beatsState = {
     active: false,
     sessionId: 0,
+    beatToken: 0,
     beats: [],
     index: 0,
     delayTimer: null,
     awaitingDelay: false,
+    awaitingAudio: false,
+    onAudioDoneCurrent: null,
     skipPrimed: false,
     onComplete: null
   };
@@ -218,17 +221,28 @@
     }
   }
 
-  function playVoiceSafe(src) {
+  function playVoiceSafe(src, onDone) {
     if (!src) {
+      if (typeof onDone === 'function') {
+        onDone();
+      }
       return;
     }
     var voice = getVoice();
     if (voice && typeof voice.play === 'function') {
       try {
-        voice.play(src);
+        if (typeof onDone === 'function') {
+          voice.play(src, onDone);
+        } else {
+          voice.play(src);
+        }
       } catch (e) {
-        // Ignore voice playback errors
+        if (typeof onDone === 'function') {
+          onDone();
+        }
       }
+    } else if (typeof onDone === 'function') {
+      onDone();
     }
   }
 
@@ -770,6 +784,7 @@
 
   function stopBeats() {
     beatsState.sessionId += 1;
+    beatsState.beatToken += 1;
     if (beatsState.delayTimer !== null) {
       window.clearTimeout(beatsState.delayTimer);
       beatsState.delayTimer = null;
@@ -778,6 +793,8 @@
     beatsState.beats = [];
     beatsState.index = 0;
     beatsState.awaitingDelay = false;
+    beatsState.awaitingAudio = false;
+    beatsState.onAudioDoneCurrent = null;
     beatsState.skipPrimed = false;
     beatsState.onComplete = null;
   }
@@ -796,6 +813,8 @@
     var remainingBeats = beatsState.beats;
     var nextIndex = beatsState.index + 1;
     var completeCb = beatsState.onComplete;
+
+    beatsState.beatToken += 1;
 
     if (beatsState.delayTimer !== null) {
       window.clearTimeout(beatsState.delayTimer);
@@ -822,6 +841,8 @@
     beatsState.beats = [];
     beatsState.index = 0;
     beatsState.awaitingDelay = false;
+    beatsState.awaitingAudio = false;
+    beatsState.onAudioDoneCurrent = null;
     beatsState.skipPrimed = false;
     beatsState.onComplete = null;
 
@@ -851,15 +872,50 @@
     }, Math.max(0, Number(delayMs) || 0));
   }
 
+  function skipCurrentBeat() {
+    if (!beatsState.active) {
+      return;
+    }
+
+    var sessionId = beatsState.sessionId;
+    beatsState.beatToken += 1;
+
+    if (beatsState.delayTimer !== null) {
+      window.clearTimeout(beatsState.delayTimer);
+      beatsState.delayTimer = null;
+    }
+
+    beatsState.awaitingDelay = false;
+    beatsState.awaitingAudio = false;
+    beatsState.onAudioDoneCurrent = null;
+
+    if (typewriterState.active) {
+      finishTypewriterInstant(false);
+    }
+
+    stopVoiceSafe();
+
+    if (!beatsState.active || sessionId !== beatsState.sessionId) {
+      return;
+    }
+
+    beatsState.index += 1;
+    runCurrentBeat(sessionId);
+  }
+
   function runCurrentBeat(sessionId) {
     if (!beatsState.active || sessionId !== beatsState.sessionId) {
       return;
     }
 
+    beatsState.beatToken += 1;
+    beatsState.awaitingDelay = false;
+    beatsState.awaitingAudio = false;
+    beatsState.onAudioDoneCurrent = null;
+
     if (beatsState.index >= beatsState.beats.length) {
       var completeCb = beatsState.onComplete;
       beatsState.active = false;
-      beatsState.awaitingDelay = false;
       beatsState.skipPrimed = false;
       beatsState.beats = [];
       beatsState.index = 0;
@@ -916,20 +972,72 @@
       if (beat.sfx) {
         playSfx(beat.sfx);
       }
-      if (beat.voice) {
-        playVoiceSafe(beat.voice);
-      }
       if (beat.haptic) {
         haptic(beat.haptic);
       }
 
       var speechDelay = typeof beat.delay === 'number' ? beat.delay : 1300;
+      var currentToken = beatsState.beatToken;
+      var textDone = false;
+      var audioDone = true;
+      var transitionScheduled = false;
+
+      var tryAdvanceAfterSpeech = function () {
+        if (
+          transitionScheduled ||
+          !beatsState.active ||
+          sessionId !== beatsState.sessionId ||
+          currentToken !== beatsState.beatToken
+        ) {
+          return;
+        }
+        if (textDone && audioDone) {
+          transitionScheduled = true;
+          beatsState.awaitingAudio = false;
+          beatsState.onAudioDoneCurrent = null;
+          scheduleNextBeat(sessionId, speechDelay);
+        }
+      };
+
+      if (beat.type === 'speech' && beat.voice) {
+        audioDone = false;
+        beatsState.awaitingAudio = true;
+
+        var onAudioDone = function () {
+          if (
+            audioDone ||
+            !beatsState.active ||
+            sessionId !== beatsState.sessionId ||
+            currentToken !== beatsState.beatToken
+          ) {
+            return;
+          }
+          audioDone = true;
+          beatsState.awaitingAudio = false;
+          beatsState.onAudioDoneCurrent = null;
+          tryAdvanceAfterSpeech();
+        };
+
+        beatsState.onAudioDoneCurrent = onAudioDone;
+        playVoiceSafe(beat.voice, onAudioDone);
+      } else if (beat.voice) {
+        playVoiceSafe(beat.voice);
+      }
+
       typewriteIntoElement(speechEl, beat.text || '', {
         autoScroll: true,
         charsPerTick: 2,
         intervalMs: 20,
         onDone: function () {
-          scheduleNextBeat(sessionId, speechDelay);
+          if (
+            !beatsState.active ||
+            sessionId !== beatsState.sessionId ||
+            currentToken !== beatsState.beatToken
+          ) {
+            return;
+          }
+          textDone = true;
+          tryAdvanceAfterSpeech();
         }
       });
     }
@@ -964,6 +1072,8 @@
     beatsState.index = 0;
     beatsState.delayTimer = null;
     beatsState.awaitingDelay = false;
+    beatsState.awaitingAudio = false;
+    beatsState.onAudioDoneCurrent = null;
     beatsState.skipPrimed = false;
     beatsState.onComplete = typeof onComplete === 'function' ? onComplete : null;
 
@@ -2639,31 +2749,8 @@
 
   function handleSceneTextTap() {
     if (beatsState.active) {
-      if (typewriterState.active) {
-        // 1st tap while speech is typing: complete current line instantly and prime repeat tap
-        beatsState.skipPrimed = true;
-        finishTypewriterInstant(true);
-        haptic('light');
-        return;
-      }
-
-      if (beatsState.skipPrimed) {
-        // Repeat / double tap: reveal all remaining beats immediately and open choices
-        finishAllBeatsImmediate();
-        haptic('light');
-        return;
-      }
-
-      // First tap during an action pause: jump immediately to next beat and prime repeat tap
-      beatsState.skipPrimed = true;
-      if (beatsState.delayTimer !== null) {
-        window.clearTimeout(beatsState.delayTimer);
-        beatsState.delayTimer = null;
-        beatsState.awaitingDelay = false;
-        beatsState.index += 1;
-        runCurrentBeat(beatsState.sessionId);
-        haptic('light');
-      }
+      skipCurrentBeat();
+      haptic('light');
       return;
     }
 
@@ -2696,6 +2783,13 @@
           updateSoundButtonUI();
           if (nowMuted) {
             stopVoiceSafe();
+            if (
+              beatsState.active &&
+              beatsState.awaitingAudio &&
+              typeof beatsState.onAudioDoneCurrent === 'function'
+            ) {
+              beatsState.onAudioDoneCurrent();
+            }
           } else {
             audio.playAmbient();
             audio.sfxClick();
