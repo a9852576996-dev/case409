@@ -3,7 +3,7 @@ window.registerStoryNodes({
     act: 'АКТ IV // РАЗВЯЗКА',
     location: 'ХОЛЛ РАЙОТДЕЛА // 07:30',
     speaker: 'ПОДПОЛКОВНИК КРАВЦОВ П.Н.',
-    portrait: 'img/kravtsov.jpg',
+    portrait: 'assets/kravtsov.jpg',
     mood: 'default',
     onEnter: {
       addLog: 'Утро последнего дня. До приезда областной комиссии два часа. Наступил момент решающего выбора.',
@@ -35,7 +35,7 @@ window.registerStoryNodes({
     act: 'АКТ IV // РАЗВЯЗКА',
     location: 'КАБИНЕТ №3 (ДОПРОСНАЯ)',
     speaker: 'КРАСНОВ ИГОРЬ СЕРГЕЕВИЧ',
-    portrait: 'img/krasnov.jpg',
+    portrait: 'assets/krasnov.jpg',
     composure: 100,
     startStep: 'step1',
     steps: {
@@ -132,7 +132,7 @@ window.registerStoryNodes({
     act: 'АКТ IV // РАЗВЯЗКА',
     location: 'КАБИНЕТ №3 (ДОПРОСНАЯ)',
     speaker: 'ПОДПОЛКОВНИК КРАВЦОВ П.Н.',
-    portrait: 'img/kravtsov.jpg',
+    portrait: 'assets/kravtsov.jpg',
     mood: 'default',
     onEnter: {
       sfx: 'sfxDoor'
