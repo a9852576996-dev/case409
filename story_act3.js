@@ -3,7 +3,7 @@ window.registerStoryNodes({
     act: 'АКТ III // ТАЙНА',
     location: 'ЗАПЕРТЫЙ КАБИНЕТ // 00:40',
     speaker: 'СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ',
-    portrait: 'img/sery.jpg',
+    portrait: 'assets/sery.jpg',
     mood: 'default',
     onEnter: {
       addLog: 'Ночь последних суток. Отдел почти пуст. Начинаем закрытую проверку телефона Алины и подвального архива.',
@@ -65,7 +65,7 @@ window.registerStoryNodes({
     act: 'АКТ III // ВЗЛОМ',
     location: 'ЗАПЕРТЫЙ КАБИНЕТ // «КОРДОН-М»',
     speaker: 'СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ',
-    portrait: 'img/sery.jpg',
+    portrait: 'assets/sery.jpg',
     mood: 'default',
     beats: [
       { type: 'action', text: '*Серый осторожно подцепляет кабель питания к разбитому смартфону Алины. Экран в паутине трещин вспыхивает белым: заряд держится на 14%, поверх обоев горит запрос четырёхзначного ПИН-кода.*', delay: 1150 },
@@ -108,7 +108,7 @@ window.registerStoryNodes({
     act: 'АКТ III // ВЗЛОМ',
     location: 'ЗАПЕРТЫЙ КАБИНЕТ // «КОРДОН-М»',
     speaker: 'СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ',
-    portrait: 'img/sery.jpg',
+    portrait: 'assets/sery.jpg',
     mood: 'dossier',
     onEnter: {
       sfx: 'sfxSuccess'
@@ -132,7 +132,7 @@ window.registerStoryNodes({
     act: 'АКТ III // ВЗЛОМ',
     location: 'ЗАПЕРТЫЙ КАБИНЕТ // «КОРДОН-М»',
     speaker: 'СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ',
-    portrait: 'img/sery.jpg',
+    portrait: 'assets/sery.jpg',
     mood: 'default',
     onEnter: {
       addLog: 'Попытка подбора ПИН-кода на смартфоне Алины не удалась. Аппарат ушёл во временную блокировку.',
@@ -199,7 +199,7 @@ window.registerStoryNodes({
     act: 'АКТ III // АУДИО',
     location: 'ЗАПЕРТЫЙ КАБИНЕТ // «КОРДОН-М»',
     speaker: 'СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ',
-    portrait: 'img/sery.jpg',
+    portrait: 'assets/sery.jpg',
     mood: 'default',
     onEnter: {
       addSuspectNote: {
@@ -228,7 +228,7 @@ window.registerStoryNodes({
     act: 'АКТ III // АУДИО',
     location: 'ЗАПЕРТЫЙ КАБИНЕТ // «КОРДОН-М»',
     speaker: 'СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ',
-    portrait: 'img/sery.jpg',
+    portrait: 'assets/sery.jpg',
     mood: 'default',
     onEnter: {
       addLog: 'Очистка аудиозаписи сорвалась: полезный сигнал заглушен искажениями. Исходный файл сохранён.',
@@ -296,7 +296,7 @@ window.registerStoryNodes({
     act: 'АКТ III // АРХИВ',
     location: 'ПОДВАЛ АРХИВА // СВОДКА',
     speaker: 'СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ',
-    portrait: 'img/sery.jpg',
+    portrait: 'assets/sery.jpg',
     mood: 'dossier',
     onEnter: {
       addSuspectNote: {
@@ -323,7 +323,7 @@ window.registerStoryNodes({
     act: 'АКТ III // АРХИВ',
     location: 'ПОДВАЛ АРХИВА',
     speaker: 'СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ',
-    portrait: 'img/sery.jpg',
+    portrait: 'assets/sery.jpg',
     mood: 'default',
     onEnter: {
       addLog: 'Аудит архива не завершён: в бумагах допущена путаница, пришлось срочно свернуться из-за шума наверху.',
@@ -346,7 +346,7 @@ window.registerStoryNodes({
     act: 'АКТ III // ТАЙНА',
     location: 'ТЁМНЫЙ КОРИДОР // 04:50',
     speaker: 'КРАСНОВ ИГОРЬ СЕРГЕЕВИЧ',
-    portrait: 'img/krasnov.jpg',
+    portrait: 'assets/krasnov.jpg',
     mood: 'default',
     onEnter: {
       addSuspectNote: {
@@ -384,7 +384,7 @@ window.registerStoryNodes({
     act: 'АКТ III // ТАЙНА',
     location: 'КАБИНЕТ ОПЕРГРУППЫ // РАССВЕТ',
     speaker: 'СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ',
-    portrait: 'img/sery.jpg',
+    portrait: 'assets/sery.jpg',
     mood: 'default',
     onEnter: {
       addLog: 'Рассвет последнего дня. До приезда областной комиссии считанные часы. Готовим решающий допрос Краснова.',
