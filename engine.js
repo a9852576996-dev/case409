@@ -2,6 +2,7 @@
   'use strict';
 
   var SAVE_KEY = 'case409_save_v1';
+  var BEATS_STYLE_ID = 'engine-beats-styles';
   var DEFAULT_HINT = 'В этом деле осталась деталь, мимо которой прошли в темноте.';
 
   window.GameStory = window.GameStory || {
@@ -31,6 +32,44 @@
     }
   };
 
+  var BEATS_CSS =
+    '@keyframes engineBeatFadeIn {' +
+      'from { opacity: 0; transform: translateY(3px); }' +
+      'to { opacity: 1; transform: translateY(0); }' +
+    '}' +
+    '.beat-action {' +
+      'display: block;' +
+      'font-style: italic;' +
+      'font-size: 13.5px;' +
+      'line-height: 1.48;' +
+      'color: #a99573;' +
+      'margin: 8px 0;' +
+      'animation: engineBeatFadeIn 0.24s ease-out;' +
+    '}' +
+    '.beat-line {' +
+      'display: block;' +
+      'font-style: normal;' +
+      'font-size: 15px;' +
+      'line-height: 1.55;' +
+      'color: #e2dfd7;' +
+      'margin: 8px 0;' +
+      'animation: engineBeatFadeIn 0.22s ease-out;' +
+    '}' +
+    '#scene-text > .beat-action:first-child,' +
+    '#scene-text > .beat-line:first-child {' +
+      'margin-top: 0;' +
+    '}' +
+    '#scene-text > .beat-action:last-child,' +
+    '#scene-text > .beat-line:last-child {' +
+      'margin-bottom: 0;' +
+    '}' +
+    '#scene-view.mood-dossier .beat-action {' +
+      'color: #5b4d3a;' +
+    '}' +
+    '#scene-view.mood-dossier .beat-line {' +
+      'color: #1a1815;' +
+    '}';
+
   var ICON_SOUND_ON =
     '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>' +
@@ -58,7 +97,20 @@
     items: [],
     itemIndex: 0,
     charIndex: 0,
-    active: false
+    active: false,
+    onDone: null,
+    autoScroll: false
+  };
+
+  var beatsState = {
+    active: false,
+    sessionId: 0,
+    beats: [],
+    index: 0,
+    delayTimer: null,
+    awaitingDelay: false,
+    skipPrimed: false,
+    onComplete: null
   };
 
   var interrogationState = {
@@ -83,6 +135,16 @@
   }
 
   var state = createDefaultState();
+
+  function injectBeatsStyles() {
+    if (document.getElementById(BEATS_STYLE_ID)) {
+      return;
+    }
+    var styleEl = document.createElement('style');
+    styleEl.id = BEATS_STYLE_ID;
+    styleEl.textContent = BEATS_CSS;
+    document.head.appendChild(styleEl);
+  }
 
   function escapeHtml(str) {
     return String(str == null ? '' : str)
@@ -126,8 +188,48 @@
     return sign + m + ' МИН';
   }
 
+  function scrollStageToBottom() {
+    if (!dom.stage) {
+      return;
+    }
+    try {
+      dom.stage.scrollTop = dom.stage.scrollHeight;
+    } catch (e) {
+      // Ignore scroll errors
+    }
+  }
+
   function getAudio() {
     return window.GameAudio || null;
+  }
+
+  function getVoice() {
+    return window.GameVoice || null;
+  }
+
+  function stopVoiceSafe() {
+    var voice = getVoice();
+    if (voice && typeof voice.stop === 'function') {
+      try {
+        voice.stop();
+      } catch (e) {
+        // Ignore voice stop errors
+      }
+    }
+  }
+
+  function playVoiceSafe(src) {
+    if (!src) {
+      return;
+    }
+    var voice = getVoice();
+    if (voice && typeof voice.play === 'function') {
+      try {
+        voice.play(src);
+      } catch (e) {
+        // Ignore voice playback errors
+      }
+    }
   }
 
   function unlockAudioOnce() {
@@ -154,22 +256,17 @@
     if (!audio) {
       return;
     }
-    var map = {
-      click: 'sfxClick',
-      paper: 'sfxPaper',
-      stamp: 'sfxStamp',
-      radio: 'sfxRadio',
-      heartbeat: 'sfxHeartbeat',
-      alert: 'sfxAlert',
-      success: 'sfxSuccess'
-    };
-    var methodName = map[name] || name;
-    if (typeof audio[methodName] === 'function') {
-      try {
-        audio[methodName]();
-      } catch (e) {
-        // Ignore SFX runtime errors
+    try {
+      if (typeof audio[name] === 'function') {
+        audio[name]();
+        return;
       }
+      var prefixed = 'sfx' + name.charAt(0).toUpperCase() + name.slice(1);
+      if (typeof audio[prefixed] === 'function') {
+        audio[prefixed]();
+      }
+    } catch (e) {
+      // Ignore SFX errors
     }
   }
 
@@ -192,7 +289,7 @@
         }
       }
     } catch (e) {
-      // Safe fallback in browser environments
+      // Safe fallback outside Telegram
     }
   }
 
@@ -274,7 +371,7 @@
     try {
       window.localStorage.setItem(SAVE_KEY, payload);
     } catch (e) {
-      // Ignore storage quota or private mode restrictions
+      // Ignore storage quota/privacy restrictions
     }
 
     if (canUseCloudStorage()) {
@@ -523,6 +620,8 @@
     dom.portraitWrap.innerHTML = buildPlaceholderSvg(fallbackLabel);
   }
 
+  /* ===== TYPEWRITER & SEQUENTIAL BEATS ENGINE ===== */
+
   function cancelTypewriter() {
     if (typewriterState.timer !== null) {
       window.clearInterval(typewriterState.timer);
@@ -532,12 +631,15 @@
     typewriterState.itemIndex = 0;
     typewriterState.charIndex = 0;
     typewriterState.active = false;
+    typewriterState.onDone = null;
+    typewriterState.autoScroll = false;
   }
 
-  function finishTypewriterInstant() {
+  function finishTypewriterInstant(triggerCallback) {
     if (!typewriterState.active) {
       return;
     }
+    var cb = typewriterState.onDone;
     if (typewriterState.timer !== null) {
       window.clearInterval(typewriterState.timer);
       typewriterState.timer = null;
@@ -545,7 +647,20 @@
     for (var i = typewriterState.itemIndex; i < typewriterState.items.length; i++) {
       typewriterState.items[i].node.nodeValue = typewriterState.items[i].fullText;
     }
+    var shouldScroll = typewriterState.autoScroll;
+    typewriterState.items = [];
+    typewriterState.itemIndex = 0;
+    typewriterState.charIndex = 0;
     typewriterState.active = false;
+    typewriterState.onDone = null;
+    typewriterState.autoScroll = false;
+
+    if (shouldScroll) {
+      scrollStageToBottom();
+    }
+    if (triggerCallback && typeof cb === 'function') {
+      cb();
+    }
   }
 
   function collectTextNodes(root, list) {
@@ -566,30 +681,41 @@
     }
   }
 
-  function typewriteText(rawText) {
+  function setElementContent(el, rawText) {
+    var text = String(rawText == null ? '' : rawText);
+    if (/<[a-z][\s\S]*>/i.test(text)) {
+      el.innerHTML = text;
+    } else {
+      el.textContent = text;
+    }
+  }
+
+  function typewriteIntoElement(targetEl, rawText, options) {
     cancelTypewriter();
-    if (!dom.sceneText) {
+    if (!targetEl) {
       return;
     }
-
+    var opts = options || {};
     var text = String(rawText == null ? '' : rawText);
-    dom.sceneText.innerHTML = '';
+    targetEl.innerHTML = '';
 
     var temp = document.createElement('div');
-    if (/<[a-z][\s\S]*>/i.test(text)) {
-      temp.innerHTML = text;
-    } else {
-      temp.textContent = text;
-    }
+    setElementContent(temp, text);
 
     var items = [];
     collectTextNodes(temp, items);
 
     while (temp.firstChild) {
-      dom.sceneText.appendChild(temp.firstChild);
+      targetEl.appendChild(temp.firstChild);
     }
 
     if (items.length === 0) {
+      if (opts.autoScroll) {
+        scrollStageToBottom();
+      }
+      if (typeof opts.onDone === 'function') {
+        opts.onDone();
+      }
       return;
     }
 
@@ -597,8 +723,11 @@
     typewriterState.itemIndex = 0;
     typewriterState.charIndex = 0;
     typewriterState.active = true;
+    typewriterState.onDone = typeof opts.onDone === 'function' ? opts.onDone : null;
+    typewriterState.autoScroll = Boolean(opts.autoScroll);
 
-    var charsPerTick = text.length > 420 ? 4 : 3;
+    var charsPerTick = opts.charsPerTick || (text.length > 420 ? 4 : 2);
+    var intervalMs = opts.intervalMs || 18;
 
     typewriterState.timer = window.setInterval(function () {
       var remaining = charsPerTick;
@@ -615,10 +744,245 @@
         }
       }
 
-      if (typewriterState.itemIndex >= typewriterState.items.length) {
-        cancelTypewriter();
+      if (typewriterState.autoScroll) {
+        scrollStageToBottom();
       }
-    }, 16);
+
+      if (typewriterState.itemIndex >= typewriterState.items.length) {
+        var doneCb = typewriterState.onDone;
+        cancelTypewriter();
+        if (typeof doneCb === 'function') {
+          doneCb();
+        }
+      }
+    }, intervalMs);
+  }
+
+  function typewriteText(rawText) {
+    stopBeats();
+    if (dom.choicesContainer) {
+      dom.choicesContainer.classList.remove('hidden');
+    }
+    typewriteIntoElement(dom.sceneText, rawText, {
+      autoScroll: false
+    });
+  }
+
+  function stopBeats() {
+    beatsState.sessionId += 1;
+    if (beatsState.delayTimer !== null) {
+      window.clearTimeout(beatsState.delayTimer);
+      beatsState.delayTimer = null;
+    }
+    beatsState.active = false;
+    beatsState.beats = [];
+    beatsState.index = 0;
+    beatsState.awaitingDelay = false;
+    beatsState.skipPrimed = false;
+    beatsState.onComplete = null;
+  }
+
+  function stopAllPlayback() {
+    stopBeats();
+    cancelTypewriter();
+    stopVoiceSafe();
+  }
+
+  function finishAllBeatsImmediate() {
+    if (!beatsState.active) {
+      return;
+    }
+
+    var remainingBeats = beatsState.beats;
+    var nextIndex = beatsState.index + 1;
+    var completeCb = beatsState.onComplete;
+
+    if (beatsState.delayTimer !== null) {
+      window.clearTimeout(beatsState.delayTimer);
+      beatsState.delayTimer = null;
+    }
+
+    finishTypewriterInstant(false);
+    stopVoiceSafe();
+
+    for (var i = nextIndex; i < remainingBeats.length; i++) {
+      var b = remainingBeats[i];
+      if (!b) {
+        continue;
+      }
+      var el = document.createElement('div');
+      el.className = b.type === 'action' ? 'beat-action' : 'beat-line';
+      setElementContent(el, b.text || '');
+      if (dom.sceneText) {
+        dom.sceneText.appendChild(el);
+      }
+    }
+
+    beatsState.active = false;
+    beatsState.beats = [];
+    beatsState.index = 0;
+    beatsState.awaitingDelay = false;
+    beatsState.skipPrimed = false;
+    beatsState.onComplete = null;
+
+    if (dom.choicesContainer) {
+      dom.choicesContainer.classList.remove('hidden');
+    }
+    scrollStageToBottom();
+
+    if (typeof completeCb === 'function') {
+      completeCb();
+    }
+  }
+
+  function scheduleNextBeat(sessionId, delayMs) {
+    if (!beatsState.active || sessionId !== beatsState.sessionId) {
+      return;
+    }
+    beatsState.awaitingDelay = true;
+    beatsState.delayTimer = window.setTimeout(function () {
+      beatsState.delayTimer = null;
+      beatsState.awaitingDelay = false;
+      if (!beatsState.active || sessionId !== beatsState.sessionId) {
+        return;
+      }
+      beatsState.index += 1;
+      runCurrentBeat(sessionId);
+    }, Math.max(0, Number(delayMs) || 0));
+  }
+
+  function runCurrentBeat(sessionId) {
+    if (!beatsState.active || sessionId !== beatsState.sessionId) {
+      return;
+    }
+
+    if (beatsState.index >= beatsState.beats.length) {
+      var completeCb = beatsState.onComplete;
+      beatsState.active = false;
+      beatsState.awaitingDelay = false;
+      beatsState.skipPrimed = false;
+      beatsState.beats = [];
+      beatsState.index = 0;
+      beatsState.onComplete = null;
+
+      if (dom.choicesContainer) {
+        dom.choicesContainer.classList.remove('hidden');
+      }
+      scrollStageToBottom();
+
+      if (typeof completeCb === 'function') {
+        completeCb();
+      }
+      return;
+    }
+
+    var beat = beatsState.beats[beatsState.index];
+    if (!beat) {
+      beatsState.index += 1;
+      runCurrentBeat(sessionId);
+      return;
+    }
+
+    if (beat.speaker && dom.sceneSpeaker) {
+      dom.sceneSpeaker.textContent = beat.speaker;
+    }
+
+    if (beat.type === 'action') {
+      var actionEl = document.createElement('div');
+      actionEl.className = 'beat-action';
+      setElementContent(actionEl, beat.text || '');
+      if (dom.sceneText) {
+        dom.sceneText.appendChild(actionEl);
+      }
+      scrollStageToBottom();
+
+      if (beat.sfx) {
+        playSfx(beat.sfx);
+      }
+      if (beat.haptic) {
+        haptic(beat.haptic);
+      }
+
+      var actionDelay = typeof beat.delay === 'number' ? beat.delay : 650;
+      scheduleNextBeat(sessionId, actionDelay);
+    } else {
+      var speechEl = document.createElement('div');
+      speechEl.className = 'beat-line';
+      if (dom.sceneText) {
+        dom.sceneText.appendChild(speechEl);
+      }
+      scrollStageToBottom();
+
+      if (beat.sfx) {
+        playSfx(beat.sfx);
+      }
+      if (beat.voice) {
+        playVoiceSafe(beat.voice);
+      }
+      if (beat.haptic) {
+        haptic(beat.haptic);
+      }
+
+      var speechDelay = typeof beat.delay === 'number' ? beat.delay : 450;
+      typewriteIntoElement(speechEl, beat.text || '', {
+        autoScroll: true,
+        charsPerTick: 2,
+        intervalMs: 20,
+        onDone: function () {
+          scheduleNextBeat(sessionId, speechDelay);
+        }
+      });
+    }
+  }
+
+  function playBeats(beatsArray, onComplete) {
+    stopAllPlayback();
+
+    if (!dom.sceneText) {
+      return;
+    }
+    dom.sceneText.innerHTML = '';
+
+    if (dom.choicesContainer) {
+      dom.choicesContainer.classList.add('hidden');
+    }
+
+    var list = Array.isArray(beatsArray) ? beatsArray.slice() : [];
+    if (list.length === 0) {
+      if (dom.choicesContainer) {
+        dom.choicesContainer.classList.remove('hidden');
+      }
+      if (typeof onComplete === 'function') {
+        onComplete();
+      }
+      return;
+    }
+
+    var sid = ++beatsState.sessionId;
+    beatsState.active = true;
+    beatsState.beats = list;
+    beatsState.index = 0;
+    beatsState.delayTimer = null;
+    beatsState.awaitingDelay = false;
+    beatsState.skipPrimed = false;
+    beatsState.onComplete = typeof onComplete === 'function' ? onComplete : null;
+
+    runCurrentBeat(sid);
+  }
+
+  function renderNarrativeBody(sourceObj, onBeatsDone) {
+    if (sourceObj && Array.isArray(sourceObj.beats) && sourceObj.beats.length > 0) {
+      playBeats(sourceObj.beats, onBeatsDone);
+      return;
+    }
+
+    if (sourceObj && sourceObj.voice) {
+      playVoiceSafe(sourceObj.voice);
+    }
+    typewriteText((sourceObj && sourceObj.text) || '');
+    if (typeof onBeatsDone === 'function') {
+      onBeatsDone();
+    }
   }
 
   function clearMoodClasses() {
@@ -783,7 +1147,7 @@
     updateStatsUI();
 
     if (state.threat >= 75 && state.threat > prevThreat) {
-      playSfx('heartbeat');
+      playSfx('sfxHeartbeat');
       haptic('warning');
     }
 
@@ -848,7 +1212,7 @@
     if (effectObj.sfx) {
       playSfx(effectObj.sfx);
     } else if (addedClue && !opts.suppressAutoSfx) {
-      playSfx('success');
+      playSfx('sfxSuccess');
       haptic('success');
     }
 
@@ -1050,7 +1414,7 @@
             hint.textContent = isHidden
               ? '▾ Скрыть подробности протокола'
               : '▸ Нажмите, чтобы изучить подробности протокола';
-            playSfx('paper');
+            playSfx('sfxPaper');
             haptic('light');
           });
         }
@@ -1182,7 +1546,7 @@
   }
 
   function openMenuModal() {
-    playSfx('click');
+    playSfx('sfxClick');
     haptic('light');
 
     openModal('ТЕРМИНАЛ ДЕЛА №409', function (bodyEl) {
@@ -1194,7 +1558,7 @@
       btnContinue.className = 'menu-btn';
       btnContinue.textContent = 'Продолжить';
       btnContinue.addEventListener('click', function () {
-        playSfx('click');
+        playSfx('sfxClick');
         haptic('light');
         closeModal();
       });
@@ -1208,11 +1572,11 @@
         if (!confirmArmed) {
           confirmArmed = true;
           btnRestart.textContent = 'Подтвердить сброс? Нажмите ещё раз';
-          playSfx('alert');
+          playSfx('sfxAlert');
           haptic('warning');
           return;
         }
-        playSfx('stamp');
+        playSfx('sfxStamp');
         haptic('heavy');
         closeModal();
         restartGame();
@@ -1241,14 +1605,14 @@
     unlockAudioOnce();
 
     if (tabName === 'scene') {
-      playSfx('click');
+      playSfx('sfxClick');
       haptic('light');
       closeModal();
       return;
     }
 
     setActiveNavTab(tabName);
-    playSfx('paper');
+    playSfx('sfxPaper');
     haptic('light');
 
     if (tabName === 'clues') {
@@ -1260,8 +1624,10 @@
     }
   }
 
+  /* ===== STANDBY TEST MODE ===== */
+
   function renderStandbyScreen() {
-    cancelTypewriter();
+    stopAllPlayback();
     interrogationState.active = false;
 
     if (dom.endingView) {
@@ -1292,13 +1658,66 @@
     renderPortrait(null, 'ТЕРМИНАЛ СК // ДЕЛО №409');
 
     typewriteText(
-      'Ядро движка, интерфейс мобильного терминала и процедурный синтезатор звука инициализированы и готовы к работе.\n\n' +
+      'Ядро движка, система поэтапных реплик (beats), озвучка и процедурный звук готовы к работе.\n\n' +
         'Подключите файлы сценария (story_core.js, story_act1.js–story_act4.js) для запуска расследования. ' +
-        'Ниже можно проверить служебную рацию, виброотклик и анимацию шкал.'
+        'Ниже доступны тесты постановки, рации, печати и шкал.'
     );
 
     if (dom.choicesContainer) {
       dom.choicesContainer.innerHTML = '';
+      dom.choicesContainer.classList.remove('hidden');
+
+      var cigaretteDemoBeats = [
+        {
+          type: 'action',
+          text: '*чиркает зажигалкой, прикуривая от слабого огонька*',
+          sfx: 'sfxLighter',
+          delay: 700
+        },
+        {
+          type: 'speech',
+          text: '— Да-а-а, ну и денёк сегодня выдался...',
+          voice: 'voice/test_01.mp3',
+          delay: 400
+        },
+        {
+          type: 'action',
+          text: '*делает глубокую затяжку*',
+          sfx: 'sfxInhale',
+          delay: 800
+        },
+        {
+          type: 'speech',
+          text: '— Зачем мы вообще туда полезли?',
+          voice: 'voice/test_02.mp3',
+          delay: 400
+        },
+        {
+          type: 'action',
+          text: '*щелчком отправляет окурок в лужу*',
+          sfx: 'sfxFlick',
+          delay: 500
+        }
+      ];
+
+      dom.choicesContainer.appendChild(
+        createChoiceButton({
+          text: 'ТЕСТ СЦЕНЫ С СИГАРЕТОЙ (ПОЭТАПНЫЙ ТЕКСТ + ЗВУК)',
+          meta: 'BEATS',
+          onClick: function () {
+            var audio = getAudio();
+            if (audio) {
+              audio.init();
+              audio.playAmbient();
+            }
+            haptic('light');
+            if (dom.sceneSpeaker) {
+              dom.sceneSpeaker.textContent = 'СЛЕДОВАТЕЛЬ // ДЕМО-ПОСТАНОВКА';
+            }
+            playBeats(cigaretteDemoBeats);
+          }
+        })
+      );
 
       dom.choicesContainer.appendChild(
         createChoiceButton({
@@ -1352,8 +1771,10 @@
     updateStatsUI();
   }
 
+  /* ===== ENDING NODE ===== */
+
   function renderEndingNode(node) {
-    cancelTypewriter();
+    stopAllPlayback();
     interrogationState.active = false;
 
     if (dom.minigameOverlay) {
@@ -1411,6 +1832,10 @@
       }
     }
 
+    if (node.voice) {
+      playVoiceSafe(node.voice);
+    }
+
     if (node.sfx) {
       playSfx(node.sfx);
     } else if (
@@ -1419,19 +1844,22 @@
       state.nodeId === 'ending_fired' ||
       node.mood === 'danger'
     ) {
-      playSfx('alert');
+      playSfx('sfxAlert');
       haptic('error');
     } else {
-      playSfx('stamp');
+      playSfx('sfxStamp');
       haptic(node.isTrueEnding === true ? 'success' : 'heavy');
     }
   }
+
+  /* ===== MINIGAME NODE ===== */
 
   function launchMinigame(node) {
     if (!dom.minigameOverlay || !dom.minigameContainer) {
       return;
     }
 
+    stopAllPlayback();
     dom.minigameContainer.innerHTML = '';
     dom.minigameOverlay.classList.remove('hidden');
 
@@ -1445,7 +1873,7 @@
         settled = true;
         dom.minigameOverlay.classList.add('hidden');
         dom.minigameContainer.innerHTML = '';
-        playSfx('success');
+        playSfx('sfxSuccess');
         haptic('success');
 
         if (node.onWin) {
@@ -1469,7 +1897,7 @@
         settled = true;
         dom.minigameOverlay.classList.add('hidden');
         dom.minigameContainer.innerHTML = '';
-        playSfx('alert');
+        playSfx('sfxAlert');
         haptic('error');
 
         if (node.onFail) {
@@ -1493,7 +1921,7 @@
         settled = true;
         dom.minigameOverlay.classList.add('hidden');
         dom.minigameContainer.innerHTML = '';
-        playSfx('click');
+        playSfx('sfxClick');
         haptic('light');
 
         if (node.onCancelNext) {
@@ -1512,7 +1940,7 @@
         );
         return;
       } catch (e) {
-        // Fall through to safe fallback screen
+        // Fall through to safe fallback UI
       }
     }
 
@@ -1596,6 +2024,7 @@
 
     if (dom.choicesContainer) {
       dom.choicesContainer.innerHTML = '';
+      dom.choicesContainer.classList.remove('hidden');
 
       dom.choicesContainer.appendChild(
         createChoiceButton({
@@ -1603,7 +2032,7 @@
           meta: 'ТЕРМИНАЛ',
           extraClass: 'choice-evidence',
           onClick: function () {
-            playSfx('click');
+            playSfx('sfxClick');
             haptic('light');
             launchMinigame(node);
           }
@@ -1625,7 +2054,7 @@
           createChoiceButton({
             text: 'ОТЛОЖИТЬ И ВЕРНУТЬСЯ',
             onClick: function () {
-              playSfx('click');
+              playSfx('sfxClick');
               haptic('light');
               goToNode(node.onCancelNext);
             }
@@ -1636,6 +2065,8 @@
 
     launchMinigame(node);
   }
+
+  /* ===== INTERROGATION NODE ===== */
 
   function handleInterrogationOutcome(node, outcome, defaultComposureDelta, isPositive) {
     if (!outcome || typeof outcome !== 'object') {
@@ -1676,7 +2107,10 @@
     }
 
     if (interrogationState.composure <= 0 && node.onBreak) {
-      var breakTarget = typeof node.onBreak === 'string' ? node.onBreak : node.onBreak.nextNode || node.onBreak.next;
+      var breakTarget =
+        typeof node.onBreak === 'string'
+          ? node.onBreak
+          : node.onBreak.nextNode || node.onBreak.next;
       if (typeof node.onBreak === 'object') {
         var breakEnd = applyEffects(node.onBreak, { suppressAutoSfx: true });
         saveState();
@@ -1700,7 +2134,7 @@
   }
 
   function openEvidenceCheckModal(node, check) {
-    playSfx('paper');
+    playSfx('sfxPaper');
     haptic('light');
 
     openModal('ПРЕДЪЯВИТЬ УЛИКУ', function (bodyEl) {
@@ -1765,11 +2199,11 @@
             }
 
             if (isMatch) {
-              playSfx('success');
+              playSfx('sfxSuccess');
               haptic('success');
               handleInterrogationOutcome(node, check.onCorrect || {}, -35, true);
             } else {
-              playSfx('alert');
+              playSfx('sfxAlert');
               haptic('error');
               var wrongOutcome = check.onWrong || {
                 delta: { pressure: -5, threat: 5 },
@@ -1786,7 +2220,7 @@
   }
 
   function openCatchTrapModal(node, trap) {
-    playSfx('click');
+    playSfx('sfxClick');
     haptic('warning');
 
     openModal('ЗАФИКСИРОВАТЬ ОГОВОРКУ', function (bodyEl) {
@@ -1817,15 +2251,16 @@
             onClick: function () {
               closeModal();
               if (opt.isTrap === true) {
-                playSfx('success');
+                playSfx('sfxSuccess');
                 haptic('success');
                 handleInterrogationOutcome(node, trap.onCatch || {}, -30, true);
               } else {
-                playSfx('alert');
+                playSfx('sfxAlert');
                 haptic('error');
                 var missOutcome = trap.onMiss || {
                   delta: { pressure: -5, threat: 5 },
-                  message: 'Мимо. Подозреваемый спокойно отводит претензию — в этой фразе не было противоречия.'
+                  message:
+                    'Мимо. Подозреваемый спокойно отводит претензию — в этой фразе не было противоречия.'
                 };
                 handleInterrogationOutcome(node, missOutcome, 0, false);
               }
@@ -1840,6 +2275,8 @@
   }
 
   function renderInterrogationStep(node, stepId) {
+    stopAllPlayback();
+
     var steps = node.steps || {};
     var step = steps[stepId];
     if (!step) {
@@ -1881,86 +2318,87 @@
     }
 
     var portrait = step.portrait !== undefined ? step.portrait : node.portrait;
-    renderPortrait(portrait, (step.speaker || node.speaker || node.location || 'ДОПРОС'));
+    renderPortrait(portrait, step.speaker || node.speaker || node.location || 'ДОПРОС');
     updateComposureUI(interrogationState.composure, interrogationState.maxComposure);
 
-    typewriteText(step.text || '');
+    if (dom.choicesContainer) {
+      dom.choicesContainer.innerHTML = '';
 
-    if (!dom.choicesContainer) {
-      return;
-    }
-    dom.choicesContainer.innerHTML = '';
+      var choices = Array.isArray(step.choices) ? step.choices : [];
+      for (var i = 0; i < choices.length; i++) {
+        (function (choice) {
+          if (!passesConditions(choice)) {
+            return;
+          }
 
-    var choices = Array.isArray(step.choices) ? step.choices : [];
-    for (var i = 0; i < choices.length; i++) {
-      (function (choice) {
-        if (!passesConditions(choice)) {
-          return;
-        }
+          var metaText =
+            choice.meta ||
+            (choice.delta && choice.delta.hours ? formatHoursDelta(choice.delta.hours) : '');
+          var extra = choice.className || '';
+          if (choice.style === 'evidence' || choice.isEvidence) {
+            extra += ' choice-evidence';
+          }
+          if (choice.style === 'trap' || choice.isTrap) {
+            extra += ' choice-trap';
+          }
 
-        var metaText = choice.meta || (choice.delta && choice.delta.hours ? formatHoursDelta(choice.delta.hours) : '');
-        var extra = choice.className || '';
-        if (choice.style === 'evidence' || choice.isEvidence) {
-          extra += ' choice-evidence';
-        }
-        if (choice.style === 'trap' || choice.isTrap) {
-          extra += ' choice-trap';
-        }
+          dom.choicesContainer.appendChild(
+            createChoiceButton({
+              text: choice.text || choice.label || '',
+              meta: metaText,
+              extraClass: extra.trim(),
+              onClick: function () {
+                if (!choice.sfx) {
+                  playSfx('sfxClick');
+                }
+                haptic('light');
 
+                var autoEndInner = applyEffects(choice);
+                saveState();
+                if (autoEndInner) {
+                  goToNode(autoEndInner);
+                  return;
+                }
+
+                if (choice.nextStep) {
+                  renderInterrogationStep(node, choice.nextStep);
+                } else if (choice.nextNode || choice.next) {
+                  goToNode(choice.nextNode || choice.next);
+                }
+              }
+            })
+          );
+        })(choices[i]);
+      }
+
+      if (step.evidenceCheck && passesConditions(step.evidenceCheck)) {
         dom.choicesContainer.appendChild(
           createChoiceButton({
-            text: choice.text || choice.label || '',
-            meta: metaText,
-            extraClass: extra.trim(),
+            text: step.evidenceCheck.buttonText || 'ПРЕДЪЯВИТЬ УЛИКУ',
+            meta: 'УЛИКА',
+            extraClass: 'choice-evidence',
             onClick: function () {
-              if (!choice.sfx) {
-                playSfx('click');
-              }
-              haptic('light');
-
-              var autoEnd = applyEffects(choice);
-              saveState();
-              if (autoEnd) {
-                goToNode(autoEnd);
-                return;
-              }
-
-              if (choice.nextStep) {
-                renderInterrogationStep(node, choice.nextStep);
-              } else if (choice.nextNode || choice.next) {
-                goToNode(choice.nextNode || choice.next);
-              }
+              openEvidenceCheckModal(node, step.evidenceCheck);
             }
           })
         );
-      })(choices[i]);
+      }
+
+      if (step.catchTrap && passesConditions(step.catchTrap)) {
+        dom.choicesContainer.appendChild(
+          createChoiceButton({
+            text: step.catchTrap.buttonText || 'ЗАФИКСИРОВАТЬ ОГОВОРКУ',
+            meta: 'ОГОВОРКА',
+            extraClass: 'choice-trap',
+            onClick: function () {
+              openCatchTrapModal(node, step.catchTrap);
+            }
+          })
+        );
+      }
     }
 
-    if (step.evidenceCheck && passesConditions(step.evidenceCheck)) {
-      dom.choicesContainer.appendChild(
-        createChoiceButton({
-          text: step.evidenceCheck.buttonText || 'ПРЕДЪЯВИТЬ УЛИКУ',
-          meta: 'УЛИКА',
-          extraClass: 'choice-evidence',
-          onClick: function () {
-            openEvidenceCheckModal(node, step.evidenceCheck);
-          }
-        })
-      );
-    }
-
-    if (step.catchTrap && passesConditions(step.catchTrap)) {
-      dom.choicesContainer.appendChild(
-        createChoiceButton({
-          text: step.catchTrap.buttonText || 'ЗАФИКСИРОВАТЬ ОГОВОРКУ',
-          meta: 'ОГОВОРКА',
-          extraClass: 'choice-trap',
-          onClick: function () {
-            openCatchTrapModal(node, step.catchTrap);
-          }
-        })
-      );
-    }
+    renderNarrativeBody(step);
   }
 
   function renderInterrogationNode(node) {
@@ -1993,6 +2431,8 @@
     renderInterrogationStep(node, firstStepId);
   }
 
+  /* ===== STANDARD SCENE NODE ===== */
+
   function renderStandardNode(node) {
     interrogationState.active = false;
 
@@ -2015,7 +2455,7 @@
     applyMood(node.mood || '');
 
     if (node.mood === 'dossier' && !(node.onEnter && node.onEnter.sfx) && !node.sfx) {
-      playSfx('paper');
+      playSfx('sfxPaper');
     }
 
     if (dom.sceneAct) {
@@ -2029,61 +2469,65 @@
     }
 
     renderPortrait(node.portrait, node.speaker || node.location || 'ДЕЛО №409');
-    typewriteText(node.text || '');
 
-    if (!dom.choicesContainer) {
-      return;
+    if (dom.choicesContainer) {
+      dom.choicesContainer.innerHTML = '';
+
+      var choices = Array.isArray(node.choices) ? node.choices : [];
+      for (var i = 0; i < choices.length; i++) {
+        (function (choice) {
+          if (!passesConditions(choice)) {
+            return;
+          }
+
+          var metaText =
+            choice.meta ||
+            (choice.delta && choice.delta.hours ? formatHoursDelta(choice.delta.hours) : '');
+          var extra = choice.className || '';
+          if (choice.style === 'evidence' || choice.isEvidence) {
+            extra += ' choice-evidence';
+          }
+          if (choice.style === 'trap' || choice.isTrap) {
+            extra += ' choice-trap';
+          }
+
+          dom.choicesContainer.appendChild(
+            createChoiceButton({
+              text: choice.text || choice.label || '',
+              meta: metaText,
+              extraClass: extra.trim(),
+              onClick: function () {
+                if (!choice.sfx) {
+                  playSfx('sfxClick');
+                }
+                haptic('light');
+
+                var autoEnd = applyEffects(choice);
+                saveState();
+                if (autoEnd) {
+                  goToNode(autoEnd);
+                  return;
+                }
+
+                var targetId = choice.nextNode || choice.next;
+                if (targetId) {
+                  goToNode(targetId);
+                }
+              }
+            })
+          );
+        })(choices[i]);
+      }
     }
-    dom.choicesContainer.innerHTML = '';
 
-    var choices = Array.isArray(node.choices) ? node.choices : [];
-    for (var i = 0; i < choices.length; i++) {
-      (function (choice) {
-        if (!passesConditions(choice)) {
-          return;
-        }
-
-        var metaText =
-          choice.meta ||
-          (choice.delta && choice.delta.hours ? formatHoursDelta(choice.delta.hours) : '');
-        var extra = choice.className || '';
-        if (choice.style === 'evidence' || choice.isEvidence) {
-          extra += ' choice-evidence';
-        }
-        if (choice.style === 'trap' || choice.isTrap) {
-          extra += ' choice-trap';
-        }
-
-        dom.choicesContainer.appendChild(
-          createChoiceButton({
-            text: choice.text || choice.label || '',
-            meta: metaText,
-            extraClass: extra.trim(),
-            onClick: function () {
-              if (!choice.sfx) {
-                playSfx('click');
-              }
-              haptic('light');
-
-              var autoEnd = applyEffects(choice);
-              saveState();
-              if (autoEnd) {
-                goToNode(autoEnd);
-                return;
-              }
-
-              var targetId = choice.nextNode || choice.next;
-              if (targetId) {
-                goToNode(targetId);
-              }
-            }
-          })
-        );
-      })(choices[i]);
-    }
+    renderNarrativeBody(node);
   }
 
+  /* ===== NAVIGATION & LIFECYCLE ===== */
+
   function goToNode(nodeId) {
+    stopAllPlayback();
+
     var nodes = (window.GameStory && window.GameStory.nodes) || {};
 
     if (!nodes.start) {
@@ -2132,11 +2576,44 @@
     }
   }
 
+  function renderNodeWithoutReapplyingOnEnter(nodeId) {
+    stopAllPlayback();
+
+    var nodes = (window.GameStory && window.GameStory.nodes) || {};
+    var node = nodes[nodeId];
+    if (!node) {
+      goToNode('start');
+      return;
+    }
+
+    closeModal();
+    updateStatsUI();
+
+    if (node.type === 'ending') {
+      renderEndingNode(node);
+    } else if (node.type === 'interrogation') {
+      renderInterrogationNode(node);
+    } else if (node.type === 'minigame') {
+      renderMinigameNode(node);
+    } else {
+      renderStandardNode(node);
+    }
+  }
+
   function restartGame() {
-    cancelTypewriter();
+    stopAllPlayback();
+
     if (testScaleTimer !== null) {
       window.clearTimeout(testScaleTimer);
       testScaleTimer = null;
+    }
+
+    if (window.GameMinigames && typeof window.GameMinigames.destroy === 'function') {
+      try {
+        window.GameMinigames.destroy();
+      } catch (e) {
+        // Ignore minigame destroy errors
+      }
     }
 
     interrogationState.active = false;
@@ -2160,6 +2637,42 @@
     }
   }
 
+  function handleSceneTextTap() {
+    if (beatsState.active) {
+      if (typewriterState.active) {
+        // 1st tap while speech is typing: complete current line instantly and prime repeat tap
+        beatsState.skipPrimed = true;
+        finishTypewriterInstant(true);
+        haptic('light');
+        return;
+      }
+
+      if (beatsState.skipPrimed) {
+        // Repeat / double tap: reveal all remaining beats immediately and open choices
+        finishAllBeatsImmediate();
+        haptic('light');
+        return;
+      }
+
+      // First tap during an action pause: jump immediately to next beat and prime repeat tap
+      beatsState.skipPrimed = true;
+      if (beatsState.delayTimer !== null) {
+        window.clearTimeout(beatsState.delayTimer);
+        beatsState.delayTimer = null;
+        beatsState.awaitingDelay = false;
+        beatsState.index += 1;
+        runCurrentBeat(beatsState.sessionId);
+        haptic('light');
+      }
+      return;
+    }
+
+    if (typewriterState.active) {
+      finishTypewriterInstant(true);
+      haptic('light');
+    }
+  }
+
   function bindEvents() {
     document.addEventListener(
       'pointerdown',
@@ -2170,12 +2683,7 @@
     );
 
     if (dom.sceneText) {
-      dom.sceneText.addEventListener('click', function () {
-        if (typewriterState.active) {
-          finishTypewriterInstant();
-          haptic('light');
-        }
-      });
+      dom.sceneText.addEventListener('click', handleSceneTextTap);
     }
 
     if (dom.btnSound) {
@@ -2186,7 +2694,9 @@
           audio.init();
           var nowMuted = audio.toggleMute();
           updateSoundButtonUI();
-          if (!nowMuted) {
+          if (nowMuted) {
+            stopVoiceSafe();
+          } else {
             audio.playAmbient();
             audio.sfxClick();
           }
@@ -2205,7 +2715,7 @@
 
     if (dom.btnCloseModal) {
       dom.btnCloseModal.addEventListener('click', function () {
-        playSfx('click');
+        playSfx('sfxClick');
         haptic('light');
         closeModal();
       });
@@ -2214,7 +2724,7 @@
     if (dom.modalOverlay) {
       dom.modalOverlay.addEventListener('click', function (e) {
         if (e.target === dom.modalOverlay) {
-          playSfx('click');
+          playSfx('sfxClick');
           haptic('light');
           closeModal();
         }
@@ -2225,7 +2735,7 @@
       dom.btnRestartEnding.addEventListener('click', function () {
         userInteracted = true;
         unlockAudioOnce();
-        playSfx('click');
+        playSfx('sfxClick');
         haptic('medium');
         restartGame();
       });
@@ -2237,7 +2747,12 @@
           btn.addEventListener('click', function () {
             var tab = btn.getAttribute('data-tab');
             if (tab) {
-              if (tab === activeTab && tab !== 'scene' && dom.modalOverlay && !dom.modalOverlay.classList.contains('hidden')) {
+              if (
+                tab === activeTab &&
+                tab !== 'scene' &&
+                dom.modalOverlay &&
+                !dom.modalOverlay.classList.contains('hidden')
+              ) {
                 openTab('scene');
               } else {
                 openTab(tab);
@@ -2255,6 +2770,7 @@
     }
     initialized = true;
 
+    injectBeatsStyles();
     initTelegram();
     cacheDom();
     bindEvents();
@@ -2290,28 +2806,6 @@
         renderNodeWithoutReapplyingOnEnter(state.nodeId);
       }
     });
-  }
-
-  function renderNodeWithoutReapplyingOnEnter(nodeId) {
-    var nodes = (window.GameStory && window.GameStory.nodes) || {};
-    var node = nodes[nodeId];
-    if (!node) {
-      goToNode('start');
-      return;
-    }
-
-    closeModal();
-    updateStatsUI();
-
-    if (node.type === 'ending') {
-      renderEndingNode(node);
-    } else if (node.type === 'interrogation') {
-      renderInterrogationNode(node);
-    } else if (node.type === 'minigame') {
-      renderMinigameNode(node);
-    } else {
-      renderStandardNode(node);
-    }
   }
 
   function getState() {
