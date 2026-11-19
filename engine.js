@@ -903,7 +903,7 @@
         haptic(beat.haptic);
       }
 
-      var actionDelay = typeof beat.delay === 'number' ? beat.delay : 650;
+      var actionDelay = typeof beat.delay === 'number' ? beat.delay : 1300;
       scheduleNextBeat(sessionId, actionDelay);
     } else {
       var speechEl = document.createElement('div');
@@ -923,7 +923,7 @@
         haptic(beat.haptic);
       }
 
-      var speechDelay = typeof beat.delay === 'number' ? beat.delay : 450;
+      var speechDelay = typeof beat.delay === 'number' ? beat.delay : 1300;
       typewriteIntoElement(speechEl, beat.text || '', {
         autoScroll: true,
         charsPerTick: 2,
