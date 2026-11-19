@@ -726,8 +726,8 @@
     typewriterState.onDone = typeof opts.onDone === 'function' ? opts.onDone : null;
     typewriterState.autoScroll = Boolean(opts.autoScroll);
 
-    var charsPerTick = opts.charsPerTick || (text.length > 420 ? 4 : 2);
-    var intervalMs = opts.intervalMs || 18;
+    var charsPerTick = opts.charsPerTick || 1;
+    var intervalMs = opts.intervalMs || 38;
 
     typewriterState.timer = window.setInterval(function () {
       var remaining = charsPerTick;
