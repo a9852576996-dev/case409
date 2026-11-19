@@ -3,7 +3,7 @@ window.registerStoryNodes({
     act: 'АКТ II // ОТДЕЛ',
     location: 'КОРИДОР РАЙОТДЕЛА // 06:40',
     speaker: 'ПОДПОЛКОВНИК КРАВЦОВ П.Н.',
-    portrait: 'img/kravtsov.jpg',
+    portrait: 'assets/kravtsov.jpg',
     mood: 'default',
     onEnter: {
       addLog: 'Утро вторых суток. Прибыли в райотдел. Кравцов требует немедленно оформить явку с повинной на Громова.',
@@ -29,7 +29,7 @@ window.registerStoryNodes({
     act: 'АКТ II // ОТДЕЛ',
     location: 'КОРИДОР РАЙОТДЕЛА // ЭТАЖ 2',
     speaker: 'СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ',
-    portrait: 'img/sery.jpg',
+    portrait: 'assets/sery.jpg',
     mood: 'default',
     beats: [
       { type: 'action', text: '*Серый приваливается плечом к облупленной зелёной стене прямо под табличкой «НЕ КУРИТЬ» и щёлкает зажигалкой.*', sfx: 'sfxLighter', delay: 950 },
@@ -115,7 +115,7 @@ window.registerStoryNodes({
     act: 'АКТ II // ЛАБОРАТОРИЯ',
     location: 'КАБИНЕТ ДАКТИЛОСКОПИИ',
     speaker: 'СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ',
-    portrait: 'img/sery.jpg',
+    portrait: 'assets/sery.jpg',
     mood: 'default',
     onEnter: {
       sfx: 'sfxDoor'
@@ -161,7 +161,7 @@ window.registerStoryNodes({
     act: 'АКТ II // ЛАБОРАТОРИЯ',
     location: 'КАБИНЕТ ДАКТИЛОСКОПИИ',
     speaker: 'КРАСНОВ ИГОРЬ СЕРГЕЕВИЧ',
-    portrait: 'img/krasnov.jpg',
+    portrait: 'assets/krasnov.jpg',
     mood: 'default',
     onEnter: {
       addSuspectNote: {
@@ -192,7 +192,7 @@ window.registerStoryNodes({
     act: 'АКТ II // ЛАБОРАТОРИЯ',
     location: 'КАБИНЕТ ДАКТИЛОСКОПИИ',
     speaker: 'СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ',
-    portrait: 'img/sery.jpg',
+    portrait: 'assets/sery.jpg',
     mood: 'default',
     onEnter: {
       addLog: 'Не удалось корректно снять и сопоставить отпечаток со стеклянного флакона. Потребуется повторная попытка.',
@@ -259,7 +259,7 @@ window.registerStoryNodes({
     act: 'АКТ II // ЛАБОРАТОРИЯ',
     location: 'СУДЕБНО-БИОЛОГИЧЕСКАЯ ЛАБОРАТОРИЯ',
     speaker: 'СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ',
-    portrait: 'img/sery.jpg',
+    portrait: 'assets/sery.jpg',
     mood: 'dossier',
     onEnter: {
       addSuspectNote: {
@@ -310,7 +310,7 @@ window.registerStoryNodes({
     act: 'АКТ II // ДОПРОС',
     location: 'КАБИНЕТ №3 (ДОПРОСНАЯ)',
     speaker: 'ГРОМОВ ВИКТОР ИВАНОВИЧ',
-    portrait: 'img/gromov.jpg',
+    portrait: 'assets/gromov.jpg',
     composure: 80,
     startStep: 'step1',
     steps: {
@@ -407,7 +407,7 @@ window.registerStoryNodes({
     act: 'АКТ II // ДОПРОС',
     location: 'КОРИДОР У КАБИНЕТА №3',
     speaker: 'СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ',
-    portrait: 'img/sery.jpg',
+    portrait: 'assets/sery.jpg',
     mood: 'default',
     onEnter: {
       addLog: 'Попытка оформить фиктивную явку с повинной на Громова. Серый жёстко вмешался и перехватил бланк.',
@@ -433,7 +433,7 @@ window.registerStoryNodes({
     act: 'АКТ II // ОТДЕЛ',
     location: 'ПОДСОБКА ДЕЖУРКИ // НОЧЬ 2',
     speaker: 'СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ',
-    portrait: 'img/sery.jpg',
+    portrait: 'assets/sery.jpg',
     mood: 'default',
     onEnter: {
       addLog: 'Ночь вторых суток. Кравцов в ярости из-за отсутствия явки и дал последние 24 часа. Серый достал телефон Алины и ключ от подвала архива.',
