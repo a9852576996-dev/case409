@@ -605,6 +605,32 @@
     );
   }
 
+
+  var ASSET_MAP = {
+    sery: 'assets/portraits/sery.jpg',
+    krasnov: 'assets/portraits/krasnov.jpg',
+    kravtsov: 'assets/portraits/kravtsov.jpg',
+    gromov: 'assets/portraits/gromov.jpg',
+    ryabova: 'assets/portraits/ryabova.jpg',
+    ditch_night: 'assets/locations/ditch_night.jpg',
+    ditch_climax: 'assets/locations/ditch_climax.jpg',
+    knife_uv: 'assets/items/knife_uv.jpg',
+    phone_broken: 'assets/items/phone_broken.jpg',
+    archive_falsification: 'assets/items/archive_falsification.jpg',
+    personal_ruins: 'assets/items/personal_ruins.jpg'
+  };
+
+  function resolveAssetPath(src) {
+    if (typeof src !== 'string') return src;
+    var clean = src.trim();
+    var m = clean.match(/([^/\\]+)\.(?:jpg|jpeg|png|webp)$/i);
+    if (m) {
+      var key = m[1].toLowerCase();
+      if (ASSET_MAP[key]) return ASSET_MAP[key];
+    }
+    return clean;
+  }
+
   function renderPortrait(portraitSrc, fallbackLabel) {
     if (!dom.portraitWrap) {
       return;
@@ -626,7 +652,7 @@
           dom.portraitWrap.innerHTML = buildPlaceholderSvg(fallbackLabel);
         }
       };
-      img.src = trimmed;
+      img.src = resolveAssetPath(trimmed);
       dom.portraitWrap.appendChild(img);
       return;
     }
