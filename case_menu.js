@@ -1,6 +1,35 @@
 (function () {
   'use strict';
 
+  var menuOpen = true;
+  var pendingPlay = null;
+
+  // Перехватываем GameVoice сразу при загрузке скрипта, чтобы звук не шёл в фоне под меню
+  function wrapVoice() {
+    if (!window.GameVoice || window.GameVoice.__menuWrapped) return;
+    var origPlay = window.GameVoice.play;
+    var origStop = window.GameVoice.stop;
+
+    try { origStop.call(window.GameVoice); } catch (e) {}
+
+    window.GameVoice.play = function (src, onDone) {
+      if (menuOpen) {
+        pendingPlay = { src: src, onDone: onDone };
+        return;
+      }
+      return origPlay.call(window.GameVoice, src, onDone);
+    };
+
+    window.GameVoice.stop = function () {
+      pendingPlay = null;
+      return origStop.call(window.GameVoice);
+    };
+
+    window.GameVoice.__menuWrapped = true;
+  }
+
+  wrapVoice();
+
   function detectCase409Status() {
     try {
       for (var i = 0; i < window.localStorage.length; i++) {
@@ -39,7 +68,6 @@
     btn.textContent = 'К ДЕЛАМ';
     btn.addEventListener('click', onBack);
 
-    // Пробуем встроить кнопку в верхнюю панель игры рядом с кнопками звука/меню
     var topControls =
       document.querySelector('.hud-actions') ||
       document.querySelector('.topbar-actions') ||
@@ -55,25 +83,38 @@
   }
 
   function init() {
+    wrapVoice();
     var screen = document.getElementById('case-select-screen');
     if (!screen) return;
+
+    menuOpen = !screen.classList.contains('hidden');
+    if (menuOpen && window.GameVoice && typeof window.GameVoice.stop === 'function') {
+      window.GameVoice.stop();
+    }
 
     refreshStatuses();
 
     function openCase(caseId) {
       if (caseId === 'case409') {
+        menuOpen = false;
         screen.classList.add('hidden');
+        if (pendingPlay && window.GameVoice && typeof window.GameVoice.play === 'function') {
+          var p = pendingPlay;
+          pendingPlay = null;
+          window.GameVoice.play(p.src, p.onDone);
+        }
         return;
       }
-      // Точка расширения для Шага A2 (динамическая загрузка новых дел)
       if (window.CaseLoader && typeof window.CaseLoader.load === 'function') {
         window.CaseLoader.load(caseId).then(function () {
+          menuOpen = false;
           screen.classList.add('hidden');
         });
       }
     }
 
     function showDesk() {
+      menuOpen = true;
       if (window.GameVoice && typeof window.GameVoice.stop === 'function') {
         window.GameVoice.stop();
       }
@@ -93,7 +134,10 @@
 
     window.CaseMenu = {
       show: showDesk,
-      hide: function () { screen.classList.add('hidden'); },
+      hide: function () {
+        menuOpen = false;
+        screen.classList.add('hidden');
+      },
       refresh: refreshStatuses
     };
   }
