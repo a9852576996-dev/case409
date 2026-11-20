@@ -18,6 +18,7 @@
       title: 'Дело №418 «Пепелище»',
       scripts: [
         'minigames_forensics.js',
+        'minigames_forensics2.js',
         'cases/case418/story_core.js',
         'cases/case418/story_act1.js',
         'cases/case418/story_act2.js',
@@ -32,6 +33,7 @@
       title: 'Дело №412 «Погреб»',
       scripts: [
         'minigames_forensics.js',
+        'minigames_forensics2.js',
         'cases/case412/story_core.js',
         'cases/case412/story_act1.js',
         'cases/case412/story_act2.js',
