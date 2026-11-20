@@ -8,27 +8,28 @@
       desc: 'Ночной осмотр места обнаружения тела. Жёлтые маркеры вещдоков.'
     },
     {
-      src: 'assets/locations/ditch_climax.jpg',
+      src: 'assets/locations/ditch_climax.jpg.jpg',
+      fallback: 'assets/locations/ditch_climax.jpg',
       title: 'СНИМОК №2 // ОЦЕПЛЕНИЕ',
       desc: 'Осмотр склона у товарной ветки под светом прожекторов.'
     },
     {
-      src: 'assets/items/personal_ruins.jpg',
+      src: 'assets/items/personal_ruins.jpg.jpg',
       title: 'ВЕЩДОК №1 // ЛИЧНЫЕ ВЕЩИ',
       desc: 'Повреждённая куртка, сумка и документы А. Савельевой.'
     },
     {
-      src: 'assets/items/knife_uv.jpg',
+      src: 'assets/items/knife_uv.jpg.jpg',
       title: 'ВЕЩДОК №2 // НОЖ (УФ-СЪЁМКА)',
       desc: 'Следы люминола на лезвии, флакон антисептика и обрывок форменной ткани.'
     },
     {
-      src: 'assets/items/phone_broken.jpg',
+      src: 'assets/items/phone_broken.jpg.jpg',
       title: 'ВЕЩДОК №3 // СМАРТФОН',
       desc: 'Разбитый телефон в грязи у щебня, кровавый отпечаток на экране.'
     },
     {
-      src: 'assets/items/archive_falsification.jpg',
+      src: 'assets/items/archive_falsification.jpg.jpg',
       title: 'АРХИВ // ЭКСПЕРТИЗЫ',
       desc: 'Подложные бланки и старые протокольные фото по прошлым эпизодам.'
     }
@@ -167,6 +168,11 @@
       img.src = item.src;
       img.alt = item.title;
       img.onerror = function () {
+        if (item.fallback && !img.dataset.triedFallback) {
+          img.dataset.triedFallback = '1';
+          img.src = item.fallback;
+          return;
+        }
         var err = document.createElement('div');
         err.className = 'ev-err';
         err.textContent = 'НЕТ ФАЙЛА: ' + item.src;
@@ -182,7 +188,7 @@
       card.appendChild(img);
       card.appendChild(body);
       card.addEventListener('click', function () {
-        lbImg.src = item.src;
+        lbImg.src = img.currentSrc || img.src;
         lbImg.alt = item.title;
         lbTitle.textContent = item.title;
         lbDesc.textContent = item.desc;
