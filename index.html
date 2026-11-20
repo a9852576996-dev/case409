@@ -163,5 +163,63 @@
   <script src="story_act4.js"></script>
   <script src="engine.js"></script>
   <script src="evidence_photos.js"></script>
+
+<!-- === СТОЛ СЛЕДОВАТЕЛЯ (ВЫБОР ДЕЛ) === -->
+<div id="case-select-screen" role="dialog" aria-label="Архив следственного отдела">
+  <div class="cs-wrap">
+    <div class="cs-header">
+      <div class="cs-kicker">СЛЕДСТВЕННЫЙ ОТДЕЛ // АРХИВ ДЕЛ</div>
+      <h1 class="cs-title">СТОЛ СЛЕДОВАТЕЛЯ</h1>
+      <div class="cs-sub">ВЫБЕРИТЕ ПАПКУ ДЛЯ РАБОТЫ</div>
+    </div>
+
+    <div id="case-list" class="cs-list">
+      <article class="case-card case-active" data-case-id="case409">
+        <div class="case-top">
+          <span class="case-num">ДЕЛО №409</span>
+          <span class="case-status" data-status-for="case409">ДОСТУПНО</span>
+        </div>
+        <h2 class="case-name">«ВЕТКА»</h2>
+        <div class="case-meta">4 АКТА // 48 ЧАСОВ ДО КОМИССИИ</div>
+        <p class="case-desc">
+          Серия убийств вдоль старой товарной ветки. Руководство требует закрыть дело до рассвета и уже подготовило «удобного» обвиняемого.
+        </p>
+        <button type="button" class="case-btn" data-open-case="case409">ОТКРЫТЬ ПАПКУ</button>
+      </article>
+
+      <article class="case-card case-locked" data-case-id="case418">
+        <div class="case-top">
+          <span class="case-num">ДЕЛО №418</span>
+          <span class="case-status status-dev">В РАЗРАБОТКЕ</span>
+        </div>
+        <h2 class="case-name">«ПЕПЕЛИЩЕ»</h2>
+        <div class="case-meta">6 АКТОВ // 12 ЭКСПЕРТИЗ // СНТ «БЕРЁЗКА»</div>
+        <p class="case-desc">
+          Ночной пожар унёс жизни семьи предпринимателя. Пожарные спешат списать всё на проводку, но в стенах остались пули, а в лёгких погибших нет копоти.
+        </p>
+        <button type="button" class="case-btn" disabled>СКОРО</button>
+      </article>
+
+      <article class="case-card case-locked" data-case-id="case412">
+        <div class="case-top">
+          <span class="case-num">ДЕЛО №412</span>
+          <span class="case-status status-dev">В РАЗРАБОТКЕ</span>
+        </div>
+        <h2 class="case-name">«ПОГРЕБ»</h2>
+        <div class="case-meta">6 АКТОВ // ЧАСТНЫЙ СЕКТОР</div>
+        <p class="case-desc">
+          Бесследная пропажа в тихом районе на окраине. За вежливыми улыбками соседей и идеальным фасадом скрывается то, чего не видно с улицы.
+        </p>
+        <button type="button" class="case-btn" disabled>СКОРО</button>
+      </article>
+    </div>
+
+    <div class="cs-footer">
+      АРХИВ СК // ПРОГРЕСС СОХРАНЯЕТСЯ АВТОМАТИЧЕСКИ
+    </div>
+  </div>
+</div>
+<script src="case_menu.js"></script>
+
 </body>
 </html>
