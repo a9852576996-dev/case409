@@ -812,7 +812,7 @@ window.registerStoryNodes({
 
   "act4_kpp_game": {
     "type": "minigame",
-    "minigameId": "cipher",
+    "minigameId": "archive_search",
     "minigameConfig": {
       "title": "Сверка КПП и биллинга вышек",
       "subtitle": "Расшифруйте перехваченную отметку времени и номер абонента",
