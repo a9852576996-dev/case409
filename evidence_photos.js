@@ -40,13 +40,29 @@
     '<circle cx="12" cy="13" r="4"/>' +
     '</svg>';
 
+  function injectStyles() {
+    if (document.getElementById('ev-gallery-inline-css')) return;
+    var st = document.createElement('style');
+    st.id = 'ev-gallery-inline-css';
+    st.textContent =
+      '#evidence-modal, #evidence-lightbox { position:fixed; inset:0; z-index:1600; background:rgba(8,9,12,0.93); display:none; align-items:center; justify-content:center; padding:14px; box-sizing:border-box; }' +
+      '#evidence-lightbox { z-index:1700; background:rgba(4,5,7,0.97); }' +
+      '#evidence-modal.open, #evidence-lightbox.open { display:flex; }' +
+      '#evidence-modal .ev-panel { width:100%; max-width:820px; height:86vh; max-height:86vh; background:#12141a; border:1px solid #2b303d; border-top:2px solid #b91c1c; border-radius:4px; display:flex; flex-direction:column; overflow:hidden; }' +
+      '#evidence-modal .ev-header { flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid #232733; background:#171a22; }' +
+      '#evidence-modal .ev-grid { flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); align-content:start; gap:12px; }' +
+      '@media (min-width:680px){ #evidence-modal .ev-grid { grid-template-columns:repeat(3, minmax(0, 1fr)); } }' +
+      '#evidence-modal .ev-card { min-width:0; background:#181b23; border:1px solid #2a2f3b; border-radius:3px; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; }' +
+      '#evidence-modal .ev-card img { width:100%; height:130px; object-fit:cover; display:block; background:#0b0d11; }' +
+      '#evidence-modal .ev-err { padding:12px 8px; font-family:monospace; font-size:10px; color:#f87171; background:#1f1215; text-align:center; word-break:break-all; }';
+    document.head.appendChild(st);
+  }
+
   function findNavButton() {
     var btns = document.querySelectorAll('button, .nav-btn, .tab-btn');
     for (var i = 0; i < btns.length; i++) {
       var txt = (btns[i].textContent || '').trim().toUpperCase();
-      if (txt.indexOf('ЖУРНАЛ') !== -1) {
-        return btns[i];
-      }
+      if (txt.indexOf('ЖУРНАЛ') !== -1) return btns[i];
     }
     return null;
   }
@@ -57,8 +73,7 @@
     var refBtn = findNavButton();
     if (refBtn && refBtn.parentElement) {
       var nav = refBtn.parentElement;
-      var computed = window.getComputedStyle(nav);
-      if (computed.display === 'grid') {
+      if (window.getComputedStyle(nav).display === 'grid') {
         nav.style.gridTemplateColumns = 'repeat(5, minmax(0, 1fr))';
       }
 
@@ -76,9 +91,7 @@
         var wrap = document.createElement('span');
         wrap.innerHTML = CAMERA_SVG;
         var newSvg = wrap.firstChild;
-        if (oldSvg.getAttribute('class')) {
-          newSvg.setAttribute('class', oldSvg.getAttribute('class'));
-        }
+        if (oldSvg.getAttribute('class')) newSvg.setAttribute('class', oldSvg.getAttribute('class'));
         oldSvg.parentNode.replaceChild(newSvg, oldSvg);
       }
 
@@ -92,9 +105,7 @@
           break;
         }
       }
-      if (!replaced) {
-        tabBtn.innerHTML = CAMERA_SVG + '<span>ФОТО</span>';
-      }
+      if (!replaced) tabBtn.innerHTML = CAMERA_SVG + '<span>ФОТО</span>';
 
       tabBtn.addEventListener('click', function (e) {
         e.preventDefault();
@@ -116,13 +127,14 @@
 
   function init() {
     if (document.getElementById('evidence-modal')) return;
+    injectStyles();
 
     var modal = document.createElement('div');
     modal.id = 'evidence-modal';
     modal.innerHTML =
       '<div class="ev-panel">' +
         '<div class="ev-header">' +
-          '<div class="ev-title"><span>СК-409 //</span> ФОТОТАБЛИЦА ВЕЩДОКОВ</div>' +
+          '<div class="ev-title"><span>СК-409 //</span> ФОТОТАБЛИЦА (' + PHOTOS.length + ')</div>' +
           '<button type="button" class="ev-close" id="ev-close-modal">ЗАКРЫТЬ [ESC]</button>' +
         '</div>' +
         '<div class="ev-grid" id="ev-grid"></div>' +
@@ -150,12 +162,25 @@
     PHOTOS.forEach(function (item) {
       var card = document.createElement('div');
       card.className = 'ev-card';
-      card.innerHTML =
-        '<img src="' + item.src + '" alt="' + item.title + '" loading="lazy">' +
-        '<div class="ev-card-body">' +
-          '<div class="ev-card-title">' + item.title + '</div>' +
-          '<div class="ev-card-desc">' + item.desc + '</div>' +
-        '</div>';
+
+      var img = document.createElement('img');
+      img.src = item.src;
+      img.alt = item.title;
+      img.onerror = function () {
+        var err = document.createElement('div');
+        err.className = 'ev-err';
+        err.textContent = 'НЕТ ФАЙЛА: ' + item.src;
+        if (img.parentNode) img.parentNode.replaceChild(err, img);
+      };
+
+      var body = document.createElement('div');
+      body.className = 'ev-card-body';
+      body.innerHTML =
+        '<div class="ev-card-title">' + item.title + '</div>' +
+        '<div class="ev-card-desc">' + item.desc + '</div>';
+
+      card.appendChild(img);
+      card.appendChild(body);
       card.addEventListener('click', function () {
         lbImg.src = item.src;
         lbImg.alt = item.title;
