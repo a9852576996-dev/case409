@@ -1369,6 +1369,39 @@
       return true;
     }
 
+    if (item.reqFlags) {
+      if (Array.isArray(item.reqFlags)) {
+        for (var rf = 0; rf < item.reqFlags.length; rf++) {
+          if (!state.flags[item.reqFlags[rf]]) return false;
+        }
+      } else if (typeof item.reqFlags === 'object') {
+        var rfKeys = Object.keys(item.reqFlags);
+        for (var rfk = 0; rfk < rfKeys.length; rfk++) {
+          if (Boolean(state.flags[rfKeys[rfk]]) !== Boolean(item.reqFlags[rfKeys[rfk]])) return false;
+        }
+      }
+    }
+    if (Array.isArray(item.hideIfFlags)) {
+      for (var hf = 0; hf < item.hideIfFlags.length; hf++) {
+        if (state.flags[item.hideIfFlags[hf]]) return false;
+      }
+    }
+    if (item.next && window.GameStory && window.GameStory.nodes) {
+      var nextNode = window.GameStory.nodes[item.next];
+      if (nextNode && nextNode.type === 'minigame' && nextNode.onWin && nextNode.onWin.setFlags) {
+        var mgKeys = Object.keys(nextNode.onWin.setFlags);
+        if (mgKeys.length > 0) {
+          var allMgDone = true;
+          for (var mk = 0; mk < mgKeys.length; mk++) {
+            if (Boolean(state.flags[mgKeys[mk]]) !== Boolean(nextNode.onWin.setFlags[mgKeys[mk]])) {
+              allMgDone = false;
+              break;
+            }
+          }
+          if (allMgDone) return false;
+        }
+      }
+    }
     if (item.requiresFlags) {
       if (Array.isArray(item.requiresFlags)) {
         for (var i = 0; i < item.requiresFlags.length; i++) {
