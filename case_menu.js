@@ -1,16 +1,19 @@
 (function () {
   'use strict';
 
-  var menuOpen = true;
+  var params = new URLSearchParams(window.location.search);
+  var autoStart = params.get('autostart') === '1';
+  var menuOpen = !autoStart;
   var pendingPlay = null;
 
-  // Перехватываем GameVoice сразу при загрузке скрипта, чтобы звук не шёл в фоне под меню
   function wrapVoice() {
     if (!window.GameVoice || window.GameVoice.__menuWrapped) return;
     var origPlay = window.GameVoice.play;
     var origStop = window.GameVoice.stop;
 
-    try { origStop.call(window.GameVoice); } catch (e) {}
+    if (menuOpen) {
+      try { origStop.call(window.GameVoice); } catch (e) {}
+    }
 
     window.GameVoice.play = function (src, onDone) {
       if (menuOpen) {
@@ -30,13 +33,10 @@
 
   wrapVoice();
 
-  function detectCase409Status() {
+  function detectCaseStatus(caseId) {
     try {
-      for (var i = 0; i < window.localStorage.length; i++) {
-        var k = window.localStorage.key(i) || '';
-        if (k.indexOf('case409') === -1 || k.indexOf('muted') !== -1) continue;
-        var raw = window.localStorage.getItem(k) || '';
-        if (!raw || raw.length < 10) continue;
+      var raw = window.localStorage.getItem(caseId + '_save_v1') || '';
+      if (raw && raw.length >= 10) {
         if (raw.indexOf('ending_') !== -1) {
           return { text: 'РАСКРЫТО / ФИНАЛ', cls: 'status-done', btn: 'ОТКРЫТЬ СНОВА' };
         }
@@ -47,15 +47,14 @@
   }
 
   function refreshStatuses() {
-    var st = detectCase409Status();
-    var badge = document.querySelector('[data-status-for="case409"]');
-    var btn = document.querySelector('[data-open-case="case409"]');
-    if (badge) {
-      badge.textContent = st.text;
-      badge.className = 'case-status' + (st.cls ? ' ' + st.cls : '');
-    }
-    if (btn) {
-      btn.textContent = st.btn;
+    var badges = document.querySelectorAll('[data-status-for]');
+    for (var i = 0; i < badges.length; i++) {
+      var cid = badges[i].getAttribute('data-status-for');
+      var st = detectCaseStatus(cid);
+      badges[i].textContent = st.text;
+      badges[i].className = 'case-status' + (st.cls ? ' ' + st.cls : '');
+      var btn = document.querySelector('[data-open-case="' + cid + '"]');
+      if (btn && !btn.disabled) btn.textContent = st.btn;
     }
   }
 
@@ -87,15 +86,25 @@
     var screen = document.getElementById('case-select-screen');
     if (!screen) return;
 
-    menuOpen = !screen.classList.contains('hidden');
-    if (menuOpen && window.GameVoice && typeof window.GameVoice.stop === 'function') {
-      window.GameVoice.stop();
+    if (autoStart) {
+      menuOpen = false;
+      screen.classList.add('hidden');
+      try {
+        var cleanUrl = window.location.pathname + '?case=' + encodeURIComponent(window.ACTIVE_CASE_ID || 'case409');
+        window.history.replaceState(null, '', cleanUrl);
+      } catch (e) {}
+    } else {
+      menuOpen = !screen.classList.contains('hidden');
+      if (menuOpen && window.GameVoice && typeof window.GameVoice.stop === 'function') {
+        window.GameVoice.stop();
+      }
     }
 
     refreshStatuses();
 
     function openCase(caseId) {
-      if (caseId === 'case409') {
+      var currentId = window.ACTIVE_CASE_ID || 'case409';
+      if (caseId === currentId) {
         menuOpen = false;
         screen.classList.add('hidden');
         if (pendingPlay && window.GameVoice && typeof window.GameVoice.play === 'function') {
@@ -105,12 +114,7 @@
         }
         return;
       }
-      if (window.CaseLoader && typeof window.CaseLoader.load === 'function') {
-        window.CaseLoader.load(caseId).then(function () {
-          menuOpen = false;
-          screen.classList.add('hidden');
-        });
-      }
+      window.location.href = '?case=' + encodeURIComponent(caseId) + '&autostart=1';
     }
 
     function showDesk() {
@@ -125,6 +129,7 @@
     var buttons = screen.querySelectorAll('[data-open-case]');
     for (var i = 0; i < buttons.length; i++) {
       buttons[i].addEventListener('click', function () {
+        if (this.disabled) return;
         var cid = this.getAttribute('data-open-case');
         openCase(cid);
       });

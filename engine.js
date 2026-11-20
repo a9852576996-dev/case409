@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var SAVE_KEY = 'case409_save_v1';
+  var SAVE_KEY = (window.ACTIVE_CASE_ID || 'case409') + '_save_v1';
   var BEATS_STYLE_ID = 'engine-beats-styles';
   var DEFAULT_HINT = 'В этом деле осталась деталь, мимо которой прошли в темноте.';
 
