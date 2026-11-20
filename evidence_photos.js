@@ -34,23 +34,89 @@
     }
   ];
 
+  var CAMERA_SVG =
+    '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>' +
+    '<circle cx="12" cy="13" r="4"/>' +
+    '</svg>';
+
+  function findNavButton() {
+    var btns = document.querySelectorAll('button, .nav-btn, .tab-btn');
+    for (var i = 0; i < btns.length; i++) {
+      var txt = (btns[i].textContent || '').trim().toUpperCase();
+      if (txt.indexOf('ЖУРНАЛ') !== -1) {
+        return btns[i];
+      }
+    }
+    return null;
+  }
+
+  function mountNavButton(onOpen) {
+    if (document.getElementById('btn-evidence-photos-tab')) return;
+
+    var refBtn = findNavButton();
+    if (refBtn && refBtn.parentElement) {
+      var nav = refBtn.parentElement;
+      var computed = window.getComputedStyle(nav);
+      if (computed.display === 'grid') {
+        nav.style.gridTemplateColumns = 'repeat(5, minmax(0, 1fr))';
+      }
+
+      var tabBtn = refBtn.cloneNode(true);
+      tabBtn.id = 'btn-evidence-photos-tab';
+      tabBtn.type = 'button';
+      tabBtn.classList.remove('active', 'is-active');
+      tabBtn.removeAttribute('data-tab');
+      tabBtn.removeAttribute('data-view');
+      tabBtn.removeAttribute('data-panel');
+      tabBtn.setAttribute('aria-label', 'Фото вещдоков');
+
+      var oldSvg = tabBtn.querySelector('svg');
+      if (oldSvg) {
+        var wrap = document.createElement('span');
+        wrap.innerHTML = CAMERA_SVG;
+        var newSvg = wrap.firstChild;
+        if (oldSvg.getAttribute('class')) {
+          newSvg.setAttribute('class', oldSvg.getAttribute('class'));
+        }
+        oldSvg.parentNode.replaceChild(newSvg, oldSvg);
+      }
+
+      var replaced = false;
+      var walker = document.createTreeWalker(tabBtn, NodeFilter.SHOW_TEXT, null, false);
+      var node;
+      while ((node = walker.nextNode())) {
+        if (node.nodeValue && node.nodeValue.trim().toUpperCase().indexOf('ЖУРНАЛ') !== -1) {
+          node.nodeValue = 'ФОТО';
+          replaced = true;
+          break;
+        }
+      }
+      if (!replaced) {
+        tabBtn.innerHTML = CAMERA_SVG + '<span>ФОТО</span>';
+      }
+
+      tabBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        onOpen();
+      });
+
+      nav.appendChild(tabBtn);
+      return;
+    }
+
+    var fallbackBtn = document.createElement('button');
+    fallbackBtn.id = 'btn-evidence-photos';
+    fallbackBtn.type = 'button';
+    fallbackBtn.innerHTML = CAMERA_SVG + '<span>ФОТО</span>';
+    fallbackBtn.addEventListener('click', onOpen);
+    document.body.appendChild(fallbackBtn);
+  }
+
   function init() {
-    if (document.getElementById('btn-evidence-photos')) return;
+    if (document.getElementById('evidence-modal')) return;
 
-    // Кнопка внизу экрана
-    var btn = document.createElement('button');
-    btn.id = 'btn-evidence-photos';
-    btn.type = 'button';
-    btn.setAttribute('aria-label', 'Фото вещдоков');
-    btn.innerHTML =
-      '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-      '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>' +
-      '<circle cx="12" cy="13" r="4"/>' +
-      '</svg>' +
-      '<span>ВЕЩДОКИ</span>';
-    document.body.appendChild(btn);
-
-    // Модальное окно фототаблицы
     var modal = document.createElement('div');
     modal.id = 'evidence-modal';
     modal.innerHTML =
@@ -63,7 +129,6 @@
       '</div>';
     document.body.appendChild(modal);
 
-    // Лайтбокс для увеличения фото
     var lightbox = document.createElement('div');
     lightbox.id = 'evidence-lightbox';
     lightbox.innerHTML =
@@ -101,9 +166,11 @@
       grid.appendChild(card);
     });
 
-    btn.addEventListener('click', function () {
+    function openModal() {
       modal.classList.add('open');
-    });
+    }
+
+    mountNavButton(openModal);
 
     document.getElementById('ev-close-modal').addEventListener('click', function () {
       modal.classList.remove('open');
