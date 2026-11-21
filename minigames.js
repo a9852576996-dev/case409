@@ -279,6 +279,9 @@
   }
 
   function start(minigameId, containerEl, config, callbacks) {
+    var _mgAliases = { archive_search: 'archive_audit', phone_pin: 'phone_hack', blood_test: 'blood_lab' };
+    if (typeof minigameId === 'string' && _mgAliases[minigameId]) { minigameId = _mgAliases[minigameId]; }
+
     destroy();
     injectStyles();
 

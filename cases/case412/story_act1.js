@@ -362,7 +362,7 @@ window.registerStoryNodes({
     "location": "Садовая улица — служебный планшет",
     "speaker": "СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ",
     "type": "minigame",
-    "minigameId": "archive_search",
+    "minigameId": "archive_audit",
     "title": "Анализ биллинга вышки",
     "desc": "Отфильтруйте сырую выгрузку сотового оператора и выделите 40-секундную сессию телефона Алины Соколовой.",
     "onWin": {
