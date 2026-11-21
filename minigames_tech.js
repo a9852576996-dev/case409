@@ -616,8 +616,53 @@
   }
 
   /* ==========================================================================
-     MINIGAME 1: 'phone_hack' (Комплекс взлома «КОРДОН-М»)
+     MINIGAME 1: 'phone_hack' (4 scenarios: case409 + case412 acts 2/5/6 + Phase 3)
      ========================================================================== */
+
+  var PH_EXTRA_STYLE_ID = 'minigames-tech-ph-extra';
+
+  var PH_EXTRA_CSS =
+    '.mgt-cover-slip {' +
+      'position: absolute; inset: 8px; z-index: 8; border-radius: 6px; padding: 14px 12px;' +
+      'display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px;' +
+      'text-align: center; touch-action: none; cursor: grab;' +
+      'background: linear-gradient(166deg, #252a36 0%, #14171f 68%, #0d1016 100%);' +
+      'border: 1.5px solid var(--case-accent, #c98a2e); border-left: 4px solid var(--case-accent, #c98a2e);' +
+      'box-shadow: 0 12px 28px rgba(0,0,0,0.85);' +
+      'transition: transform 0.24s ease, opacity 0.24s ease;' +
+    '}' +
+    '.mgt-cover-slip.is-paper {' +
+      'background: linear-gradient(166deg, #efe2b0 0%, #dec986 68%, #cbb36b 100%);' +
+      'color: #211c13; border-color: #9b823f; border-left-color: #991b1b;' +
+    '}' +
+    '.mgt-cover-slip.is-dragging { transition: none; cursor: grabbing; }' +
+    '.mgt-cover-slip.is-peeled { transform: translate3d(118%, -12px, 0) rotate(9deg) !important; opacity: 0 !important; pointer-events: none; }' +
+    '.mgt-cover-kicker { font-family: "Oswald", sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--case-accent, #f59e0b); }' +
+    '.mgt-cover-slip.is-paper .mgt-cover-kicker { color: #881c1c; }' +
+    '.mgt-cover-txt { font-family: "IBM Plex Mono", monospace; font-size: 11px; line-height: 1.44; color: #d6d2c8; max-width: 280px; }' +
+    '.mgt-cover-slip.is-paper .mgt-cover-txt { color: #2b2419; }' +
+    '.mgt-cover-btn { padding: 7px 12px; border-radius: 4px; font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; background: rgba(201,138,46,0.22); color: #fde68a; border: 1px solid var(--case-accent, #c98a2e); }' +
+    '.mgt-cover-slip.is-paper .mgt-cover-btn { background: #211c13; color: #f3e4a8; border-color: #4d4128; }' +
+    '.mgt-key.is-smudge { position: relative; border-color: #444d61; }' +
+    '.mgt-key.is-smudge::after { content: ""; position: absolute; width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle, rgba(212,202,180,0.16) 0%, rgba(212,202,180,0) 72%); pointer-events: none; }' +
+    '.mgt-deduce-card { flex: 1; overflow-y: auto; background: #14171f; border: 1px solid #353b4a; border-top: 3px solid var(--case-accent, #c98a2e); border-radius: 6px; padding: 11px; display: flex; flex-direction: column; gap: 8px; }' +
+    '.mgt-dkicker { font-family: "IBM Plex Mono", monospace; font-size: 9.8px; font-weight: 700; color: var(--case-accent, #c98a2e); text-transform: uppercase; }' +
+    '.mgt-dfacts { padding: 7px 8px; background: #0d1016; border: 1px solid #262b36; border-radius: 5px; font-family: "IBM Plex Mono", monospace; font-size: 9.8px; line-height: 1.4; color: #c2cad8; display: flex; flex-direction: column; gap: 3px; }' +
+    '.mgt-dq { font-size: 12.2px; line-height: 1.38; color: #f3efe6; font-weight: 500; }' +
+    '.mgt-dopts { display: flex; flex-direction: column; gap: 6px; }' +
+    '.mgt-dopt { width: 100%; text-align: left; padding: 8px 9px; background: #1b202b; border: 1px solid #353d4e; border-radius: 5px; color: #e4e0d8; font-size: 11.5px; line-height: 1.34; cursor: pointer; }' +
+    '.mgt-dopt.is-wrong { border-color: #ef4444; background: rgba(153,27,27,0.25); color: #fecaca; }' +
+    '.mgt-dopt.is-correct { border-color: #22c55e; background: rgba(34,197,94,0.2); color: #bbf7d0; }' +
+    '.mgt-dfb { font-family: "IBM Plex Mono", monospace; font-size: 10.2px; line-height: 1.35; min-height: 15px; color: #fca5a5; }' +
+    '.mgt-dfb.is-ok { color: #86efac; }';
+
+  function injectPhExtraStyles() {
+    if (document.getElementById(PH_EXTRA_STYLE_ID)) return;
+    var el = document.createElement('style');
+    el.id = PH_EXTRA_STYLE_ID;
+    el.textContent = PH_EXTRA_CSS;
+    document.head.appendChild(el);
+  }
 
   var CRACK_SVG =
     '<svg class="mgt-crack-svg" viewBox="0 0 320 140" preserveAspectRatio="none" aria-hidden="true">' +
@@ -628,23 +673,234 @@
         '<path d="M248 22 L258 76 L296 118" stroke-width="1.1" opacity="0.6"/>' +
         '<path d="M212 46 L190 12 L172 0" stroke-width="0.9" opacity="0.55"/>' +
         '<path d="M176 58 L122 44 L64 62 L18 46" stroke-width="1.0" opacity="0.6"/>' +
-        '<path d="M176 58 L208 106 L224 140" stroke-width="0.9" opacity="0.5"/>' +
-        '<path d="M138 96 L84 94 L32 126" stroke-width="0.85" opacity="0.5"/>' +
         '<circle cx="248" cy="22" r="4" stroke-width="1.1" opacity="0.75"/>' +
       '</g>' +
     '</svg>';
 
+  function resolvePhoneScenario(config) {
+    var cfg = config || {};
+    var caseId = String(window.ACTIVE_CASE_ID || '').toLowerCase();
+    var nodeId = '';
+    try {
+      if (window.GameEngine && typeof window.GameEngine.getState === 'function') {
+        var st = window.GameEngine.getState();
+        if (st && st.nodeId) nodeId = String(st.nodeId);
+      }
+    } catch (e) {}
+    var storyNode = null;
+    try {
+      if (window.GameStory && window.GameStory.nodes && nodeId) {
+        storyNode = window.GameStory.nodes[nodeId] || null;
+      }
+    } catch (e) {}
+
+    var hint = String(cfg.title || (storyNode && storyNode.title) || '');
+
+    // 1. case412 Act II: Artem's phone
+    if (cfg.preset === 'case412_artem' || (caseId === 'case412' && (nodeId === 'act2_mg_phone' || /арт[её]м/i.test(hint)))) {
+      return {
+        id: 'case412_act2_phone',
+        title: cfg.title || 'СМАРТФОН АРТЁМА // КОРДОН-М',
+        pin: String(cfg.pin || '4812').replace(/\D/g, '') || '4812',
+        battery: 18,
+        showCracks: false,
+        cover: {
+          tone: 'paper',
+          kicker: 'ПРИКОЛОТЫЙ ЧЕК АЗС №12',
+          text: 'На экране лежит бумажный чек ночной смены Артёма (22:05). Сдвиньте его — на обороте записан код карты «4812».',
+          btnText: 'СДВИНУТЬ ЧЕК ⇄'
+        },
+        pinHint: 'НА ОБОРОТЕ ЧЕКА АЗС: 4812 · СЛЕДЫ НА КЛАВИШАХ',
+        footerIdle: 'КОМПЛЕКС «КОРДОН-М» // АНАЛИЗ ГЕОМЕТОК И ГОЛОСОВЫХ',
+        phase2Title: 'ФАЗА 2: ДАМП ГЕОМЕТОК',
+        phase2Hint: 'ПЕРЕХВАТИТЕ 4 ЯНТАРНЫЕ СИГНАТУРЫ · ИЗБЕГАЙТЕ КРАСНЫХ БИТЫХ СЕКТОРОВ',
+        hexBadge: 'КЭШ ВОССТАНОВЛЕН // ТЕЛЕФОН АРТЁМА',
+        chatLines: [
+          '[22:05–03:50] GPS-трек: круглосуточная АЗС на трассе, 12 км от «Тихих Ключей» (чек подтверждён).',
+          '[2 дня назад] Голосовое от Алины: «Странный вежливый сосед с Садовой третий вечер притормаживает рядом на универсале и молча смотрит в зеркало...»',
+          '[ИТОГ ПРОВЕРКИ] Ни одной геометки Артёма в посёлке в ночь пропажи нет.'
+        ],
+        extractBtn: 'ПЕРЕЙТИ К ВЫВОДУ',
+        finalBtn: 'ПРИОБЩИТЬ К ДЕЛУ',
+        conclusion: {
+          question: 'GPS-трек и чек АЗС держат Артёма в 12 км всю ночь, а в голосовом Алина жаловалась на «вежливого соседа на универсале». Вывод:',
+          options: [
+            { id: 'artem_guilty', text: 'Артём подделал чек и всё равно похитил Алину на трассе.', isCorrect: false, reason: 'Противоречие: GPS-трек, вышка БС-02 и чек АЗС сходятся до минуты в 12 км от посёлка.' },
+            { id: 'artem_clear', text: 'Алиби Артёма подтверждено (версия Громова рухнула); за Алиной следил сосед с Садовой на универсале.', isCorrect: true, reason: 'Верно: Рыжий чист, а след ведёт прямо на Садовую улицу.' },
+            { id: 'runaway_alone', text: 'Алина сбежала одна, испугавшись ссоры с матерью.', isCorrect: false, reason: 'Противоречие: в голосовом Алина прямо говорит о слежке со стороны вежливого соседа.' }
+          ]
+        }
+      };
+    }
+
+    // 2. case412 Act V: Hidden garage electrical panel
+    if (cfg.preset === 'case412_panel' || (caseId === 'case412' && (nodeId === 'act5_mg_pin' || /щит|бункер/i.test(hint)))) {
+      return {
+        id: 'case412_act5_panel',
+        title: cfg.title || 'СКРЫТЫЙ ЩИТОК БУНКЕРА // №14',
+        pin: String(cfg.pin || '1416').replace(/\D/g, '') || '1416',
+        battery: 16,
+        showCracks: false,
+        cover: {
+          tone: 'metal',
+          kicker: 'ФАЛЬШ-КРЫШКА ЭЛЕКТРОСЧЁТЧИКА',
+          text: 'За муляжом счётчика в гараже скрыта кодовая плата замка и вентиляции. На внутренней маркировке: «УЧАСТОК 14 / ЗАЛИВКА 16 → 1416».',
+          btnText: 'СНЯТЬ КРЫШКУ ⇄'
+        },
+        pinHint: 'МАРКИРОВКА ПЛАТЫ: УЧАСТОК 14 · ГОД 16 (1416)',
+        footerIdle: 'КОНТУР ЭЛЕКТРОМАГНИТНОГО ЗАМКА И ВЕНТИЛЯЦИИ',
+        phase2Title: 'ФАЗА 2: РЕЛЕ ЗАСОВА',
+        phase2Hint: 'АКТИВИРУЙТЕ 4 ЯНТАРНЫХ РЕЛЕ ЗАМКА · НЕ ЗАДЕНЬТЕ 3 КРАСНЫХ РЕЛЕ ВЫТЯЖКИ',
+        hexBadge: 'ЭЛЕКТРОМАГНИТНЫЙ ЗАСОВ РАЗБЛОКИРОВАН',
+        chatLines: [
+          '[РЕЛЕ-1..4] Электромагнитный засов стального люка под верстаком обесточен — слышен тяжёлый щелчок.',
+          '[ВЕНТИЛЯЦИЯ] Вытяжка на 3 секунды перешла в тихий режим — и по трубе стояка сразу раздался живой стук: три удара, пауза, три удара!',
+          '[ВНИМАНИЕ] Немедленно вернуть питание вытяжки, чтобы не перекрыть воздух внизу.'
+        ],
+        extractBtn: 'ПЕРЕЙТИ К ВЫВОДУ',
+        finalBtn: 'ЗАФИКСИРОВАТЬ ВСКРЫТИЕ',
+        conclusion: {
+          question: 'Засов люка под верстаком открыт, а в момент паузы вытяжки из железного стояка раздался отчётливый тройной стук. Вывод:',
+          options: [
+            { id: 'cut_power', text: 'Нужно полностью обесточить гараж Кравцова и уйти ждать утра.', isCorrect: false, reason: 'Противоречие: отключение питания остановит подземную вытяжку и лишит пленницу воздуха!' },
+            { id: 'alive_below', text: 'Алина жива и находится прямо под бетонной плитой гаража — сохраняем вытяжку и немедленно идём вниз.', isCorrect: true, reason: 'Верно: живой сигнал по трубе подтверждает, что дорога каждая минута.' },
+            { id: 'pipe_air', text: 'Стук вызвал гидроудар в водопроводе при отключении реле.', isCorrect: false, reason: 'Противоречие: чёткий ритм «три удара — пауза — три удара» — осознанный сигнал бедствия.' }
+          ]
+        }
+      };
+    }
+
+    // 3. case412 Act VI: Emergency cellar inner steel door lock
+    if (cfg.preset === 'case412_lock' || (caseId === 'case412' && (nodeId === 'act6_mg_lock' || /аварийн|камер/i.test(hint)))) {
+      return {
+        id: 'case412_act6_lock',
+        title: cfg.title || 'АВАРИЙНЫЙ ЗАМОК КАМЕРЫ // №412',
+        pin: String(cfg.pin || '0412').replace(/\D/g, '') || '0412',
+        battery: 12,
+        showCracks: false,
+        cover: {
+          tone: 'metal',
+          kicker: 'КОЖУХ АВАРИЙНОГО СБРОСА',
+          text: 'Резервный АКБ садится! Сдвиньте защитный кожух — под ним сервисная бирка сброса ригелей и клапана продувки: «0412».',
+          btnText: 'СДВИНУТЬ КОЖУХ ⇄'
+        },
+        pinHint: 'СЕРВИСНЫЙ КОД СБРОСА РИГЕЛЕЙ: 0412',
+        footerIdle: 'ПАНЕЛЬ СТАЛЬНОЙ ДВЕРИ // РЕЗЕРВНЫЙ АКБ',
+        phase2Title: 'ФАЗА 2: СБРОС РИГЕЛЕЙ',
+        phase2Hint: 'РАЗБЛОКИРУЙТЕ 4 ЯНТАРНЫХ РИГЕЛЯ · ИЗБЕГАЙТЕ 3 КРАСНЫХ КОНТУРОВ БЛОКИРОВКИ',
+        hexBadge: 'РИГЕЛИ ОТОШЛИ // КЛАПАН ПРОДУВКИ ОТКРЫТ',
+        chatLines: [
+          '[ДВЕРЬ] Три массивных стальных ригеля с гулким лязгом отошли в корпус двери.',
+          '[ПРОДУВКА] Аварийный клапан пассивной вентиляции открыт — свежий воздух пошёл внутрь камеры!',
+          '[СТАТУС] Алина в безопасности, но наверху Кравцов рассчитывает на прикрытие районного судьи.'
+        ],
+        extractBtn: 'ПЕРЕЙТИ К ВЫВОДУ',
+        finalBtn: 'ОТКРЫТЬ ДВЕРЬ КАМЕРЫ',
+        conclusion: {
+          question: 'Замок стальной камеры разблокирован и клапан продувки открыт. Что критично сделать дальше по делу №412?',
+          options: [
+            { id: 'leave_docs', text: 'Не тратить время на улики и отпустить Кравцова под подписку.', isCorrect: false, reason: 'Противоречие: без бумажного досье покровитель Кравцова в суде развалит дело.' },
+            { id: 'save_and_lock', text: 'Обеспечить доступ воздуха в камеру и добить бумажную защиту Кравцова неопровержимой хронологией.', isCorrect: true, reason: 'Верно: жизнь Алины спасена, теперь закрываем все лазейки Кравцова.' },
+            { id: 'close_valve', text: 'Снова заблокировать ригели до приезда участкового Громова.', isCorrect: false, reason: 'Противоречие: Громов сам замешан в сокрытии улик, а в камере заканчивался воздух.' }
+          ]
+        }
+      };
+    }
+
+    // 4. case409 Act III: Alina Savelieva's broken smartphone (default for case409)
+    if (cfg.preset === 'case409' || caseId === 'case409' || nodeId === 'act3_phone_game' || cfg.pin === '1908') {
+      return {
+        id: 'case409_act3_phone',
+        title: cfg.title || 'КОРДОН-М // СМАРТФОН АЛИНЫ',
+        pin: String(cfg.pin || '1908').replace(/\D/g, '') || '1908',
+        battery: 14,
+        showCracks: true,
+        cover: {
+          tone: 'metal',
+          kicker: 'НАЛЁТ ИЛА И ЗАЩИТНАЯ ПЛЁНКА',
+          text: 'Смартфон поднят из дренажной канавы. Сдвиньте грязную плёнку, чтобы увидеть потёртые цифры на экране и ввести ПИН из личных вещей (дата рождения).',
+          btnText: 'СНЯТЬ ПЛЁНКУ ⇄'
+        },
+        pinHint: 'СВЕРЬТЕ ДАТУ ИЗ ЛИЧНЫХ ВЕЩЕЙ АЛИНЫ (4 ЦИФРЫ)',
+        footerIdle: 'КОМПЛЕКС «КОРДОН-М» v4.2 // ПОДКЛЮЧЕНИЕ ПО USB-JTAG',
+        phase2Title: 'ФАЗА 2: ДАМП КЭША',
+        phase2Hint: 'ПЕРЕХВАТИТЕ 4 ЯНТАРНЫЕ СИГНАТУРЫ · ИЗБЕГАЙТЕ 3 КРАСНЫХ БИТЫХ СЕКТОРОВ',
+        hexBadge: 'КЭШ ВОССТАНОВЛЕН // МЕССЕНДЖЕР',
+        chatLines: Array.isArray(cfg.chatLines) && cfg.chatLines.length > 0 ? cfg.chatLines : [
+          '[22:14] Алина: «Электричка встала, иду пешком мимо депо, тут темень жуткая»',
+          '[22:19] Алина: «Всё норм, остановилась машина. Знакомый, в форме, с нашей стороны, обещал докинуть до переезда»',
+          '[22:21] [АУДИОЗАПИСЬ 00:12 — ЗАПИСАНО ИЗ КАРМАНА, ПОВРЕЖДЕНО]'
+        ],
+        extractBtn: 'ПЕРЕЙТИ К ВЫВОДУ',
+        finalBtn: 'ИЗВЛЕЧЬ АУДИОФАЙЛ',
+        conclusion: {
+          question: 'В 22:19 Алина добровольно села в машину к «знакомому в форме», а в 22:21 началась скрытая аудиозапись из кармана. Вывод:',
+          options: [
+            { id: 'stranger_ditch', text: 'На Алину напал случайный бродяга в канаве, пока она шла пешком от депо.', isCorrect: false, reason: 'Противоречие: в 22:19 она сама написала, что села в машину к знакомому сотруднику в форме.' },
+            { id: 'cop_car', text: 'Убийца воспользовался доверием и ведомственной формой, чтобы посадить Алину в машину — повреждённую запись 22:21 нужно срочно очистить.', isCorrect: true, reason: 'Верно: сообщение 22:19 и аудиофайл 22:21 прямо указывают на сотрудника в форме.' },
+            { id: 'gromov_car', text: 'Её подвёз слесарь Громов на служебном дрезинном поезде.', isCorrect: false, reason: 'Противоречие: Алина прямо указала, что остановилась машина со «знакомым в форме».' }
+          ]
+        }
+      };
+    }
+
+    // 5. Neutral generic fallback
+    var gPin = String(cfg.pin || '2408').replace(/\D/g, '') || '2408';
+    return {
+      id: 'generic_phone_hack',
+      title: cfg.title || 'КОРДОН-М // ИЗВЛЕЧЕНИЕ ДАННЫХ',
+      pin: gPin,
+      battery: 16,
+      showCracks: true,
+      cover: {
+        tone: 'metal',
+        kicker: 'ЗАЩИТНАЯ БИРКА ВЕЩДОКА',
+        text: 'Сдвиньте защитный чехол, чтобы открыть клавиатуру ввода кода доступа (' + gPin + ').',
+        btnText: 'СНЯТЬ ЧЕХОЛ ⇄'
+      },
+      pinHint: 'ВВЕДИТЕ КОД ДОСТУПА (ПОТЁРТЫЕ КЛАВИШИ)',
+      footerIdle: 'ТЕРМИНАЛ «КОРДОН-М» // ИЗВЛЕЧЕНИЕ ДАМПА',
+      phase2Title: 'ФАЗА 2: ДАМП ПАМЯТИ',
+      phase2Hint: 'ПЕРЕХВАТИТЕ 4 ЯНТАРНЫЕ СИГНАТУРЫ · ИЗБЕГАЙТЕ 3 КРАСНЫХ БИТЫХ СЕКТОРОВ',
+      hexBadge: 'ДАННЫЕ ВОССТАНОВЛЕНЫ',
+      chatLines: Array.isArray(cfg.chatLines) && cfg.chatLines.length > 0 ? cfg.chatLines : [
+        '[ДАМП #1] Системный журнал и метаданные успешно извлечены.',
+        '[ДАМП #2] Обнаружен удалённый фрагмент ключевой записи.'
+      ],
+      extractBtn: 'ПЕРЕЙТИ К ВЫВОДУ',
+      finalBtn: 'ПРИОБЩИТЬ ДАМП К ДЕЛУ',
+      conclusion: cfg.conclusion || {
+        question: 'Доступ получен и 4 удалённых сектора кэша успешно восстановлены. Вывод:',
+        options: [
+          { id: 'corrupt', text: 'Дамп полностью пуст и не содержит улик.', isCorrect: false, reason: 'Противоречие: все 4 целевые сигнатуры восстановлены без повреждений.' },
+          { id: 'ok', text: 'Удалённые данные успешно извлечены и пригодны для приобщения к материалам дела.', isCorrect: true, reason: 'Верно: цифровой след зафиксирован.' },
+          { id: 'wipe', text: 'Сработала самоочистка памяти.', isCorrect: false, reason: 'Противоречие: битые сектора самоочистки успешно обойдены.' }
+        ]
+      }
+    };
+  }
+
+
   window.GameMinigames.register('phone_hack', function (containerEl, config, callbacks) {
     injectTechStyles();
+    injectPhExtraStyles();
 
-    var targetPin = String(config.pin || '1908').replace(/\D/g, '') || '1908';
+    var cfg = config || {};
+    var scenario = resolvePhoneScenario(cfg);
+    var targetPin = scenario.pin;
     var pinLen = targetPin.length;
-    var battery = 14;
+    var pinDigitsSet = {};
+    for (var pd = 0; pd < targetPin.length; pd++) {
+      pinDigitsSet[targetPin.charAt(pd)] = true;
+    }
+
+    var battery = scenario.battery || 14;
     var pinAttempts = 0;
     var maxPinAttempts = 4;
     var enteredPin = '';
     var inputLocked = false;
-    var phase = 'pin'; // 'pin' | 'cache' | 'restored' | 'failed'
+    var coverRemoved = !scenario.cover;
+    var phase = 'pin'; // 'pin' | 'cache' | 'restored' | 'deduce' | 'failed'
     var destroyed = false;
 
     var timers = [];
@@ -653,29 +909,19 @@
     function addTimer(fn, delay) {
       var id = window.setTimeout(function () {
         var idx = timers.indexOf(id);
-        if (idx !== -1) {
-          timers.splice(idx, 1);
-        }
-        if (!destroyed) {
-          fn();
-        }
+        if (idx !== -1) timers.splice(idx, 1);
+        if (!destroyed) fn();
       }, delay);
       timers.push(id);
       return id;
     }
 
     function clearAllTimers() {
-      for (var i = 0; i < timers.length; i++) {
-        window.clearTimeout(timers[i]);
-      }
+      for (var i = 0; i < timers.length; i++) window.clearTimeout(timers[i]);
       timers = [];
-      if (rafId !== null) {
-        window.cancelAnimationFrame(rafId);
-        rafId = null;
-      }
+      if (rafId !== null) { window.cancelAnimationFrame(rafId); rafId = null; }
     }
 
-    // Build shell
     var wrap = document.createElement('div');
     wrap.className = 'mg-wrap';
 
@@ -687,7 +933,7 @@
 
     var titleEl = document.createElement('div');
     titleEl.className = 'mg-header-title';
-    titleEl.textContent = config.title || 'КОРДОН-М // ИЗЪЯТЫЙ СМАРТФОН';
+    titleEl.textContent = scenario.title;
 
     var batRow = document.createElement('div');
     batRow.className = 'mgt-bat-row';
@@ -695,26 +941,24 @@
     var batEl = document.createElement('span');
     batEl.className = 'mgt-battery';
     batEl.innerHTML =
-      '<span class="mgt-bat-icon"><span class="mgt-bat-fill" data-role="bat-fill" style="width:14%;"></span></span>' +
-      '<span data-role="bat-val">БАТАРЕЯ: 14%</span>';
+      '<span class="mgt-bat-icon"><span class="mgt-bat-fill" data-role="bat-fill" style="width:' + battery + '%;"></span></span>' +
+      '<span data-role="bat-val">ЗАРЯД: ' + battery + '%</span>';
 
     var phaseTagEl = document.createElement('span');
     phaseTagEl.className = 'mgt-phase-tag';
-    phaseTagEl.textContent = 'ФАЗА 1: ПИН';
+    phaseTagEl.textContent = 'ФАЗА 1: КОД ДОСТУПА';
 
     batRow.appendChild(batEl);
     batRow.appendChild(phaseTagEl);
-
     headInfo.appendChild(titleEl);
     headInfo.appendChild(batRow);
 
     var btnBack = document.createElement('button');
     btnBack.type = 'button';
     btnBack.className = 'mg-btn mg-btn-cancel';
-    btnBack.textContent = 'НАЗАД / В УЛИКИ';
+    btnBack.textContent = 'НАЗАД / УЛИКИ';
     btnBack.addEventListener('click', function () {
-      sfx('sfxClick');
-      haptic('light');
+      sfx('sfxClick'); haptic('light');
       callbacks.onCancel();
     });
 
@@ -734,7 +978,7 @@
     var footerStatus = document.createElement('div');
     footerStatus.className = 'mgt-phase-tag';
     footerStatus.style.color = '#a0a5b0';
-    footerStatus.textContent = 'КОМПЛЕКС «КОРДОН-М» v4.2 // ПОДКЛЮЧЕНИЕ ПО USB-JTAG';
+    footerStatus.textContent = scenario.footerIdle;
     footer.appendChild(footerStatus);
 
     wrap.appendChild(header);
@@ -747,47 +991,97 @@
 
     function updateBatteryUI() {
       var pct = Math.max(0, Math.min(100, Math.round(battery)));
-      batValEl.textContent = 'БАТАРЕЯ: ' + pct + '%';
+      batValEl.textContent = 'ЗАРЯД: ' + pct + '%';
       batFillEl.style.width = Math.max(pct > 0 ? 8 : 0, pct) + '%';
     }
 
     function showFailOverlay(titleText, descText, reason) {
       phase = 'failed';
       inputLocked = true;
-      if (rafId !== null) {
-        window.cancelAnimationFrame(rafId);
-        rafId = null;
-      }
-
+      if (rafId !== null) { window.cancelAnimationFrame(rafId); rafId = null; }
       var ov = document.createElement('div');
       ov.className = 'mgt-fail-overlay';
-      ov.innerHTML =
-        '<div class="mgt-fail-card">' +
-          '<div class="mgt-fail-title"></div>' +
-          '<div class="mgt-fail-desc"></div>' +
-        '</div>';
+      ov.innerHTML = '<div class="mgt-fail-card"><div class="mgt-fail-title"></div><div class="mgt-fail-desc"></div></div>';
       ov.querySelector('.mgt-fail-title').textContent = titleText;
       ov.querySelector('.mgt-fail-desc').textContent = descText;
       screenWrap.appendChild(ov);
-
       addTimer(function () {
-        callbacks.onFail({ reason: reason });
+        callbacks.onFail({ reason: reason, scenarioId: scenario.id });
       }, 950);
     }
 
-    /* ----- PHASE 1: PIN ENTRY ----- */
+    function attachCoverSlip() {
+      if (!scenario.cover || coverRemoved) return;
+      var slip = document.createElement('div');
+      slip.className = 'mgt-cover-slip' + (scenario.cover.tone === 'paper' ? ' is-paper' : '');
+
+      var kicker = document.createElement('div');
+      kicker.className = 'mgt-cover-kicker';
+      kicker.textContent = scenario.cover.kicker;
+
+      var txt = document.createElement('div');
+      txt.className = 'mgt-cover-txt';
+      txt.textContent = scenario.cover.text;
+
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'mgt-cover-btn';
+      btn.textContent = scenario.cover.btnText || 'СДВИНУТЬ ⇄';
+
+      slip.appendChild(kicker);
+      slip.appendChild(txt);
+      slip.appendChild(btn);
+      screenWrap.appendChild(slip);
+
+      var dragging = false, ptrId = null, startX = 0;
+      function peel() {
+        if (coverRemoved || destroyed) return;
+        coverRemoved = true; dragging = false;
+        slip.classList.remove('is-dragging');
+        slip.classList.add('is-peeled');
+        sfx('sfxPaper'); haptic('medium');
+        addTimer(function () { slip.style.display = 'none'; }, 260);
+      }
+
+      btn.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+      btn.addEventListener('click', function (e) { e.stopPropagation(); peel(); });
+      slip.addEventListener('pointerdown', function (e) {
+        if (coverRemoved) return;
+        dragging = true; ptrId = e.pointerId; startX = e.clientX;
+        slip.classList.add('is-dragging');
+        try { slip.setPointerCapture(e.pointerId); } catch (err) {}
+      });
+      slip.addEventListener('pointermove', function (e) {
+        if (!dragging || coverRemoved || e.pointerId !== ptrId) return;
+        var dx = e.clientX - startX;
+        slip.style.transform = 'translate3d(' + dx + 'px, 0, 0) rotate(' + Math.max(-12, Math.min(12, dx * 0.07)) + 'deg)';
+        slip.style.opacity = String(Math.max(0.25, Math.min(1, 1 - Math.abs(dx) / 145)));
+        if (Math.abs(dx) >= 46) peel();
+      });
+      function endDrag(e) {
+        if (!dragging || (ptrId !== null && e.pointerId !== ptrId)) return;
+        dragging = false; ptrId = null;
+        if (!coverRemoved) {
+          slip.classList.remove('is-dragging');
+          slip.style.transform = ''; slip.style.opacity = '';
+        }
+      }
+      slip.addEventListener('pointerup', endDrag);
+      slip.addEventListener('pointercancel', endDrag);
+    }
+
     function renderPhase1Pin() {
       phase = 'pin';
-      phaseTagEl.textContent = 'ФАЗА 1: ПИН-КОД';
+      phaseTagEl.textContent = 'ФАЗА 1: КОД ДОСТУПА';
       screenWrap.innerHTML = '';
 
       var display = document.createElement('div');
       display.className = 'mgt-phone-display';
-      display.innerHTML = CRACK_SVG;
+      if (scenario.showCracks) display.innerHTML = CRACK_SVG;
 
       var noteEl = document.createElement('div');
       noteEl.className = 'mgt-pin-note';
-      noteEl.textContent = 'СВЕРЬТЕ ДАТЫ И ЦИФРЫ ПО ИЗЪЯТЫМ ВЕЩДОКАМ';
+      noteEl.textContent = scenario.pinHint;
 
       var slotsEl = document.createElement('div');
       slotsEl.className = 'mgt-pin-slots';
@@ -802,7 +1096,7 @@
 
       var statusEl = document.createElement('div');
       statusEl.className = 'mgt-pin-status';
-      statusEl.textContent = 'ВВЕДИТЕ 4-ЗНАЧНЫЙ ПИН · ПОПЫТОК: ' + maxPinAttempts;
+      statusEl.textContent = 'ВВЕДИТЕ 4-ЗНАЧНЫЙ КОД · ПОПЫТОК: ' + maxPinAttempts;
 
       display.appendChild(noteEl);
       display.appendChild(slotsEl);
@@ -810,7 +1104,6 @@
 
       var keypad = document.createElement('div');
       keypad.className = 'mgt-keypad';
-
       var keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'СБРОС', '0', '⌫'];
 
       function syncPinCells(stateClass) {
@@ -818,11 +1111,8 @@
           var ch = enteredPin[c] || '';
           cellEls[c].textContent = ch;
           cellEls[c].classList.remove('is-filled', 'is-error', 'is-ok');
-          if (stateClass) {
-            cellEls[c].classList.add(stateClass);
-          } else if (ch) {
-            cellEls[c].classList.add('is-filled');
-          }
+          if (stateClass) cellEls[c].classList.add(stateClass);
+          else if (ch) cellEls[c].classList.add('is-filled');
         }
       }
 
@@ -831,42 +1121,25 @@
         if (enteredPin === targetPin) {
           syncPinCells('is-ok');
           statusEl.className = 'mgt-pin-status is-ok';
-          statusEl.textContent = 'КОД ПРИНЯТ — ДОСТУП К ДАМПУ ПАМЯТИ...';
-          sfx('sfxSuccess');
-          haptic('success');
-          addTimer(function () {
-            renderPhase2Cache();
-          }, 620);
+          statusEl.textContent = 'КОД ПРИНЯТ — ПЕРЕХОД К ДАМПУ / РЕЛЕ...';
+          sfx('sfxSuccess'); haptic('success');
+          addTimer(renderPhase2Cache, 600);
         } else {
           pinAttempts += 1;
           syncPinCells('is-error');
-          slotsEl.classList.remove('is-shake');
-          void slotsEl.offsetWidth;
-          slotsEl.classList.add('is-shake');
-          sfx('sfxAlert');
-          haptic('error');
+          slotsEl.classList.remove('is-shake'); void slotsEl.offsetWidth; slotsEl.classList.add('is-shake');
+          sfx('sfxAlert'); haptic('error');
 
           if (pinAttempts >= maxPinAttempts) {
-            battery = 0;
-            updateBatteryUI();
+            battery = 0; updateBatteryUI();
             statusEl.className = 'mgt-pin-status is-err';
             statusEl.textContent = 'КРИТИЧЕСКИЙ РАЗРЯД — 0%';
-            showFailOverlay(
-              'БАТАРЕЯ РАЗРЯЖЕНА (0%)',
-              'Смартфон отключился до снятия блокировки. Контроллер питания не отвечает.',
-              'battery_dead'
-            );
+            showFailOverlay('ЗАРЯД ИСЧЕРПАН (0%)', 'Питание отключилось до снятия блокировки.', 'battery_dead');
           } else {
-            battery = Math.max(1, battery - 3);
-            updateBatteryUI();
-            var left = maxPinAttempts - pinAttempts;
+            battery = Math.max(2, battery - 3); updateBatteryUI();
             statusEl.className = 'mgt-pin-status is-err';
-            statusEl.textContent = 'НЕВЕРНЫЙ ПИН · ОСТАЛОСЬ ПОПЫТОК: ' + left;
-            addTimer(function () {
-              enteredPin = '';
-              syncPinCells('');
-              inputLocked = false;
-            }, 420);
+            statusEl.textContent = 'НЕВЕРНЫЙ КОД · ОСТАЛОСЬ ПОПЫТОК: ' + (maxPinAttempts - pinAttempts);
+            addTimer(function () { enteredPin = ''; syncPinCells(''); inputLocked = false; }, 420);
           }
         }
       }
@@ -876,106 +1149,66 @@
           var btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'mgt-key';
-          if (val === '⌫' || val === 'СБРОС') {
-            btn.classList.add('is-fn');
-          }
+          if (val === '⌫' || val === 'СБРОС') btn.classList.add('is-fn');
+          if (pinDigitsSet[val]) btn.classList.add('is-smudge');
           btn.textContent = val;
 
           btn.addEventListener('click', function () {
-            if (inputLocked || phase !== 'pin') {
-              return;
-            }
-            sfx('sfxClick');
-            haptic('light');
-
+            if (inputLocked || phase !== 'pin' || !coverRemoved) return;
+            sfx('sfxClick'); haptic('light');
             if (val === '⌫') {
-              if (enteredPin.length > 0) {
-                enteredPin = enteredPin.slice(0, -1);
-                syncPinCells('');
-              }
+              if (enteredPin.length > 0) { enteredPin = enteredPin.slice(0, -1); syncPinCells(''); }
               return;
             }
-            if (val === 'СБРОС') {
-              enteredPin = '';
-              syncPinCells('');
-              return;
-            }
-
+            if (val === 'СБРОС') { enteredPin = ''; syncPinCells(''); return; }
             if (enteredPin.length < pinLen) {
               enteredPin += val;
               syncPinCells('');
-              if (enteredPin.length === pinLen) {
-                inputLocked = true;
-                addTimer(verifyPin, 140);
-              }
+              if (enteredPin.length === pinLen) { inputLocked = true; addTimer(verifyPin, 140); }
             }
           });
-
           keypad.appendChild(btn);
         })(keys[k]);
       }
 
       screenWrap.appendChild(display);
       screenWrap.appendChild(keypad);
+      attachCoverSlip();
     }
 
-    /* ----- PHASE 2: DELETED CACHE DUMP (4x4 HEX SECTORS) ----- */
     function renderPhase2Cache() {
       phase = 'cache';
       inputLocked = false;
-      phaseTagEl.textContent = 'ФАЗА 2: ДАМП КЭША';
-      footerStatus.textContent = 'ПЕРЕХВАТИТЕ 4 ЯНТАРНЫЕ СИГНАТУРЫ · ИЗБЕГАЙТЕ КРАСНЫХ БИТЫХ СЕКТОРОВ';
+      phaseTagEl.textContent = scenario.phase2Title;
+      footerStatus.textContent = scenario.phase2Hint;
       screenWrap.innerHTML = '';
 
-      var hexLabels = [
-        '0x0A', '0x1F', '0x2C', '0x3E',
-        '0x4B', '0x59', '0x6D', '0x7A',
-        '0x84', '0x91', '0xA8', '0xB3',
-        '0xC7', '0xD5', '0xE2', '0xFF'
-      ];
-
-      // Shuffle roles: 4 targets, 3 bad self-wipe sectors, 9 empty
-      var roles = [
-        'target', 'target', 'target', 'target',
-        'bad', 'bad', 'bad',
-        'empty', 'empty', 'empty', 'empty', 'empty', 'empty', 'empty', 'empty', 'empty'
-      ];
+      var hexLabels = ['0x0A','0x1F','0x2C','0x3E','0x4B','0x59','0x6D','0x7A','0x84','0x91','0xA8','0xB3','0xC7','0xD5','0xE2','0xFF'];
+      var roles = ['target','target','target','target','bad','bad','bad','empty','empty','empty','empty','empty','empty','empty','empty','empty'];
       for (var i = roles.length - 1; i > 0; i--) {
         var r = Math.floor(Math.random() * (i + 1));
-        var tmp = roles[i];
-        roles[i] = roles[r];
-        roles[r] = tmp;
+        var tmp = roles[i]; roles[i] = roles[r]; roles[r] = tmp;
       }
 
-      var capturedCount = 0;
-      var badHits = 0;
-      var maxBadAllowed = 2; // 3rd hit triggers wipe
-      var sectors = [];
+      var capturedCount = 0, badHits = 0, maxBadAllowed = 2, sectors = [];
 
       var scanHead = document.createElement('div');
       scanHead.className = 'mgt-scan-head';
-
       var scanRow = document.createElement('div');
       scanRow.className = 'mgt-scan-row';
-
       var sigCounter = document.createElement('span');
-      sigCounter.textContent = 'СИГНАТУРЫ: 0 / 4';
-
+      sigCounter.textContent = 'ЦЕЛИ: 0 / 4';
       var errCounter = document.createElement('span');
       errCounter.className = 'mgt-scan-err-count';
       errCounter.textContent = 'СБОИ: 0 / 3';
-
-      scanRow.appendChild(sigCounter);
-      scanRow.appendChild(errCounter);
+      scanRow.appendChild(sigCounter); scanRow.appendChild(errCounter);
 
       var pulseTrack = document.createElement('div');
       pulseTrack.className = 'mgt-pulse-track';
       var pulseBar = document.createElement('div');
       pulseBar.className = 'mgt-pulse-bar';
       pulseTrack.appendChild(pulseBar);
-
-      scanHead.appendChild(scanRow);
-      scanHead.appendChild(pulseTrack);
+      scanHead.appendChild(scanRow); scanHead.appendChild(pulseTrack);
 
       var hexGrid = document.createElement('div');
       hexGrid.className = 'mgt-hex-grid';
@@ -985,83 +1218,47 @@
           var btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'mgt-hex-cell';
-
           var codeSpan = document.createElement('span');
           codeSpan.textContent = hexLabels[idx];
-
           var subSpan = document.createElement('span');
           subSpan.className = 'mgt-hex-sub';
           subSpan.textContent = 'MEM';
+          btn.appendChild(codeSpan); btn.appendChild(subSpan);
 
-          btn.appendChild(codeSpan);
-          btn.appendChild(subSpan);
-
-          var sector = {
-            role: roles[idx],
-            captured: false,
-            tripped: false,
-            el: btn,
-            subEl: subSpan
-          };
+          var sector = { role: roles[idx], captured: false, tripped: false, el: btn, subEl: subSpan };
           sectors.push(sector);
 
           btn.addEventListener('click', function () {
-            if (inputLocked || phase !== 'cache' || sector.captured || sector.tripped) {
-              return;
-            }
-
+            if (inputLocked || phase !== 'cache' || sector.captured || sector.tripped) return;
             if (sector.role === 'target') {
-              sector.captured = true;
-              capturedCount += 1;
-              btn.classList.remove('is-pulse-target');
-              btn.classList.add('is-captured');
-              subSpan.textContent = 'ДАМП OK';
-              sigCounter.textContent = 'СИГНАТУРЫ: ' + capturedCount + ' / 4';
-              sfx('sfxClick');
-              haptic('light');
-
+              sector.captured = true; capturedCount += 1;
+              btn.classList.remove('is-pulse-target'); btn.classList.add('is-captured');
+              subSpan.textContent = 'OK';
+              sigCounter.textContent = 'ЦЕЛИ: ' + capturedCount + ' / 4';
+              sfx('sfxClick'); haptic('light');
               if (capturedCount >= 4) {
                 inputLocked = true;
-                if (rafId !== null) {
-                  window.cancelAnimationFrame(rafId);
-                  rafId = null;
-                }
-                sfx('sfxSuccess');
-                haptic('success');
-                addTimer(function () {
-                  renderPhase3Restored();
-                }, 460);
+                if (rafId !== null) { window.cancelAnimationFrame(rafId); rafId = null; }
+                sfx('sfxSuccess'); haptic('success');
+                addTimer(renderPhase3Restored, 460);
               }
             } else if (sector.role === 'bad') {
-              sector.tripped = true;
-              badHits += 1;
-              btn.classList.remove('is-pulse-bad');
-              btn.classList.add('is-tripped');
-              subSpan.textContent = 'WIPE!';
+              sector.tripped = true; badHits += 1;
+              btn.classList.remove('is-pulse-bad'); btn.classList.add('is-tripped');
+              subSpan.textContent = 'ERR!';
               errCounter.textContent = 'СБОИ: ' + badHits + ' / 3';
-              sfx('sfxAlert');
-              haptic('error');
-
+              sfx('sfxAlert'); haptic('error');
               if (badHits > maxBadAllowed) {
-                battery = Math.max(0, battery - 3);
-                updateBatteryUI();
-                showFailOverlay(
-                  'СРАБОТАЛА САМООЧИСТКА',
-                  'Критические ошибки чтения запустили аппаратное стирание кэша. Файлы уничтожены.',
-                  'wipe_triggered'
-                );
+                battery = Math.max(0, battery - 4); updateBatteryUI();
+                showFailOverlay('АВАРИЙНАЯ БЛОКИРОВКА', 'Три сбоя запустили защитное стирание / блокировку контура.', 'wipe_triggered');
               } else {
-                battery = Math.max(1, battery - 2);
-                updateBatteryUI();
+                battery = Math.max(1, battery - 2); updateBatteryUI();
               }
             } else {
-              btn.classList.add('is-empty-hit');
-              subSpan.textContent = 'ПУСТО';
-              sfx('sfxClick');
-              haptic('light');
+              btn.classList.add('is-empty-hit'); subSpan.textContent = 'ПУСТО';
+              sfx('sfxClick'); haptic('light');
             }
           });
-
           hexGrid.appendChild(btn);
         })(s);
       }
@@ -1069,36 +1266,24 @@
       screenWrap.appendChild(scanHead);
       screenWrap.appendChild(hexGrid);
 
-      // Scanner pulse loop: every 2.5s lights up for 0.7s (first pulse after 0.4s)
-      var CYCLE_MS = 2500;
-      var PULSE_MS = 700;
-      var cycleStart = performance.now() - (CYCLE_MS - 400);
+      var CYCLE_MS = 2450, PULSE_MS = 720;
+      var cycleStart = performance.now() - (CYCLE_MS - 380);
       var wasPulsing = false;
 
       function tickScanner(now) {
-        if (destroyed || phase !== 'cache') {
-          return;
-        }
+        if (destroyed || phase !== 'cache') return;
         var elapsed = (now - cycleStart) % CYCLE_MS;
         var isPulsing = elapsed < PULSE_MS;
-
-        if (isPulsing) {
-          var rem = 1 - elapsed / PULSE_MS;
-          pulseBar.style.width = Math.round(rem * 100) + '%';
-          pulseBar.classList.add('is-firing');
-        } else {
-          var prog = (elapsed - PULSE_MS) / (CYCLE_MS - PULSE_MS);
-          pulseBar.style.width = Math.round(prog * 100) + '%';
-          pulseBar.classList.remove('is-firing');
-        }
+        pulseBar.style.width = isPulsing
+          ? Math.round((1 - elapsed / PULSE_MS) * 100) + '%'
+          : Math.round(((elapsed - PULSE_MS) / (CYCLE_MS - PULSE_MS)) * 100) + '%';
+        pulseBar.classList.toggle('is-firing', isPulsing);
 
         if (isPulsing !== wasPulsing) {
           wasPulsing = isPulsing;
           for (var j = 0; j < sectors.length; j++) {
             var sec = sectors[j];
-            if (sec.captured || sec.tripped) {
-              continue;
-            }
+            if (sec.captured || sec.tripped) continue;
             if (sec.role === 'target') {
               sec.el.classList.toggle('is-pulse-target', isPulsing);
               sec.subEl.textContent = isPulsing ? 'SIG' : 'MEM';
@@ -1108,66 +1293,131 @@
             }
           }
         }
-
         rafId = window.requestAnimationFrame(tickScanner);
       }
-
       rafId = window.requestAnimationFrame(tickScanner);
     }
 
-    /* ----- PHASE 3: RESTORED CACHE ----- */
     function renderPhase3Restored() {
       phase = 'restored';
-      phaseTagEl.textContent = 'КЭШ ВОССТАНОВЛЕН';
-      footerStatus.textContent = 'ДАМП СОХРАНЁН В БУФЕР «КОРДОН-М»';
+      phaseTagEl.textContent = 'ДАННЫЕ ИЗВЛЕЧЕНЫ';
+      footerStatus.textContent = 'ИЗУЧИТЕ ИЗВЛЕЧЁННЫЙ ДАМП И ПЕРЕЙДИТЕ К ВЫВОДУ';
       screenWrap.innerHTML = '';
-
-      var defaultLines = [
-        '[22:14] Алина: «Электричка встала, иду пешком мимо депо, тут темень жуткая»',
-        '[22:19] Алина: «Всё норм, остановилась машина. Знакомый, в форме, с нашей стороны, обещал докинуть до переезда»',
-        '[22:21] [АУДИОЗАПИСЬ 00:12 — ЗАПИСАНО ИЗ КАРМАНА, ПОВРЕЖДЕНО]'
-      ];
-      var lines =
-        Array.isArray(config.chatLines) && config.chatLines.length > 0
-          ? config.chatLines
-          : defaultLines;
 
       var chatWrap = document.createElement('div');
       chatWrap.className = 'mgt-chat-wrap';
 
       var badge = document.createElement('div');
       badge.className = 'mgt-chat-badge';
-      badge.textContent = 'КЭШ ВОССТАНОВЛЕН // МЕССЕНДЖЕР';
+      badge.textContent = scenario.hexBadge;
 
       var chatLog = document.createElement('div');
       chatLog.className = 'mgt-chat-log';
-
+      var lines = scenario.chatLines || [];
       for (var i = 0; i < lines.length; i++) {
         var msg = document.createElement('div');
-        msg.className = 'mgt-chat-msg';
-        var lineText = String(lines[i]);
-        if (lineText.indexOf('АУДИОЗАПИСЬ') !== -1 || i === lines.length - 1) {
-          msg.classList.add('is-audio');
-        }
-        msg.textContent = lineText;
+        msg.className = 'mgt-chat-msg' + (i === lines.length - 1 ? ' is-audio' : '');
+        msg.textContent = String(lines[i]);
         chatLog.appendChild(msg);
       }
 
-      var btnExtract = document.createElement('button');
-      btnExtract.type = 'button';
-      btnExtract.className = 'mg-btn mg-btn-primary';
-      btnExtract.style.width = '100%';
-      btnExtract.textContent = 'ИЗВЛЕЧЬ АУДИОФАЙЛ';
-      btnExtract.addEventListener('click', function () {
-        sfx('sfxSuccess');
-        haptic('success');
-        callbacks.onSuccess({ hacked: true });
+      var btnNext = document.createElement('button');
+      btnNext.type = 'button';
+      btnNext.className = 'mg-btn mg-btn-primary';
+      btnNext.style.width = '100%';
+      btnNext.textContent = scenario.extractBtn || 'ПЕРЕЙТИ К ВЫВОДУ';
+      btnNext.addEventListener('click', function () {
+        sfx('sfxClick'); haptic('light');
+        renderPhase3Deduction();
       });
 
       chatWrap.appendChild(badge);
       chatWrap.appendChild(chatLog);
       screenWrap.appendChild(chatWrap);
-      screenWrap.appendChild(btnExtract);
+      screenWrap.appendChild(btnNext);
+    }
+
+    function renderPhase3Deduction() {
+      phase = 'deduce';
+      phaseTagEl.textContent = 'ФАЗА 3: ВЫВОД';
+      footerStatus.textContent = 'ПОДТВЕРДИТЕ ОПЕРАТИВНЫЙ ВЫВОД ПО ИЗВЛЕЧЁННЫМ ДАННЫМ';
+      screenWrap.innerHTML = '';
+
+      var card = document.createElement('div');
+      card.className = 'mgt-deduce-card';
+      var kicker = document.createElement('div');
+      kicker.className = 'mgt-dkicker';
+      kicker.textContent = 'ФАЗА 3 // ОПЕРАТИВНЫЙ ВЫВОД';
+      card.appendChild(kicker);
+
+      var facts = document.createElement('div');
+      facts.className = 'mgt-dfacts';
+      for (var fi = 0; fi < scenario.chatLines.length; fi++) {
+        var r = document.createElement('div');
+        r.textContent = '• ' + scenario.chatLines[fi];
+        facts.appendChild(r);
+      }
+      card.appendChild(facts);
+
+      var q = document.createElement('div');
+      q.className = 'mgt-dq';
+      q.textContent = scenario.conclusion.question;
+      card.appendChild(q);
+
+      var optsEl = document.createElement('div');
+      optsEl.className = 'mgt-dopts';
+      var fb = document.createElement('div');
+      fb.className = 'mgt-dfb';
+
+      var settled = false;
+      var deduceFails = 0;
+      var opts = scenario.conclusion.options || [];
+      for (var oi = 0; oi < opts.length; oi++) {
+        (function (opt) {
+          var ob = document.createElement('button');
+          ob.type = 'button';
+          ob.className = 'mgt-dopt';
+          ob.textContent = opt.text;
+          ob.addEventListener('click', function () {
+            if (settled || destroyed) return;
+            if (opt.isCorrect) {
+              settled = true;
+              ob.classList.add('is-correct');
+              fb.className = 'mgt-dfb is-ok';
+              fb.textContent = opt.reason;
+              sfx('sfxStamp'); haptic('success');
+              var btnFinish = document.createElement('button');
+              btnFinish.type = 'button';
+              btnFinish.className = 'mg-btn mg-btn-primary';
+              btnFinish.style.width = '100%';
+              btnFinish.textContent = scenario.finalBtn || 'ПРИОБЩИТЬ К ДЕЛУ';
+              btnFinish.addEventListener('click', function () {
+                sfx('sfxSuccess'); haptic('success');
+                callbacks.onSuccess({ hacked: true, scenarioId: scenario.id, deduced: opt.id });
+              });
+              card.appendChild(btnFinish);
+            } else {
+              deduceFails += 1;
+              battery = Math.max(0, battery - 5); updateBatteryUI();
+              ob.classList.add('is-wrong');
+              fb.className = 'mgt-dfb';
+              fb.textContent = opt.reason;
+              sfx('sfxAlert'); haptic('error');
+              if (deduceFails >= 2 || battery <= 0) {
+                settled = true;
+                addTimer(function () {
+                  showFailOverlay('ВЫВОД ОТКЛОНЁН', 'Заряд исчерпан до фиксации верного протокола.', 'wrong_deduction');
+                }, 680);
+              }
+            }
+          });
+          optsEl.appendChild(ob);
+        })(opts[oi]);
+      }
+
+      card.appendChild(optsEl);
+      card.appendChild(fb);
+      screenWrap.appendChild(card);
     }
 
     updateBatteryUI();
