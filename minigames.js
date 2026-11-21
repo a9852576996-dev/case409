@@ -27,7 +27,7 @@
       'padding: 9px 11px;' +
       'background: rgba(18, 21, 28, 0.9);' +
       'border: 1px solid #2a2e38;' +
-      'border-left: 3px solid #c98a2e;' +
+      'border-left: 3px solid var(--case-accent, #c98a2e);' +
       'border-radius: 6px;' +
     '}' +
     '.mg-header-info {' +
@@ -53,7 +53,7 @@
       'font-size: 10.5px;' +
       'font-weight: 600;' +
       'letter-spacing: 0.06em;' +
-      'color: #c98a2e;' +
+      'color: var(--case-accent, #c98a2e);' +
       'text-transform: uppercase;' +
     '}' +
     '.mg-body {' +
@@ -105,7 +105,7 @@
     '}' +
     '.mg-btn:active:not(:disabled) {' +
       'transform: scale(0.96);' +
-      'border-color: #c98a2e;' +
+      'border-color: var(--case-accent, #c98a2e);' +
       'background: #252933;' +
     '}' +
     '.mg-btn:disabled { opacity: 0.4; cursor: not-allowed; }' +
@@ -139,11 +139,12 @@
     '.mguv-views { flex-shrink: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }' +
     '.mguv-view-btn {' +
       'padding: 7px 6px; background: #14171e; border: 1px solid #2b303c; border-radius: 6px;' +
-      'font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.04em;' +
+      'font-family: "IBM Plex Mono", monospace; font-size: 9.5px; font-weight: 600; letter-spacing: 0.03em;' +
       'text-transform: uppercase; color: #8f96a4; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;' +
+      'white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' +
     '}' +
-    '.mguv-view-btn.is-active { background: #1f2430; border-color: #c98a2e; color: #f3e8d2; }' +
-    '.mguv-view-dot { width: 6px; height: 6px; border-radius: 50%; background: #c98a2e; flex-shrink: 0; }' +
+    '.mguv-view-btn.is-active { background: #1f2430; border-color: var(--case-accent, #c98a2e); color: #f3e8d2; }' +
+    '.mguv-view-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--case-accent, #c98a2e); flex-shrink: 0; }' +
     '.mguv-view-btn.is-clear .mguv-view-dot { background: #22c55e; }' +
     '.mguv-view-hint {' +
       'position: absolute; left: 10px; right: 10px; top: 8px; padding: 6px 9px;' +
@@ -178,10 +179,10 @@
       'padding: 12px; overflow-y: auto; display: flex; flex-direction: column; justify-content: center;' +
     '}' +
     '.mguv-deduce-card {' +
-      'background: #14171f; border: 1px solid #353b4a; border-top: 3px solid #c98a2e; border-radius: 8px;' +
+      'background: #14171f; border: 1px solid #353b4a; border-top: 3px solid var(--case-accent, #c98a2e); border-radius: 8px;' +
       'padding: 12px; display: flex; flex-direction: column; gap: 8px;' +
     '}' +
-    '.mguv-deduce-kicker { font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 700; color: #c98a2e; text-transform: uppercase; }' +
+    '.mguv-deduce-kicker { font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 700; color: var(--case-accent, #c98a2e); text-transform: uppercase; }' +
     '.mguv-deduce-q { font-size: 13px; line-height: 1.4; color: #f3efe6; font-weight: 500; }' +
     '.mguv-deduce-facts {' +
       'padding: 7px 9px; background: #0d1015; border: 1px solid #262b36; border-radius: 6px;' +
@@ -326,8 +327,9 @@
     ctx.closePath();
   }
 
-
-  /* ===== UV_SEARCH: 3-РАКУРСНЫЙ ОСМОТР НОЖА И СКРЫТЫХ СЛЕДОВ ===== */
+  /* =====================================================================
+   * UV_SEARCH: МУЛЬТИСЦЕНАРНЫЙ ОСМОТР (CASE409 + CASE412 АКТ I / АКТ V)
+   * ===================================================================== */
 
   function buildKnifeDataset(config) {
     var spots = [
@@ -433,6 +435,14 @@
     }
 
     return {
+      sceneKind: 'knife',
+      title: (config && config.title) || 'ОСМОТР НОЖА И СКРЫТЫХ СЛЕДОВ',
+      hintText: 'Переключайте ракурсы сверху. В режиме СВЕТ сотрите грязь, затем проверяйте УФ-365 и ЛУПОЙ ×4.',
+      views: [
+        { id: 'front', label: '1. ЛИЦЕВАЯ' },
+        { id: 'back', label: '2. ТЫЛЬНАЯ' },
+        { id: 'edge', label: '3. ТОРЦЫ/ЩЕЛИ' }
+      ],
       spots: spots,
       conclusion: {
         question: 'На клинке и под тыльной накладкой — смытая антисептиком кровь, в гарде — нить ведомственной формы, в насечке — стекло экрана. Вывод:',
@@ -460,12 +470,728 @@
     };
   }
 
-  function drawKnifeView(ctx, w, h, view, mode, spots, beamX, beamY, kt, timeSec, mudParticles) {
+  function buildCase412GateDataset(config, storyNode) {
+    var title = (config && config.title) || (storyNode && storyNode.title) || 'УФ-ОСМОТР У КАЛИТКИ';
+    return {
+      sceneKind: 'gate',
+      title: title,
+      hintText: 'Осмотрите столб калитки, мокрую листву и тропу. В режиме СВЕТ счищайте грязь/листья, затем применяйте УФ-365 и ЛУПУ ×4.',
+      views: [
+        { id: 'post', label: '1. СТОЛБ' },
+        { id: 'leaves', label: '2. ЛИСТВА' },
+        { id: 'path', label: '3. ТРОПА' }
+      ],
+      spots: [
+        {
+          id: 'post_nail', view: 'post', ux: -44, uy: 14, hitR: 26,
+          isEvidence: true, requiredMode: 'loupe', mud: 1.0, mudLabel: 'Сгусток мокрой земли и мха', title: 'Шершавый край столба',
+          readings: {
+            white: 'В бетонной щербине застряла светлая пластинка — без увеличения похожа на скол краски.',
+            uv: 'УФ-365: слабый белёсый отблеск лака, но структуру не разобрать без макро.',
+            loupe: 'ЛУПА ×4: обломанный женский ноготь с бежевым гель-лаком и микроволокном кожи — сорван в борьбе!'
+          },
+          wrongModeMsg: 'Без увеличения пластинку не отличить от краски — проверьте ЛУПОЙ ×4!',
+          foundLabel: 'Сорванный накладной ноготь жертвы на столбе'
+        },
+        {
+          id: 'post_blood', view: 'post', ux: 16, uy: -16, hitR: 25,
+          isEvidence: true, requiredMode: 'uv', mud: 0, title: 'Острая грань бетона',
+          readings: {
+            white: 'Мокрый тёмный развод вдоль угла бетонного столба — легко принять за дождевой потёк.',
+            uv: 'УФ-365: вспыхивает ярко-голубой мазок люминола — свежая кровь со сбитых пальцев!',
+            loupe: 'ЛУПА ×4: влажные поры бетона; биоматериал подтверждается только в УФ-365.'
+          },
+          wrongModeMsg: 'В обычном свете потёк неотличим от воды — подтвердите биослед в УФ-365!',
+          foundLabel: 'Свежий мазок крови на грани бетонного столба'
+        },
+        {
+          id: 'noise_rust', view: 'post', ux: 88, uy: -6, hitR: 24,
+          isEvidence: false, requiredMode: 'none', mud: 0, title: 'Потёк под железной петлёй',
+          readings: {
+            white: 'Буро-рыжий развод, стекающий с петли калитки.',
+            uv: 'УФ-365: свечения нет — тёмное матовое пятно оксида железа.',
+            loupe: 'ЛУПА ×4: старые рыхлые чешуйки обычной ржавчины.'
+          },
+          falseReason: 'ЛОЖНЫЙ СЛЕД: бурый потёк оказался обычной ржавчиной от петли.',
+          foundLabel: ''
+        },
+        {
+          id: 'leaves_chem', view: 'leaves', ux: -56, uy: -6, hitR: 26,
+          isEvidence: true, requiredMode: 'uv', mud: 1.0, mudLabel: 'Слипшиеся мокрые листья', title: 'Под прелой листвой',
+          readings: {
+            white: 'Вдавленный в грязь скомканный кусочек белой марли с резким сладковатым запахом.',
+            uv: 'УФ-365: контрастный сине-фиолетовый ореол пропитки — след летучего хлороформа!',
+            loupe: 'ЛУПА ×4: медицинская марля с оторванным краем — химическую пропитку фиксируйте в УФ-365.'
+          },
+          wrongModeMsg: 'Факт химической пропитки марли нужно зафиксировать в УФ-365!',
+          foundLabel: 'Клочок марли со следами хлороформа под листвой'
+        },
+        {
+          id: 'noise_chlorophyll', view: 'leaves', ux: 18, uy: -22, hitR: 23,
+          isEvidence: false, requiredMode: 'none', mud: 0, title: 'Сырой кленовый лист',
+          readings: {
+            white: 'Подгнивший мокрый лист у обочины.',
+            uv: 'УФ-365: тусклое красноватое свечение природного хлорофилла (не биослед).',
+            loupe: 'ЛУПА ×4: обычная плесень на осенней листве.'
+          },
+          falseReason: 'ЛОЖНЫЙ СЛЕД: красноватый оттенок даёт обычный хлорофилл прелой листвы.',
+          foundLabel: ''
+        },
+        {
+          id: 'noise_foil', view: 'leaves', ux: 92, uy: 20, hitR: 22,
+          isEvidence: false, requiredMode: 'none', mud: 0, title: 'Блестящий клочок у канавки',
+          readings: {
+            white: 'Мятый серебристый обрывок в траве.',
+            uv: 'УФ-365: пустой зеркальный блик без флуоресценции.',
+            loupe: 'ЛУПА ×4: выцветшая фольга от сигаретной пачки.'
+          },
+          falseReason: 'ЛОЖНЫЙ СЛЕД: бытовой мусор (фольга от сигарет).',
+          foundLabel: ''
+        },
+        {
+          id: 'path_drag', view: 'path', ux: -22, uy: 6, hitR: 27,
+          isEvidence: true, requiredMode: 'loupe', mud: 0, title: 'Двойная борозда на тропе',
+          readings: {
+            white: 'Смазанные полосы в мокром грунте уходят в сторону участка №14.',
+            uv: 'УФ-365: свечения крови нет — это механический след обуви.',
+            loupe: 'ЛУПА ×4: чёткий срыв грунта женскими каблуками и рядом тяжёлый протектор сапога 44-го размера!'
+          },
+          wrongModeMsg: 'Для фиксации направления волочения и протектора примените ЛУПУ ×4!',
+          foundLabel: 'Следы волочения женских каблуков к участку №14'
+        },
+        {
+          id: 'noise_paw', view: 'path', ux: 84, uy: -14, hitR: 23,
+          isEvidence: false, requiredMode: 'none', mud: 0, title: 'Отпечаток у кромки травы',
+          readings: {
+            white: 'Глубокая ямка в сырой глине у обочины.',
+            uv: 'УФ-365: свечения нет.',
+            loupe: 'ЛУПА ×4: отпечаток крупной собачьей лапы с когтями, давность больше суток.'
+          },
+          falseReason: 'ЛОЖНЫЙ СЛЕД: старый след соседской собаки.',
+          foundLabel: ''
+        }
+      ],
+      conclusion: {
+        question: 'На столбе калитки — кровь и сорванный ноготь жертвы, под листвой — марля с хлороформом, на тропе — борозды волочения к участку №14. Вывод:',
+        options: [
+          {
+            id: 'accident',
+            text: 'Девушка сама поскользнулась в темноте, зацепилась за ржавую петлю и ушла домой.',
+            isCorrect: false,
+            reason: 'Противоречие: марля с хлороформом и борозды волочения доказывают насильственный захват.'
+          },
+          {
+            id: 'abduction',
+            text: 'Нападение произошло прямо у калитки: жертву схватили, оглушили хлороформом и волоком утащили в сторону участка №14.',
+            isCorrect: true,
+            reason: 'Верно: все 4 следа складываются в точную картину похищения у границы участков.'
+          },
+          {
+            id: 'stranger_car',
+            text: 'У калитки следов борьбы нет — жертву увезли на машине прямо от остановки.',
+            isCorrect: false,
+            reason: 'Противоречие: сорванный на столбе ноготь и кровь доказывают борьбу именно здесь.'
+          }
+        ]
+      }
+    };
+  }
+
+  function buildCase412GarageDataset(config, storyNode) {
+    var title = (config && config.title) || (storyNode && storyNode.title) || 'УФ-ПОИСК В ГАРАЖЕ КРАВЦОВА';
+    return {
+      sceneKind: 'garage',
+      title: title,
+      hintText: 'Осмотрите бетонный пол, смотровую яму и пространство за верстаком. Счищайте опилки/хлам в режиме СВЕТ, затем УФ-365 и ЛУПА ×4.',
+      views: [
+        { id: 'floor', label: '1. ПОЛ' },
+        { id: 'pit', label: '2. ЯМА' },
+        { id: 'bench', label: '3. ВЕРСТАК' }
+      ],
+      spots: [
+        {
+          id: 'floor_bleach', view: 'floor', ux: -62, uy: -8, hitR: 26,
+          isEvidence: true, requiredMode: 'uv', mud: 0, title: 'Затёртое пятно у центра плиты',
+          readings: {
+            white: 'Белёсый развод на бетоне — на вид просто просыпанная побелка или цемент.',
+            uv: 'УФ-365: мощная голубая вспышка люминола внутри хлорного ореола — здесь тщательно замывали кровь!',
+            loupe: 'ЛУПА ×4: бетон выеден щёлочью; для доказательства замытой крови нужен УФ-365.'
+          },
+          wrongModeMsg: 'В обычном свете видна только хлорка — проявите кровь в УФ-365!',
+          foundLabel: 'Замытая хлоркой кровь на бетонном полу гаража'
+        },
+        {
+          id: 'noise_oil_puddle', view: 'floor', ux: 64, uy: 14, hitR: 24,
+          isEvidence: false, requiredMode: 'none', mud: 0, title: 'Тёмная лужа под мотором',
+          readings: {
+            white: 'Жирное чёрное пятно на бетоне.',
+            uv: 'УФ-365: мутный жёлто-зелёный отлив нефтепродукта — не люминол.',
+            loupe: 'ЛУПА ×4: густая отработка моторного масла с металлической стружкой.'
+          },
+          falseReason: 'ЛОЖНЫЙ СЛЕД: жёлто-зелёное свечение выдаёт моторное масло.',
+          foundLabel: ''
+        },
+        {
+          id: 'noise_coolant', view: 'floor', ux: 12, uy: -28, hitR: 22,
+          isEvidence: false, requiredMode: 'none', mud: 0, title: 'Зеленоватый подтёк',
+          readings: {
+            white: 'Сухая корка сине-зелёного оттенка.',
+            uv: 'УФ-365: тусклый салатовый отблеск красителя антифриза.',
+            loupe: 'ЛУПА ×4: старый потёк тосола из пробитого радиатора.'
+          },
+          falseReason: 'ЛОЖНЫЙ СЛЕД: высохший тосол — бытовой след ремонта машины.',
+          foundLabel: ''
+        },
+        {
+          id: 'pit_chem', view: 'pit', ux: -44, uy: 10, hitR: 26,
+          isEvidence: true, requiredMode: 'uv', mud: 1.0, mudLabel: 'Куча опилок и промасленной ветоши', title: 'Полка смотровой ямы',
+          readings: {
+            white: 'На бетонном уступе видны свежие кольца от стеклянного флакона.',
+            uv: 'УФ-365: яркое фиолетово-синее свечение пролитого хлороформа и следы латексных перчаток!',
+            loupe: 'ЛУПА ×4: след донышка аптечной склянки; химический реагент фиксируется в УФ-365.'
+          },
+          wrongModeMsg: 'Пролив реагента нужно зафиксировать в режиме УФ-365!',
+          foundLabel: 'Следы пролитого хлороформа и перчаток в смотровой яме'
+        },
+        {
+          id: 'pit_cable', view: 'pit', ux: 74, uy: -10, hitR: 25,
+          isEvidence: true, requiredMode: 'loupe', mud: 0, title: 'Боковая стена ямы',
+          readings: {
+            white: 'В бетоне торчит чёрный провод — выглядит как старая проводка переноски.',
+            uv: 'УФ-365: свечения нет, изоляция современная полимерная.',
+            loupe: 'ЛУПА ×4: свежая бетонная пыль у штробы — силовой кабель 220В уходит за глухую стену под плиту!'
+          },
+          wrongModeMsg: 'Рассмотрите свежую штробу и ввод кабеля через ЛУПУ ×4!',
+          foundLabel: 'Скрытый силовой кабель, уходящий за стену под плиту'
+        },
+        {
+          id: 'noise_crack', view: 'pit', ux: -106, uy: -20, hitR: 22,
+          isEvidence: false, requiredMode: 'none', mud: 0, title: 'Щель в штукатурке',
+          readings: {
+            white: 'Длинная извилистая трещина в бетоне.',
+            uv: 'УФ-365: свечения нет.',
+            loupe: 'ЛУПА ×4: старая усадочная трещина, затянутая плотной паутиной.'
+          },
+          falseReason: 'ЛОЖНЫЙ СЛЕД: старая усадочная трещина стены.',
+          foundLabel: ''
+        },
+        {
+          id: 'bench_hatch', view: 'bench', ux: 26, uy: 8, hitR: 27,
+          isEvidence: true, requiredMode: 'loupe', mud: 1.0, mudLabel: 'Слой пыли, хлама и старых газет', title: 'Плита за тяжёлым верстаком',
+          readings: {
+            white: 'Под расчищенным мусором на бетоне видны параллельные полосы и щель в полу.',
+            uv: 'УФ-365: лёгкий блеск машинной смазки на металле — нужен детальный осмотр шва.',
+            loupe: 'ЛУПА ×4: свежие борозды от сдвига верстака, утопленная скоба люка и прижатый чертёж подземной камеры!'
+          },
+          wrongModeMsg: 'Для фиксации замаскированного люка и чертежа примените ЛУПУ ×4!',
+          foundLabel: 'Скрытый люк со свежими бороздами верстака и чертёж бункера'
+        },
+        {
+          id: 'noise_shavings', view: 'bench', ux: -86, uy: 16, hitR: 23,
+          isEvidence: false, requiredMode: 'none', mud: 0, title: 'Стружка у тисков',
+          readings: {
+            white: 'Горка древесных и металлических опилок под верстаком.',
+            uv: 'УФ-365: свечения нет.',
+            loupe: 'ЛУПА ×4: старая слесарная стружка, давно слёжавшаяся у стены.'
+          },
+          falseReason: 'ЛОЖНЫЙ СЛЕД: обычная слесарная стружка под верстаком.',
+          foundLabel: ''
+        }
+      ],
+      conclusion: {
+        question: 'На полу — замытая хлоркой кровь, в яме — хлороформ и свежий силовой кабель под плиту, за верстаком — свежие борозды и замаскированный люк. Вывод:',
+        options: [
+          {
+            id: 'repair',
+            text: 'Гараж использовали только для ремонта авто, все пятна — масло, тосол и старая проводка.',
+            isCorrect: false,
+            reason: 'Противоречие: замытая хлоркой кровь и пролитый хлороформ не имеют отношения к ремонту.'
+          },
+          {
+            id: 'bunker',
+            text: 'Тяжёлый верстак сдвигают, чтобы маскировать вход в электрифицированный подземный бункер под плитой гаража.',
+            isCorrect: true,
+            reason: 'Верно: кабель, свежие борозды верстака, чертёж и люк прямо указывают на скрытую камеру.'
+          },
+          {
+            id: 'abandoned',
+            text: 'Люк давно заброшен и завален хламом, им не пользовались много лет.',
+            isCorrect: false,
+            reason: 'Противоречие: на бетоне свежие борозды от регулярного сдвига верстака и свежая штроба кабеля.'
+          }
+        ]
+      }
+    };
+  }
+
+  function resolveUvScenario(config) {
+    var cfg = config || {};
+    var caseId = String(window.ACTIVE_CASE_ID || '').toLowerCase();
+    var nodeId = String(cfg.nodeId || '');
+    if (!nodeId) {
+      try {
+        if (window.GameEngine && typeof window.GameEngine.getState === 'function') {
+          var st = window.GameEngine.getState();
+          if (st && st.nodeId) nodeId = String(st.nodeId);
+        }
+      } catch (e) {}
+    }
+    var storyNode = null;
+    try {
+      if (window.GameStory && window.GameStory.nodes && nodeId) {
+        storyNode = window.GameStory.nodes[nodeId] || null;
+      }
+    } catch (e) {}
+
+    var hint = (
+      String(cfg.title || '') + ' ' +
+      String(cfg.desc || '') + ' ' +
+      String((storyNode && storyNode.title) || '') + ' ' +
+      String((storyNode && storyNode.desc) || '')
+    ).toLowerCase();
+
+    if (
+      cfg.preset === 'case412_garage' ||
+      nodeId === 'act5_mg_uv' ||
+      (caseId === 'case412' && (/гараж|верстак|яму|плит|кравцов/.test(hint) || /^act5/i.test(nodeId)))
+    ) {
+      return buildCase412GarageDataset(cfg, storyNode);
+    }
+
+    if (
+      cfg.preset === 'case412_gate' ||
+      nodeId === 'act1_mg_uv' ||
+      caseId === 'case412' ||
+      /калитк|столб|листв|троп/.test(hint)
+    ) {
+      return buildCase412GateDataset(cfg, storyNode);
+    }
+
+    return buildKnifeDataset(cfg);
+  }
+
+  function renderKnifeObject(ctx, view, isUvMask) {
+    var steelLight = isUvMask ? '#1a1f36' : (view === 'back' ? '#6c7482' : '#8c96a6');
+    var steelDark = isUvMask ? '#0b0e1a' : '#2a303a';
+    var gripCol = isUvMask ? '#0d0e14' : '#1b1d22';
+
+    if (view === 'front' || view === 'back') {
+      ctx.save();
+      if (view === 'back') ctx.scale(-1, 1);
+
+      var bGrad = ctx.createLinearGradient(0, -24, 0, 24);
+      bGrad.addColorStop(0, steelDark);
+      bGrad.addColorStop(0.35, steelLight);
+      bGrad.addColorStop(0.68, '#4a5260');
+      bGrad.addColorStop(1, '#a9b3c4');
+
+      ctx.fillStyle = bGrad;
+      ctx.beginPath();
+      ctx.moveTo(-144, 2);
+      ctx.quadraticCurveTo(-125, -20, -96, -21);
+      ctx.lineTo(-6, -20);
+      ctx.lineTo(-6, 18);
+      ctx.lineTo(-104, 19);
+      ctx.quadraticCurveTo(-128, 17, -144, 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = isUvMask ? '#090b15' : 'rgba(15, 18, 24, 0.55)';
+      roundRectPath(ctx, -108, -13, 92, 8, 4);
+      ctx.fill();
+
+      ctx.fillStyle = isUvMask ? '#141724' : '#323741';
+      roundRectPath(ctx, -8, -26, 14, 52, 3);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+      ctx.stroke();
+
+      ctx.fillStyle = gripCol;
+      roundRectPath(ctx, 6, -18, 130, 36, 10);
+      ctx.fill();
+      ctx.strokeStyle = '#363c48';
+      ctx.stroke();
+
+      ctx.strokeStyle = isUvMask ? '#171a26' : '#0d0f13';
+      ctx.lineWidth = 2.5;
+      for (var rx = 20; rx < 118; rx += 12) {
+        ctx.beginPath(); ctx.moveTo(rx, -13); ctx.lineTo(rx, 13); ctx.stroke();
+      }
+      ctx.restore();
+    } else {
+      var spineGrad = ctx.createLinearGradient(0, -10, 0, 10);
+      spineGrad.addColorStop(0, '#2a303a');
+      spineGrad.addColorStop(0.5, isUvMask ? '#1e243d' : '#9ca6b8');
+      spineGrad.addColorStop(1, '#232832');
+      ctx.fillStyle = spineGrad;
+      roundRectPath(ctx, -142, -5, 138, 10, 3);
+      ctx.fill();
+
+      ctx.fillStyle = isUvMask ? '#151828' : '#3b414d';
+      roundRectPath(ctx, -6, -20, 14, 40, 4);
+      ctx.fill();
+
+      ctx.fillStyle = gripCol;
+      roundRectPath(ctx, 8, -14, 126, 28, 8);
+      ctx.fill();
+
+      ctx.strokeStyle = '#050608';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(132, 0); ctx.stroke();
+
+      ctx.fillStyle = '#07090c';
+      for (var nx = 24; nx <= 104; nx += 20) {
+        roundRectPath(ctx, nx - 4, -14, 8, 28, 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#050608';
+      roundRectPath(ctx, 48, -13, 12, 26, 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = '#0b0c10';
+      ctx.beginPath();
+      ctx.arc(122, 0, 7, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function renderGateObject(ctx, view, isUvMask) {
+    if (view === 'post') {
+      // Concrete gate pillar (-142..+32) + iron gate edge (+32..+142)
+      var conc = ctx.createLinearGradient(-142, -52, 32, 52);
+      conc.addColorStop(0, isUvMask ? '#101424' : '#3a4048');
+      conc.addColorStop(0.55, isUvMask ? '#161b30' : '#535b66');
+      conc.addColorStop(1, isUvMask ? '#0d101c' : '#2f343c');
+      ctx.fillStyle = conc;
+      roundRectPath(ctx, -142, -50, 174, 100, 6);
+      ctx.fill();
+      ctx.strokeStyle = isUvMask ? '#242b47' : '#6c7582';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Concrete corner bevel line
+      ctx.strokeStyle = isUvMask ? 'rgba(120,130,180,0.22)' : 'rgba(220,225,235,0.25)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(16, -48); ctx.lineTo(16, 48); ctx.stroke();
+
+      // Iron gate leaf & hinge bracket
+      ctx.fillStyle = isUvMask ? '#0a0d17' : '#242930';
+      roundRectPath(ctx, 36, -46, 106, 92, 4);
+      ctx.fill();
+      ctx.fillStyle = isUvMask ? '#131729' : '#3e342d';
+      roundRectPath(ctx, 30, -18, 66, 20, 3);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      ctx.stroke();
+    } else if (view === 'leaves') {
+      // Damp earth & scattered autumn leaves strip
+      ctx.fillStyle = isUvMask ? '#090b14' : '#1f1c17';
+      roundRectPath(ctx, -145, -52, 290, 104, 8);
+      ctx.fill();
+      ctx.strokeStyle = isUvMask ? '#1d2238' : '#383229';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      var leafCoords = [
+        [-112, -26, 22, 11, 0.4], [-90, 22, 20, 10, -0.5], [-16, 26, 24, 11, 0.2],
+        [52, -28, 22, 10, -0.3], [118, -14, 19, 9, 0.7], [-6, -2, 18, 9, -0.2]
+      ];
+      for (var i = 0; i < leafCoords.length; i++) {
+        var lc = leafCoords[i];
+        ctx.save();
+        ctx.translate(lc[0], lc[1]);
+        ctx.rotate(lc[4]);
+        ctx.fillStyle = isUvMask ? '#171525' : (i % 2 === 0 ? '#4d3a24' : '#3b3221');
+        ctx.beginPath();
+        ctx.ellipse(0, 0, lc[2], lc[3], 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    } else {
+      // Muddy footpath edge & wet curb
+      ctx.fillStyle = isUvMask ? '#090c16' : '#25211b';
+      roundRectPath(ctx, -145, -52, 290, 104, 8);
+      ctx.fill();
+
+      // Gravel / grass strip along top
+      ctx.fillStyle = isUvMask ? '#0d141c' : '#222d20';
+      roundRectPath(ctx, -145, -52, 290, 26, 4);
+      ctx.fill();
+
+      // Footpath contour line
+      ctx.strokeStyle = isUvMask ? '#1c233a' : '#3d362c';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-142, -22);
+      ctx.quadraticCurveTo(0, -14, 142, -24);
+      ctx.stroke();
+    }
+  }
+
+  function renderGarageObject(ctx, view, isUvMask) {
+    if (view === 'floor') {
+      // Concrete slab with expansion joint
+      ctx.fillStyle = isUvMask ? '#0c0f1a' : '#343940';
+      roundRectPath(ctx, -145, -52, 290, 104, 6);
+      ctx.fill();
+      ctx.strokeStyle = isUvMask ? '#1e243b' : '#4f5660';
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+
+      ctx.strokeStyle = isUvMask ? '#070910' : '#1b1e23';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(-145, 0); ctx.lineTo(145, 0); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, -52); ctx.lineTo(0, 52); ctx.stroke();
+    } else if (view === 'pit') {
+      // Inspection pit rim & dark concrete wall
+      ctx.fillStyle = isUvMask ? '#090b14' : '#282d33';
+      roundRectPath(ctx, -145, -52, 290, 104, 6);
+      ctx.fill();
+
+      // Pit dark recessed trench
+      ctx.fillStyle = isUvMask ? '#05060c' : '#15181d';
+      roundRectPath(ctx, -124, -34, 248, 68, 4);
+      ctx.fill();
+      ctx.strokeStyle = isUvMask ? '#232a45' : '#4a525e';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Concrete ledge shelf inside pit
+      ctx.fillStyle = isUvMask ? '#111629' : '#363c45';
+      roundRectPath(ctx, -84, -4, 80, 28, 3);
+      ctx.fill();
+    } else {
+      // Workbench base + concrete slab + hidden hatch seam
+      ctx.fillStyle = isUvMask ? '#0c0f1a' : '#2e333a';
+      roundRectPath(ctx, -145, -52, 290, 104, 6);
+      ctx.fill();
+
+      // Heavy steel workbench shadow / base on left
+      ctx.fillStyle = isUvMask ? '#131726' : '#1e2228';
+      roundRectPath(ctx, -142, -48, 92, 96, 4);
+      ctx.fill();
+      ctx.strokeStyle = '#474f5c';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+
+      // Subtle hatch square outline on right (+x)
+      ctx.strokeStyle = isUvMask ? 'rgba(99,102,241,0.22)' : 'rgba(12,14,18,0.68)';
+      ctx.lineWidth = 1.6;
+      roundRectPath(ctx, -18, -36, 126, 76, 3);
+      ctx.stroke();
+    }
+  }
+
+  function renderSpotFeature(ctx, sp, detailScale, isUvMask) {
+    // Knife spots (case409)
+    if (sp.id === 'fuller_luminol') {
+      if (isUvMask) {
+        var lg = ctx.createRadialGradient(0, 0, 2, 0, 0, 26);
+        lg.addColorStop(0, 'rgba(96, 245, 255, 0.95)');
+        lg.addColorStop(0.5, 'rgba(56, 189, 248, 0.45)');
+        lg.addColorStop(1, 'rgba(56, 189, 248, 0)');
+        ctx.fillStyle = lg;
+        ctx.beginPath(); ctx.ellipse(0, 0, 26, 7, 0, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.fillStyle = 'rgba(200, 215, 230, 0.24)';
+        ctx.beginPath(); ctx.ellipse(0, 0, 18, 3, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      return;
+    }
+    if (sp.id === 'guard_fiber' && sp.cleared) {
+      ctx.strokeStyle = isUvMask ? '#818cf8' : '#1d4ed8';
+      ctx.lineWidth = detailScale > 1.3 ? 2.2 : 1.4;
+      ctx.beginPath();
+      ctx.moveTo(-4, -3); ctx.quadraticCurveTo(2, 2, 7, 6);
+      ctx.moveTo(-1, -1); ctx.quadraticCurveTo(4, -5, 8, -2);
+      ctx.stroke();
+      return;
+    }
+    if (sp.id === 'noise_grind') {
+      ctx.strokeStyle = isUvMask ? 'rgba(100,110,140,0.2)' : 'rgba(230, 235, 245, 0.5)';
+      ctx.lineWidth = 1.1;
+      for (var sc = -8; sc <= 8; sc += 4) {
+        ctx.beginPath(); ctx.moveTo(sc, -6); ctx.lineTo(sc + 3, 6); ctx.stroke();
+      }
+      return;
+    }
+    if (sp.id === 'noise_reed') {
+      ctx.strokeStyle = isUvMask ? '#7f1d1d' : '#4d6b3c';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(-10, 4); ctx.quadraticCurveTo(0, -3, 12, 2); ctx.stroke();
+      return;
+    }
+    if (sp.id === 'handle_seam_blood' && sp.cleared) {
+      if (isUvMask) {
+        var hg = ctx.createRadialGradient(0, 0, 2, 0, 0, 22);
+        hg.addColorStop(0, 'rgba(103, 232, 249, 0.95)');
+        hg.addColorStop(0.55, 'rgba(99, 102, 241, 0.4)');
+        hg.addColorStop(1, 'rgba(99, 102, 241, 0)');
+        ctx.fillStyle = hg;
+        ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.fillStyle = '#5c1818';
+        ctx.beginPath(); ctx.ellipse(0, 0, 9, 4, 0.1, 0, Math.PI * 2); ctx.fill();
+      }
+      return;
+    }
+    if (sp.id === 'noise_oil' || sp.id === 'noise_oil_puddle') {
+      if (isUvMask) {
+        var og = ctx.createRadialGradient(0, 0, 2, 0, 0, 20);
+        og.addColorStop(0, 'rgba(190, 242, 100, 0.55)');
+        og.addColorStop(1, 'rgba(163, 230, 53, 0)');
+        ctx.fillStyle = og;
+        ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.fillStyle = 'rgba(20, 18, 16, 0.65)';
+        ctx.beginPath(); ctx.ellipse(0, 0, 15, 8, -0.2, 0, Math.PI * 2); ctx.fill();
+      }
+      return;
+    }
+    if (sp.id === 'notch_microglass') {
+      ctx.fillStyle = isUvMask ? '#93c5fd' : '#0f172a';
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = detailScale > 1.3 ? 1.4 : 0.7;
+      ctx.beginPath();
+      ctx.moveTo(-3, 2); ctx.lineTo(4, -3); ctx.lineTo(2, 4); ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      return;
+    }
+    if (sp.id === 'noise_chip') {
+      ctx.fillStyle = '#090a0d';
+      ctx.beginPath(); ctx.arc(0, 0, 4.5, 0, Math.PI * 2); ctx.fill();
+      return;
+    }
+
+    // Gate spots (case412 Act I)
+    if (sp.id === 'post_nail' && sp.cleared) {
+      ctx.fillStyle = isUvMask ? '#c7d2fe' : '#e5c8b8';
+      ctx.strokeStyle = '#9f6b58';
+      ctx.lineWidth = detailScale > 1.3 ? 1.5 : 0.9;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 6.5, 4.2, -0.35, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      return;
+    }
+    if (sp.id === 'post_blood' || sp.id === 'floor_bleach') {
+      if (isUvMask) {
+        var bg = ctx.createRadialGradient(0, 0, 2, 0, 0, 25);
+        bg.addColorStop(0, 'rgba(96, 245, 255, 0.96)');
+        bg.addColorStop(0.55, 'rgba(56, 189, 248, 0.45)');
+        bg.addColorStop(1, 'rgba(56, 189, 248, 0)');
+        ctx.fillStyle = bg;
+        ctx.beginPath(); ctx.arc(0, 0, 25, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.fillStyle = sp.id === 'floor_bleach' ? 'rgba(220, 226, 232, 0.25)' : 'rgba(90, 28, 28, 0.45)';
+        ctx.beginPath(); ctx.ellipse(0, 0, 16, 10, 0.2, 0, Math.PI * 2); ctx.fill();
+      }
+      return;
+    }
+    if (sp.id === 'noise_rust') {
+      ctx.fillStyle = isUvMask ? '#1a1520' : '#7c3a1d';
+      ctx.beginPath(); ctx.ellipse(0, 4, 9, 14, 0.1, 0, Math.PI * 2); ctx.fill();
+      return;
+    }
+    if ((sp.id === 'leaves_chem' || sp.id === 'pit_chem') && sp.cleared) {
+      if (isUvMask) {
+        var cg = ctx.createRadialGradient(0, 0, 2, 0, 0, 24);
+        cg.addColorStop(0, 'rgba(167, 139, 250, 0.95)');
+        cg.addColorStop(0.55, 'rgba(99, 102, 241, 0.42)');
+        cg.addColorStop(1, 'rgba(99, 102, 241, 0)');
+        ctx.fillStyle = cg;
+        ctx.beginPath(); ctx.arc(0, 0, 24, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.fillStyle = sp.id === 'leaves_chem' ? '#d8d3c8' : 'rgba(205, 215, 230, 0.35)';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 10, 7, -0.25, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      return;
+    }
+    if (sp.id === 'noise_chlorophyll') {
+      ctx.fillStyle = isUvMask ? 'rgba(185, 28, 28, 0.55)' : '#524225';
+      ctx.beginPath(); ctx.ellipse(0, 0, 14, 8, 0.35, 0, Math.PI * 2); ctx.fill();
+      return;
+    }
+    if (sp.id === 'noise_foil') {
+      ctx.fillStyle = isUvMask ? '#64748b' : '#cbd5e1';
+      ctx.beginPath();
+      ctx.moveTo(-7, -3); ctx.lineTo(5, -5); ctx.lineTo(8, 4); ctx.lineTo(-4, 6);
+      ctx.closePath();
+      ctx.fill();
+      return;
+    }
+    if (sp.id === 'path_drag') {
+      ctx.strokeStyle = isUvMask ? '#334155' : '#100d0a';
+      ctx.lineWidth = detailScale > 1.3 ? 3.2 : 2.2;
+      ctx.beginPath();
+      ctx.moveTo(-22, -6); ctx.lineTo(22, 4);
+      ctx.moveTo(-18, 4); ctx.lineTo(24, 13);
+      ctx.stroke();
+      return;
+    }
+    if (sp.id === 'noise_paw') {
+      ctx.fillStyle = isUvMask ? '#171c2b' : '#120f0b';
+      ctx.beginPath(); ctx.arc(0, 3, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(-6, -4, 2.3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(0, -6, 2.3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(6, -4, 2.3, 0, Math.PI * 2); ctx.fill();
+      return;
+    }
+
+    // Garage spots (case412 Act V)
+    if (sp.id === 'noise_coolant') {
+      ctx.fillStyle = isUvMask ? 'rgba(132, 204, 22, 0.45)' : 'rgba(52, 168, 128, 0.5)';
+      ctx.beginPath(); ctx.ellipse(0, 0, 11, 6, 0.3, 0, Math.PI * 2); ctx.fill();
+      return;
+    }
+    if (sp.id === 'pit_cable') {
+      ctx.strokeStyle = isUvMask ? '#475569' : '#0f172a';
+      ctx.lineWidth = detailScale > 1.3 ? 3.6 : 2.6;
+      ctx.beginPath(); ctx.moveTo(-18, 8); ctx.quadraticCurveTo(0, -4, 18, 2); ctx.stroke();
+      ctx.fillStyle = isUvMask ? '#334155' : '#cbd5e1';
+      ctx.beginPath(); ctx.arc(16, 2, 4, 0, Math.PI * 2); ctx.fill();
+      return;
+    }
+    if (sp.id === 'noise_crack') {
+      ctx.strokeStyle = '#090b10';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(-12, -8); ctx.lineTo(-2, 0); ctx.lineTo(6, -3); ctx.lineTo(14, 9); ctx.stroke();
+      return;
+    }
+    if (sp.id === 'bench_hatch' && sp.cleared) {
+      // Fresh workbench scrape marks + iron ring + folded blueprint corner
+      ctx.strokeStyle = isUvMask ? '#64748b' : '#cbd5e1';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(-22, -6); ctx.lineTo(14, -6); ctx.moveTo(-22, 8); ctx.lineTo(14, 8); ctx.stroke();
+      ctx.strokeStyle = isUvMask ? '#818cf8' : '#94a3b8';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(6, 1, 7, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = isUvMask ? '#312e81' : '#1d4ed8';
+      ctx.fillRect(-16, -2, 12, 8);
+      return;
+    }
+    if (sp.id === 'noise_shavings') {
+      ctx.fillStyle = isUvMask ? '#1e2233' : '#785c3a';
+      for (var k = -8; k <= 8; k += 5) {
+        ctx.fillRect(k, (k % 3) * 2, 4, 2);
+      }
+    }
+  }
+
+  function drawSceneView(ctx, w, h, sceneKind, view, mode, spots, beamX, beamY, kt, timeSec, mudParticles) {
     ctx.save();
     ctx.fillStyle = mode === 'uv' ? '#05060b' : '#0b0e14';
     ctx.fillRect(0, 0, w, h);
 
-    // Lab mat millimeter grid
     ctx.strokeStyle = mode === 'uv' ? 'rgba(99, 102, 241, 0.06)' : 'rgba(212, 202, 180, 0.04)';
     ctx.lineWidth = 1;
     var g;
@@ -481,109 +1207,14 @@
       ctx.translate(kt.cx, kt.cy);
       ctx.scale(kt.scale, kt.scale);
 
-      var steelLight = isUvMask ? '#1a1f36' : (view === 'back' ? '#6c7482' : '#8c96a6');
-      var steelDark = isUvMask ? '#0b0e1a' : '#2a303a';
-      var gripCol = isUvMask ? '#0d0e14' : '#1b1d22';
-
-      if (view === 'front' || view === 'back') {
-        var bladeDir = view === 'front' ? -1 : 1; // Flip silhouette left/right when turned over!
-        ctx.save();
-        if (view === 'back') ctx.scale(-1, 1);
-
-        // Blade body (from x=-145 tip to x=-6 guard)
-        var bGrad = ctx.createLinearGradient(0, -24, 0, 24);
-        bGrad.addColorStop(0, steelDark);
-        bGrad.addColorStop(0.35, steelLight);
-        bGrad.addColorStop(0.68, '#4a5260');
-        bGrad.addColorStop(1, '#a9b3c4');
-
-        ctx.fillStyle = bGrad;
-        ctx.beginPath();
-        ctx.moveTo(-144, 2);
-        ctx.quadraticCurveTo(-125, -20, -96, -21);
-        ctx.lineTo(-6, -20);
-        ctx.lineTo(-6, 18);
-        ctx.lineTo(-104, 19);
-        ctx.quadraticCurveTo(-128, 17, -144, 2);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        // Fuller groove
-        ctx.fillStyle = isUvMask ? '#090b15' : 'rgba(15, 18, 24, 0.55)';
-        roundRectPath(ctx, -108, -13, 92, 8, 4);
-        ctx.fill();
-
-        // Guard bolster
-        ctx.fillStyle = isUvMask ? '#141724' : '#323741';
-        roundRectPath(ctx, -8, -26, 14, 52, 3);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,0.16)';
-        ctx.stroke();
-
-        // Rubberized handle (x=6..136)
-        ctx.fillStyle = gripCol;
-        roundRectPath(ctx, 6, -18, 130, 36, 10);
-        ctx.fill();
-        ctx.strokeStyle = '#363c48';
-        ctx.stroke();
-
-        // Grip ribs
-        ctx.strokeStyle = isUvMask ? '#171a26' : '#0d0f13';
-        ctx.lineWidth = 2.5;
-        for (var rx = 20; rx < 118; rx += 12) {
-          ctx.beginPath(); ctx.moveTo(rx, -13); ctx.lineTo(rx, 13); ctx.stroke();
-        }
-        ctx.restore();
+      if (sceneKind === 'gate') {
+        renderGateObject(ctx, view, isUvMask);
+      } else if (sceneKind === 'garage') {
+        renderGarageObject(ctx, view, isUvMask);
       } else {
-        // VIEW 2: Edge / crevices profile (looking straight into bottom/seam of knife)
-        var spineGrad = ctx.createLinearGradient(0, -10, 0, 10);
-        spineGrad.addColorStop(0, '#2a303a');
-        spineGrad.addColorStop(0.5, isUvMask ? '#1e243d' : '#9ca6b8');
-        spineGrad.addColorStop(1, '#232832');
-        ctx.fillStyle = spineGrad;
-        roundRectPath(ctx, -142, -5, 138, 10, 3);
-        ctx.fill();
-
-        // Guard slot profile
-        ctx.fillStyle = isUvMask ? '#151828' : '#3b414d';
-        roundRectPath(ctx, -6, -20, 14, 40, 4);
-        ctx.fill();
-
-        // Handle bottom seam with deep transverse notches
-        ctx.fillStyle = gripCol;
-        roundRectPath(ctx, 8, -14, 126, 28, 8);
-        ctx.fill();
-
-        // Central assembly seam line along handle
-        ctx.strokeStyle = '#050608';
-        ctx.lineWidth = 2.2;
-        ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(132, 0); ctx.stroke();
-
-        // Поперечные насечки по торцу рукояти (+x)
-        ctx.fillStyle = '#07090c';
-        for (var nx = 24; nx <= 104; nx += 20) {
-          roundRectPath(ctx, nx - 4, -14, 8, 28, 2);
-          ctx.fill();
-        }
-        // Выделенная глубокая насечка на ux = 54 (место осколка стекла)
-        ctx.fillStyle = '#050608';
-        roundRectPath(ctx, 48, -13, 12, 26, 2);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        // Скол на торце тыльника рукояти (ux = 122)
-        ctx.fillStyle = '#0b0c10';
-        ctx.beginPath();
-        ctx.arc(122, 0, 7, 0, Math.PI * 2);
-        ctx.fill();
+        renderKnifeObject(ctx, view, isUvMask);
       }
 
-      // Draw spots belonging to active view
       for (var i = 0; i < spots.length; i++) {
         var sp = spots[i];
         if (sp.view !== view) continue;
@@ -591,93 +1222,22 @@
         ctx.save();
         ctx.translate(sp.ux, sp.uy);
 
-        // Specific visual features for each spot
-        if (sp.id === 'fuller_luminol') {
-          if (isUvMask) {
-            var lg = ctx.createRadialGradient(0, 0, 2, 0, 0, 26);
-            lg.addColorStop(0, 'rgba(96, 245, 255, 0.95)');
-            lg.addColorStop(0.5, 'rgba(56, 189, 248, 0.45)');
-            lg.addColorStop(1, 'rgba(56, 189, 248, 0)');
-            ctx.fillStyle = lg;
-            ctx.beginPath(); ctx.ellipse(0, 0, 26, 7, 0, 0, Math.PI * 2); ctx.fill();
-          } else {
-            ctx.fillStyle = 'rgba(200, 215, 230, 0.24)';
-            ctx.beginPath(); ctx.ellipse(0, 0, 18, 3, 0, 0, Math.PI * 2); ctx.fill();
-          }
-        } else if (sp.id === 'guard_fiber' && sp.cleared) {
-          ctx.strokeStyle = isUvMask ? '#818cf8' : '#1d4ed8';
-          ctx.lineWidth = detailScale > 1.3 ? 2.2 : 1.4;
-          ctx.beginPath();
-          ctx.moveTo(-4, -3); ctx.quadraticCurveTo(2, 2, 7, 6);
-          ctx.moveTo(-1, -1); ctx.quadraticCurveTo(4, -5, 8, -2);
-          ctx.stroke();
-          if (detailScale > 1.3) {
-            ctx.strokeStyle = '#60a5fa';
-            ctx.lineWidth = 0.8;
-            ctx.beginPath(); ctx.moveTo(-3, -2); ctx.lineTo(6, 5); ctx.stroke();
-          }
-        } else if (sp.id === 'noise_grind') {
-          ctx.strokeStyle = isUvMask ? 'rgba(100,110,140,0.2)' : 'rgba(230, 235, 245, 0.5)';
-          ctx.lineWidth = 1.1;
-          for (var sc = -8; sc <= 8; sc += 4) {
-            ctx.beginPath(); ctx.moveTo(sc, -6); ctx.lineTo(sc + 3, 6); ctx.stroke();
-          }
-        } else if (sp.id === 'noise_reed') {
-          ctx.strokeStyle = isUvMask ? '#7f1d1d' : '#4d6b3c';
-          ctx.lineWidth = 2;
-          ctx.beginPath(); ctx.moveTo(-10, 4); ctx.quadraticCurveTo(0, -3, 12, 2); ctx.stroke();
-        } else if (sp.id === 'handle_seam_blood' && sp.cleared) {
-          if (isUvMask) {
-            var hg = ctx.createRadialGradient(0, 0, 2, 0, 0, 22);
-            hg.addColorStop(0, 'rgba(103, 232, 249, 0.95)');
-            hg.addColorStop(0.55, 'rgba(99, 102, 241, 0.4)');
-            hg.addColorStop(1, 'rgba(99, 102, 241, 0)');
-            ctx.fillStyle = hg;
-            ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill();
-          } else {
-            ctx.fillStyle = '#5c1818';
-            ctx.beginPath(); ctx.ellipse(0, 0, 9, 4, 0.1, 0, Math.PI * 2); ctx.fill();
-          }
-        } else if (sp.id === 'noise_oil') {
-          if (isUvMask) {
-            var og = ctx.createRadialGradient(0, 0, 2, 0, 0, 18);
-            og.addColorStop(0, 'rgba(190, 242, 100, 0.55)');
-            og.addColorStop(1, 'rgba(163, 230, 53, 0)');
-            ctx.fillStyle = og;
-            ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2); ctx.fill();
-          } else {
-            ctx.fillStyle = 'rgba(28, 25, 22, 0.55)';
-            ctx.beginPath(); ctx.ellipse(0, 0, 12, 6, -0.2, 0, Math.PI * 2); ctx.fill();
-          }
-        } else if (sp.id === 'notch_microglass') {
-          ctx.fillStyle = isUvMask ? '#93c5fd' : '#0f172a';
-          ctx.strokeStyle = '#e2e8f0';
-          ctx.lineWidth = detailScale > 1.3 ? 1.4 : 0.7;
-          ctx.beginPath();
-          ctx.moveTo(-3, 2); ctx.lineTo(4, -3); ctx.lineTo(2, 4); ctx.closePath();
-          ctx.fill();
-          ctx.stroke();
-        } else if (sp.id === 'noise_chip') {
-          ctx.fillStyle = '#090a0d';
-          ctx.beginPath(); ctx.arc(0, 0, 4.5, 0, Math.PI * 2); ctx.fill();
-        }
+        renderSpotFeature(ctx, sp, detailScale, isUvMask);
 
-        // Physical mud / clay layer covering hidden spots
         if (!sp.cleared && sp.mud > 0) {
           ctx.save();
           ctx.globalAlpha = clamp(sp.mud, 0.15, 1);
           ctx.fillStyle = '#362d22';
-          ctx.beginPath(); ctx.ellipse(0, 0, 20, 14, 0.2, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(0, 0, 21, 14, 0.2, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = '#4c4030';
           ctx.beginPath(); ctx.ellipse(-4, -3, 11, 7, -0.3, 0, Math.PI * 2); ctx.fill();
           ctx.strokeStyle = 'rgba(201, 138, 46, 0.65)';
           ctx.lineWidth = 1;
           ctx.setLineDash([3, 3]);
-          ctx.beginPath(); ctx.arc(0, 0, 21, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.stroke();
           ctx.restore();
         }
 
-        // Evidence captured badge
         if (sp.found) {
           ctx.strokeStyle = '#22c55e';
           ctx.lineWidth = 1.8;
@@ -692,10 +1252,8 @@
       ctx.restore();
     }
 
-    // 1. Base white-light / ambient scene
     renderObject(1.0, false);
 
-    // 2. Optical beam / lens overlay
     if (mode === 'uv') {
       ctx.save();
       ctx.fillStyle = 'rgba(4, 5, 10, 0.88)';
@@ -735,7 +1293,6 @@
       ctx.fillStyle = '#0d1118';
       ctx.fillRect(beamX - lR, beamY - lR, lR * 2, lR * 2);
 
-      // Magnified render centered around beamX, beamY
       ctx.translate(beamX, beamY);
       ctx.scale(mag, mag);
       ctx.translate(-beamX, -beamY);
@@ -750,7 +1307,6 @@
       ctx.beginPath(); ctx.arc(beamX, beamY, lR - 4, -2.3, -1.1); ctx.stroke();
       ctx.restore();
     } else {
-      // Subtle warm flashlight halo in white mode
       var wg = ctx.createRadialGradient(beamX, beamY, 6, beamX, beamY, 72);
       wg.addColorStop(0, 'rgba(255, 244, 222, 0.16)');
       wg.addColorStop(1, 'rgba(255, 244, 222, 0)');
@@ -758,14 +1314,12 @@
       ctx.beginPath(); ctx.arc(beamX, beamY, 72, 0, Math.PI * 2); ctx.fill();
     }
 
-    // 3. Falling mud particles
     for (var p = mudParticles.length - 1; p >= 0; p--) {
       var mp = mudParticles[p];
       ctx.fillStyle = 'rgba(76, 64, 48, ' + mp.alpha.toFixed(2) + ')';
       ctx.beginPath(); ctx.arc(mp.x, mp.y, mp.r, 0, Math.PI * 2); ctx.fill();
     }
 
-    // 4. Subtle reticle at pointer
     var pulse = 0.5 + 0.5 * Math.sin(timeSec * 5);
     ctx.strokeStyle = mode === 'uv' ? 'rgba(129, 140, 248, 0.85)' : 'rgba(224, 163, 67, 0.85)';
     ctx.lineWidth = 1.2;
@@ -777,9 +1331,11 @@
   }
 
   register('uv_search', function (containerEl, config, callbacks) {
-    var dataset = buildKnifeDataset(config);
+    var dataset = resolveUvScenario(config);
     var spots = dataset.spots;
     var conclusion = dataset.conclusion;
+    var views = dataset.views;
+    var sceneKind = dataset.sceneKind || 'knife';
 
     var totalEvidence = 0;
     for (var s = 0; s < spots.length; s++) {
@@ -788,13 +1344,7 @@
       if (spots[s].isEvidence) totalEvidence++;
     }
 
-    var views = [
-      { id: 'front', label: '1. ЛИЦЕВАЯ' },
-      { id: 'back', label: '2. ТЫЛЬНАЯ' },
-      { id: 'edge', label: '3. ТОРЦЫ/ЩЕЛИ' }
-    ];
-
-    var activeView = 'front';
+    var activeView = views[0].id;
     var activeMode = 'white';
     var foundCount = 0;
     var errorsCount = 0;
@@ -814,7 +1364,7 @@
 
     var titleEl = document.createElement('div');
     titleEl.className = 'mg-header-title';
-    titleEl.textContent = config.title || 'ОСМОТР НОЖА И СКРЫТЫХ СЛЕДОВ';
+    titleEl.textContent = dataset.title;
 
     var metaBar = document.createElement('div');
     metaBar.className = 'mguv-meta-bar';
@@ -878,7 +1428,7 @@
 
     var hintEl = document.createElement('div');
     hintEl.className = 'mguv-view-hint';
-    hintEl.textContent = 'Переключайте ракурсы сверху. В режиме СВЕТ сотрите грязь, затем проверяйте УФ-365 и ЛУПОЙ ×4.';
+    hintEl.textContent = dataset.hintText;
     body.appendChild(hintEl);
 
     var inspectorEl = document.createElement('div');
@@ -959,18 +1509,18 @@
     var endTimer = null;
     var lastFrameTs = performance.now();
 
-    function getKnifeTransform(w, h) {
+    function getSceneTransform(w, h) {
       var scale = clamp(Math.min((w - 22) / 310, (h - 22) / 130), 0.7, 1.65);
       return { cx: w * 0.5, cy: h * 0.54, scale: scale };
     }
 
-    function toKnifeCoords(px, py) {
-      var kt = getKnifeTransform(cssW, cssH);
+    function toSceneCoords(px, py) {
+      var kt = getSceneTransform(cssW, cssH);
       return { ux: (px - kt.cx) / kt.scale, uy: (py - kt.cy) / kt.scale };
     }
 
-    function fromKnifeCoords(ux, uy) {
-      var kt = getKnifeTransform(cssW, cssH);
+    function fromSceneCoords(ux, uy) {
+      var kt = getSceneTransform(cssW, cssH);
       return { x: kt.cx + ux * kt.scale, y: kt.cy + uy * kt.scale };
     }
 
@@ -1020,7 +1570,7 @@
       if (!selectedSpot) {
         scanTitle.className = 'mguv-scan-title' + (activeMode === 'uv' ? ' is-uv' : '');
         scanTitle.textContent = activeMode === 'uv' ? 'УФ-365 // ПОИСК БИОСЛЕДОВ' : activeMode === 'loupe' ? 'ЛУПА ×4 // МИКРОСТРУКТУРА' : 'ОБЫЧНЫЙ СВЕТ // ОЧИСТКА';
-        scanDesc.textContent = 'Водите по поверхности объекта для изучения деталей и снятия грязи.';
+        scanDesc.textContent = 'Водите по поверхности для изучения деталей и снятия мешающего слоя.';
         fixBtn.disabled = true;
         return;
       }
@@ -1036,7 +1586,7 @@
       if (!selectedSpot.cleared) {
         scanTitle.className = 'mguv-scan-title';
         scanTitle.textContent = 'ПЕРЕКРЫТИЕ // ' + selectedSpot.mudLabel;
-        scanDesc.textContent = activeMode === 'white' ? 'Потрите пальцем по грязному сгустку, чтобы счистить его.' : 'Переключитесь в СВЕТ (ОЧИСТКА), чтобы убрать грязь.';
+        scanDesc.textContent = activeMode === 'white' ? 'Потрите пальцем по слою, чтобы расчистить участок.' : 'Переключитесь в СВЕТ (ОЧИСТКА), чтобы убрать перекрытие.';
         fixBtn.disabled = true;
         return;
       }
@@ -1087,7 +1637,7 @@
     fixBtn.addEventListener('click', function () {
       if (phase !== 'inspect' || !selectedSpot || selectedSpot.found) return;
       if (!selectedSpot.cleared) {
-        setTempFlash('УЧАСТОК ЗАКРЫТ ГРЯЗЬЮ', 'Счистите слой ила в режиме СВЕТ.', 'err', 1200);
+        setTempFlash('УЧАСТОК ЗАКРЫТ', 'Расчистите перекрытие в режиме СВЕТ.', 'err', 1200);
         return;
       }
       if (!selectedSpot.isEvidence) {
@@ -1164,7 +1714,7 @@
               safeHaptic('success');
               endTimer = window.setTimeout(function () {
                 endTimer = null;
-                callbacks.onSuccess({ found: foundCount, errors: errorsCount, deduced: opt.id });
+                callbacks.onSuccess({ found: foundCount, errors: errorsCount, deduced: opt.id, sceneKind: sceneKind });
               }, 720);
             } else {
               errorsCount += 1;
@@ -1203,7 +1753,7 @@
         if (sp.view !== activeView || sp.cleared) continue;
         if (Math.hypot(ux - sp.ux, uy - sp.uy) <= sp.hitR + 8) {
           sp.mud = Math.max(0, sp.mud - Math.max(0.16, distPx * 0.015));
-          var pt = fromKnifeCoords(sp.ux, sp.uy);
+          var pt = fromSceneCoords(sp.ux, sp.uy);
           for (var k = 0; k < 2; k++) {
             mudParticles.push({
               x: pt.x + (Math.random() - 0.5) * 16,
@@ -1247,7 +1797,7 @@
         hintEl.classList.add('is-faded');
       }
 
-      var k = toKnifeCoords(beamCssX, beamCssY);
+      var k = toSceneCoords(beamCssX, beamCssY);
       scrubMudAt(k.ux, k.uy, 10);
       selectedSpot = findNearestSpot(k.ux, k.uy);
       syncInspector();
@@ -1261,7 +1811,7 @@
       var dist = Math.hypot(beamCssX - lastDragX, beamCssY - lastDragY);
       lastDragX = beamCssX;
       lastDragY = beamCssY;
-      var k = toKnifeCoords(beamCssX, beamCssY);
+      var k = toSceneCoords(beamCssX, beamCssY);
       scrubMudAt(k.ux, k.uy, dist);
       var hit = findNearestSpot(k.ux, k.uy);
       if (hit !== selectedSpot) {
@@ -1328,8 +1878,8 @@
       }
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      var kt = getKnifeTransform(cssW, cssH);
-      drawKnifeView(ctx, cssW, cssH, activeView, activeMode, spots, beamCssX, beamCssY, kt, now * 0.001, mudParticles);
+      var kt = getSceneTransform(cssW, cssH);
+      drawSceneView(ctx, cssW, cssH, sceneKind, activeView, activeMode, spots, beamCssX, beamCssY, kt, now * 0.001, mudParticles);
       rafId = window.requestAnimationFrame(tick);
     }
 

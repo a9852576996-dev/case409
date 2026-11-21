@@ -2161,18 +2161,23 @@
         playSfx('sfxClick');
         haptic('light');
 
-        if (node.onCancelNext) {
-          goToNode(node.onCancelNext);
+        var cancelNext = node.onCancelNext || (node.onCancel && node.onCancel.next);
+        if (cancelNext) {
+          goToNode(cancelNext);
         }
       }
     };
 
     if (window.GameMinigames && typeof window.GameMinigames.start === 'function') {
       try {
+        var mergedMgCfg = Object.assign(
+          { nodeId: state.nodeId || '', title: node.title || '', desc: node.desc || '' },
+          node.minigameConfig || {}
+        );
         window.GameMinigames.start(
           node.minigameId,
           dom.minigameContainer,
-          node.minigameConfig || {},
+          mergedMgCfg,
           callbacks
         );
         return;
