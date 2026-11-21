@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var ASSET_VER = 'v20261122j';
+  var ASSET_VER = 'v20261122k';
 
   var CASES_REGISTRY = {
     case409: {

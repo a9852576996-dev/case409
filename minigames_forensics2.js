@@ -2895,47 +2895,251 @@
   }
 
   // ============================================================================
-  // MINIGAME 3: timeline_reconstruct (Реконструкция таймлайна — Акт 6)
+  // MINIGAME 3: timeline_reconstruct (Multi-scenario case418 + case412 + Phase 3)
   // ============================================================================
 
-  var DEFAULT_TIMELINE_SLOTS = [
-    {
-      id: 'ev_well',
-      time: '21:00',
-      title: 'Убийство настоящего Сафонова и сброс в колодец',
-      tag: 'УЛИКА: ЗУБНАЯ КАРТА / КОЛОДЕЦ'
-    },
-    {
-      id: 'ev_gun',
-      time: '22:40',
-      title: 'Кража ствола из гаража Белова',
-      tag: 'УЛИКА: ЛИЧИНКА ЗАМКА / ЛРО-207'
-    },
-    {
-      id: 'ev_house',
-      time: '23:55',
-      title: 'Исполнитель входит в дом и ликвидирует семью',
-      tag: 'УЛИКА: СЛЕД ЛОМА / ПУЛЯ 9×18'
-    },
-    {
-      id: 'ev_arson',
-      time: '00:20',
-      title: 'Зуев устраняет исполнителя и разливает растворитель',
-      tag: 'УЛИКА: УАЙТ-СПИРИТ / 3 ОЧАГА'
-    },
-    {
-      id: 'ev_delay',
-      time: '00:50',
-      title: 'Мельников придерживает выезд пожарного расчёта',
-      tag: 'УЛИКА: ЖУРНАЛ МЧС / ЗВОНОК'
-    },
-    {
-      id: 'ev_cash',
-      time: '01:15',
-      title: 'Ломов приезжает к бане за чёрной кассой',
-      tag: 'УЛИКА: КАМЕРА КПП / СЕЙФ'
+  var TL_EXTRA_STYLE_ID = 'minigames-f2-tl-extra';
+
+  var TL_EXTRA_CSS = [
+    '.mg-tl-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 3px; }',
+    '.mg-tl-stat { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; font-weight: 600; color: var(--case-accent, #c98a2e); }',
+    '.mg-tl-err { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; font-weight: 600; color: #9ca3af; }',
+    '.mg-tl-err.is-warn { color: #f87171; }',
+    '.mg-tl-cover-wrap { position: relative; }',
+    '.mg-tl-folder-slip {',
+    '  position: absolute; inset: -2px; z-index: 8; border-radius: 7px; padding: 14px 12px;',
+    '  background: linear-gradient(168deg, #3c261c 0%, #241712 65%, #170f0c 100%);',
+    '  border: 1.5px solid var(--case-accent, #c98a2e); border-left: 4px solid #dc2626;',
+    '  box-shadow: 0 10px 26px rgba(0,0,0,0.78); display: flex; flex-direction: column;',
+    '  justify-content: center; align-items: center; gap: 10px; text-align: center;',
+    '  touch-action: none; cursor: grab; transition: transform 0.25s ease, opacity 0.25s ease;',
+    '}',
+    '.mg-tl-folder-slip.is-dragging { transition: none; cursor: grabbing; }',
+    '.mg-tl-folder-slip.is-peeled { transform: translate3d(115%, -10px, 0) rotate(8deg) !important; opacity: 0 !important; pointer-events: none; }',
+    '.mg-tl-folder-stamp { padding: 4px 10px; border: 2px double #ef4444; color: #fca5a5; font-family: "Oswald", sans-serif; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; transform: rotate(-4deg); }',
+    '.mg-tl-folder-txt { font-family: "IBM Plex Mono", monospace; font-size: 10.8px; line-height: 1.42; color: #e2d8c5; max-width: 280px; }',
+    '.mg-tl-card-row { display: flex; align-items: stretch; gap: 6px; }',
+    '.mg-tl-card-row .mg-tl-card { flex: 1; min-width: 0; }',
+    '.mg-tl-reject-btn {',
+    '  flex-shrink: 0; width: 42px; border-radius: 6px; border: 1px solid #3c292b;',
+    '  background: rgba(153, 27, 27, 0.22); color: #fca5a5; font-family: "IBM Plex Mono", monospace;',
+    '  font-size: 9px; font-weight: 700; cursor: pointer; display: flex; flex-direction: column;',
+    '  align-items: center; justify-content: center; gap: 2px; padding: 4px 2px;',
+    '}',
+    '.mg-tl-reject-btn:active { transform: scale(0.95); background: rgba(185, 28, 28, 0.38); }',
+    '.mg-tl-deduce { display: flex; flex-direction: column; gap: 9px; padding: 12px; background: #14171f; border: 1px solid #353b4a; border-top: 3px solid var(--case-accent, #c98a2e); border-radius: 8px; }',
+    '.mg-tl-dkicker { font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 700; color: var(--case-accent, #c98a2e); text-transform: uppercase; }',
+    '.mg-tl-dfacts { padding: 8px 9px; background: #0d1016; border: 1px solid #262b36; border-radius: 6px; font-family: "IBM Plex Mono", monospace; font-size: 9.8px; line-height: 1.4; color: #c2cad8; display: flex; flex-direction: column; gap: 3px; }',
+    '.mg-tl-dq { font-size: 12.8px; line-height: 1.4; color: #f3efe6; font-weight: 500; }',
+    '.mg-tl-dopts { display: flex; flex-direction: column; gap: 6px; }',
+    '.mg-tl-dopt { width: 100%; text-align: left; padding: 9px 10px; background: #1b202b; border: 1px solid #353d4e; border-radius: 6px; color: #e4e0d8; font-size: 12px; line-height: 1.36; cursor: pointer; }',
+    '.mg-tl-dopt.is-wrong { border-color: #ef4444; background: rgba(153, 27, 27, 0.25); color: #fecaca; }',
+    '.mg-tl-dopt.is-correct { border-color: #22c55e; background: rgba(34, 197, 94, 0.2); color: #bbf7d0; }',
+    '.mg-tl-dfb { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; line-height: 1.38; min-height: 16px; color: #fca5a5; }',
+    '.mg-tl-dfb.is-ok { color: #86efac; }',
+    '.mg-tl-stamp-box { padding: 24px 14px; background: #0d1016; border: 1px solid #2a2e38; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }',
+    '.mg-tl-bigstamp { padding: 8px 14px; font-family: "Oswald", sans-serif; font-size: 17px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ef4444; border: 3px double #ef4444; border-radius: 4px; transform: rotate(-5deg); line-height: 1.25; }',
+    '.mg-tl-bigstamp.is-ok { color: #4ade80; border-color: #22c55e; background: rgba(34, 197, 94, 0.12); }'
+  ].join('\n');
+
+  function injectTlStyles() {
+    if (document.getElementById(TL_EXTRA_STYLE_ID)) return;
+    var el = document.createElement('style');
+    el.id = TL_EXTRA_STYLE_ID;
+    el.textContent = TL_EXTRA_CSS;
+    document.head.appendChild(el);
+  }
+
+  function buildTlCase418Scenario(config) {
+    return {
+      id: 'case418_act6_timeline',
+      title: config.title || 'РЕКОНСТРУКЦИЯ ХРОНОЛОГИИ // №418',
+      coverStamp: 'ВЕРСИЯ ПРИКРЫТИЯ // СПИСАТЬ В АРХИВ',
+      coverText: 'На доске лежит сводка Мельникова о «бытовом замыкании». Сдвиньте папку в сторону, чтобы открыть следственную цепь.',
+      stampWin: 'ОРДЕР ПРОКУРОРА ПОДПИСАН // ДЕЛО №418',
+      slots: [
+        { id: 'ev_well', time: '21:00', title: 'Убийство настоящего Сафонова и сброс в старый колодец', tag: 'УЛИКА: ЗУБНАЯ КАРТА / КОЛОДЕЦ' },
+        { id: 'ev_gun', time: '22:40', title: 'Взлом гаража Белова отмычкой и кража ПМ ЛРО-207', tag: 'УЛИКА: ЛИЧИНКА ЗАМКА / ЛРО-207' },
+        { id: 'ev_house', time: '23:55', title: 'Исполнитель отжимает дверь ломом и ликвидирует семью', tag: 'УЛИКА: СЛЕД ЛОМА / ПУЛЯ 9×18' },
+        { id: 'ev_arson', time: '00:20', title: 'Зуев устраняет исполнителя и разливает уайт-спирит', tag: 'УЛИКА: УАЙТ-СПИРИТ / 3 ОЧАГА' },
+        { id: 'ev_delay', time: '00:50', title: 'Мельников придерживает выезд пожарного расчёта', tag: 'УЛИКА: ЖУРНАЛ МЧС / ЗВОНОК' },
+        { id: 'ev_cash', time: '01:15', title: 'Ломов приезжает к бане за чёрной кассой', tag: 'УЛИКА: КАМЕРА КПП / СЕЙФ' }
+      ],
+      decoys: [
+        {
+          id: 'decoy_wire',
+          title: 'Короткое замыкание электрощитка случайно зажигает дом',
+          tag: 'СВОДКА ПОЖАРНЫХ (ПРОВЕРЬТЕ)',
+          rejectMsg: 'Верно отсеяно: медные жилы щитка целы, а на полу 3 очага уайт-спирита.',
+          slotErrMsg: 'ЛОЖНАЯ ВЕРСИЯ НА ДОСКЕ: щиток обгорел лишь снаружи — замыкания не было!'
+        },
+        {
+          id: 'decoy_belov',
+          title: 'Игорь Белов сам открывает гараж и едет мстить Сафонову',
+          tag: 'ВЕРСИЯ ПОДСТАВЫ (ПРОВЕРЬТЕ)',
+          rejectMsg: 'Верно отсеяно: замок гаража Белова вскрыли чужой отмычкой и графитовой смазкой.',
+          slotErrMsg: 'ЛОЖНАЯ ВЕРСИЯ НА ДОСКЕ: трасология доказала, что ствол украли из гаража отмычкой!'
+        }
+      ],
+      conclusion: {
+        question: 'Вся 6-звенная хронология ночи сведена воедино, а версии о проводке и вине Белова отброшены. Постановление для прокурора:',
+        options: [
+          {
+            id: 'lomov_master',
+            text: 'Главный организатор убийства — Ломов, который в 01:15 поджёг дом ради чёрной кассы.',
+            isCorrect: false,
+            reason: 'Противоречие: к 01:15 дом уже горел 55 минут; Ломов лишь случайно приехал за кассой.'
+          },
+          {
+            id: 'zuev_melnikov',
+            text: 'Требуется ордер на задержание организатора Аркадия Зуева и его пособника майора Мельникова, прикрывшего поджог.',
+            isCorrect: true,
+            reason: 'Верно: хронология, фальшивая доверенность и задержка МЧС неопровержимо изобличают Зуева и Мельникова.'
+          },
+          {
+            id: 'belov_accomplice',
+            text: 'Арестовать Белова и Зуева как сообщников по краже оружия, а Мельникова оставить свидетелем.',
+            isCorrect: false,
+            reason: 'Противоречие: Белова подставили взломом отмычкой, а Мельников умышленно сорвал выезд пожарных.'
+          }
+        ]
+      }
+    };
+  }
+
+  function buildTlCase412Scenario(config) {
+    return {
+      id: 'case412_act6_timeline',
+      title: config.title || 'РЕКОНСТРУКЦИЯ НОЧИ ПОХИЩЕНИЯ // №412',
+      coverStamp: 'ОТКАЗНОЙ МАТЕРИАЛ ГРОМОВА // ПОБЕГ',
+      coverText: 'На планшете лежит отказной рапорт участкового Громова. Сдвиньте лист в сторону, чтобы собрать цепь для прокуратуры.',
+      stampWin: 'ДОСЬЕ ЗАКРЫТО // ЗАДЕРЖАНИЕ КРАВЦОВА',
+      slots: [
+        { id: 'c412_sms', time: '21:40', title: 'Алина сходит с электрички и пишет матери со входа на Садовую', tag: 'УЛИКА: ТЕХЛОГ БС-14 / SMS' },
+        { id: 'c412_grab', time: '21:53', title: 'Кравцов усыпляет её хлороформом у забора и тащит в гараж №14', tag: 'УЛИКА: НОГОТЬ / ВЕТОШЬ / КАМЕРА' },
+        { id: 'c412_pwr', time: '22:15', title: 'Запуск скрытого бункера под гаражом: расход сети растёт ×4', tag: 'УЛИКА: ЭНЕРГОСБЫТ / БТИ' },
+        { id: 'c412_well', time: '03:42', title: 'Кравцов выносит рюкзак к колодцу: 40 сек сети и отпечаток на латуни', tag: 'УЛИКА: БИЛЛИНГ R=50М / КАРАБИН' },
+        { id: 'c412_cam', time: '08:15', title: 'Участковый Громов приезжает к Беляеву и стирает 14 минут видео', tag: 'УЛИКА: КЭШ КАМЕРЫ №12' },
+        { id: 'c412_alibi', time: '11:00', title: 'Кравцов прикрывается фальшивой квитанцией и ждёт районного судью', tag: 'УЛИКА: ФАЛЬШИВАЯ КВИТАНЦИЯ' }
+      ],
+      decoys: [
+        {
+          id: 'decoy_artem',
+          title: 'Алина добровольно уезжает по трассе М-7 с Артёмом (Рыжим)',
+          tag: 'РАПОРТ ГРОМОВА (ПРОВЕРЬТЕ)',
+          rejectMsg: 'Верно отсеяно: телефон Артёма всю ночь был в 12 км на АЗС, а сигнал Алины остался на Садовой.',
+          slotErrMsg: 'ЛОЖНАЯ ВЕРСИЯ НА ДОСКЕ: алиби Артёма подтверждено, а на трассе БС-09 было 0 пакетов Алины!'
+        },
+        {
+          id: 'decoy_wood',
+          title: 'Кравцов всю ночь просто сушит дубовые доски в обычном гараже',
+          tag: 'АЛИБИ КРАВЦОВА (ПРОВЕРЬТЕ)',
+          rejectMsg: 'Верно отсеяно: за весь прошлый год таких пиков не было, а под гаражом скрытый ввод > 2.2 м.',
+          slotErrMsg: 'ЛОЖНАЯ ВЕРСИЯ НА ДОСКЕ: нагрузка выросла ×4 ровно в 22:15 в ночь похищения!'
+        }
+      ],
+      conclusion: {
+        question: 'Все звенья ночи похищения (от 21:40 до 11:00) замкнулись без единого пробела. Итог протокола для областного прокурора:',
+        options: [
+          {
+            id: 'belyaev_guilty',
+            text: 'Виновен сосед Беляев (участок №12), который стер свою камеру и подбросил улики Кравцову.',
+            isCorrect: false,
+            reason: 'Противоречие: камеру зачистил Громов в 08:15, отпечаток со шрамом принадлежит Кравцову, а бункер под гаражом №14.'
+          },
+          {
+            id: 'kravtsov_gromov',
+            text: 'Неопровержимо доказано похищение и удержание Алины Виктором Кравцовым в бункере №14 при сокрытии улик участковым Громовым.',
+            isCorrect: true,
+            reason: 'Верно: цепь из 6 звеньев закрывает все лазейки для районного судьи и фиксирует состав преступления.'
+          },
+          {
+            id: 'missing_case',
+            text: 'Оснований для задержания недостаточно — следует закрыть дело как добровольный уход.',
+            isCorrect: false,
+            reason: 'Противоречие: ноготь, хлороформ, отпечаток на карабине, скрытый бункер и живой стук по трубе доказывают похищение.'
+          }
+        ]
+      }
+    };
+  }
+
+  function buildTlGenericScenario(config, storyNode) {
+    var title = (config && config.title) || (storyNode && storyNode.title) || 'РЕКОНСТРУКЦИЯ ХРОНОЛОГИИ';
+    var raw = Array.isArray(config && config.slots) && config.slots.length > 0
+      ? config.slots
+      : Array.isArray(config && config.events) && config.events.length > 0
+      ? config.events
+      : [
+          { id: 'g_1', time: '21:00', title: 'Исходное событие (начало эпизода)', tag: 'ПРОТОКОЛ #1' },
+          { id: 'g_2', time: '22:15', title: 'Ключевое криминальное действие', tag: 'ПРОТОКОЛ #2' },
+          { id: 'g_3', time: '23:30', title: 'Попытка сокрытия следов преступления', tag: 'ПРОТОКОЛ #3' },
+          { id: 'g_4', time: '01:00', title: 'Фиксация противоречия в алиби', tag: 'ПРОТОКОЛ #4' }
+        ];
+    var slots = raw.map(function (it, i) {
+      return {
+        id: it.id || ('ev_' + i),
+        time: it.time || ('0' + i + ':00'),
+        title: it.title || it.label || ('Событие #' + (i + 1)),
+        tag: it.tag || it.evidence || 'ПРОТОКОЛ СК'
+      };
+    });
+    return {
+      id: 'generic_timeline',
+      title: title,
+      coverStamp: 'ПРЕДВАРИТЕЛЬНАЯ СВОДКА',
+      coverText: 'Сдвиньте верхний лист в сторону, чтобы начать реконструкцию хронологии.',
+      stampWin: 'ХРОНОЛОГИЯ ПОДТВЕРЖДЕНА',
+      slots: slots,
+      decoys: Array.isArray(config && config.decoys) ? config.decoys : [
+        {
+          id: 'gen_decoy',
+          title: 'Неподтверждённая версия случайного совпадения',
+          tag: 'ОШИБОЧНАЯ ВЕРСИЯ',
+          rejectMsg: 'Верно отсеяно: эта версия противоречит собранным вещдокам.',
+          slotErrMsg: 'ЛОЖНАЯ ВЕРСИЯ НА ДОСКЕ: отсейте неподтверждённую гипотезу!'
+        }
+      ],
+      conclusion: (config && config.conclusion) || {
+        question: 'Последовательность событий восстановлена без противоречий. Итог для следствия:',
+        options: [
+          { id: 'random', text: 'События не связаны между собой.', isCorrect: false, reason: 'Противоречие: временная шкала выстраивается в единую цепь.' },
+          { id: 'ok', text: 'Хронология полностью подтверждает умышленную связь всех звеньев преступления.', isCorrect: true, reason: 'Верно: следственная картина собрана.' },
+          { id: 'gap', text: 'Ключевое событие невозможно датировать.', isCorrect: false, reason: 'Противоречие: все временные слоты подтверждены уликами.' }
+        ]
+      }
+    };
+  }
+
+  function resolveTlScenario(config) {
+    var cfg = config || {};
+    var caseId = String(window.ACTIVE_CASE_ID || '').toLowerCase();
+    var nodeId = '';
+    try {
+      if (window.GameEngine && typeof window.GameEngine.getState === 'function') {
+        var st = window.GameEngine.getState();
+        if (st && st.nodeId) nodeId = String(st.nodeId);
+      }
+    } catch (e) {}
+    var storyNode = null;
+    try {
+      if (window.GameStory && window.GameStory.nodes && nodeId) {
+        storyNode = window.GameStory.nodes[nodeId] || null;
+      }
+    } catch (e) {}
+
+    if ((Array.isArray(cfg.slots) && cfg.slots.length > 0) || (Array.isArray(cfg.events) && cfg.events.length > 0)) {
+      return buildTlGenericScenario(cfg, storyNode);
     }
-  ];
+    var hint = String(cfg.title || (storyNode && storyNode.title) || '');
+    if (cfg.preset === 'case412' || caseId === 'case412' || nodeId === 'act6_mg_timeline' || /похищ/i.test(hint)) {
+      return buildTlCase412Scenario(cfg);
+    }
+    if (cfg.preset === 'case418' || caseId === 'case418' || nodeId === 'act6_timeline_game') {
+      return buildTlCase418Scenario(cfg);
+    }
+    return buildTlGenericScenario(cfg, storyNode);
+  }
 
   function shuffleNonSolved(arr) {
     var copy = arr.slice();
@@ -2943,120 +3147,141 @@
     var i, j, tmp;
     for (i = copy.length - 1; i > 0; i--) {
       j = Math.floor(rand() * (i + 1));
-      tmp = copy[i];
-      copy[i] = copy[j];
-      copy[j] = tmp;
+      tmp = copy[i]; copy[i] = copy[j]; copy[j] = tmp;
     }
-    // Guarantee shuffled list does not match original order
     var allSame = true;
     for (i = 0; i < copy.length; i++) {
-      if (copy[i].id !== arr[i].id) {
-        allSame = false;
-        break;
-      }
+      if (copy[i].id !== arr[i].id) { allSame = false; break; }
     }
     if (allSame && copy.length > 1) {
-      tmp = copy[0];
-      copy[0] = copy[copy.length - 1];
-      copy[copy.length - 1] = tmp;
+      tmp = copy[0]; copy[0] = copy[copy.length - 1]; copy[copy.length - 1] = tmp;
     }
     return copy;
   }
 
+
   function initTimelineReconstruct(containerEl, config, callbacks) {
     config = config || {};
+    injectTlStyles();
+
     var timers = createTimerBag();
     var listeners = createListenerBag();
     var triggerWin = createWinTrigger(callbacks);
-    var finished = false;
+    var failFired = false;
+    function triggerTlFail(res) {
+      if (failFired) return;
+      failFired = true;
+      if (callbacks && typeof callbacks.onFail === 'function') {
+        callbacks.onFail(res || { success: false });
+      }
+    }
 
-    // Normalize config: support config.slots or config.events or defaults
-    var sourceItems =
-      Array.isArray(config.slots) && config.slots.length > 0
-        ? config.slots
-        : Array.isArray(config.events) && config.events.length > 0
-        ? config.events
-        : DEFAULT_TIMELINE_SLOTS;
+    var scenario = resolveTlScenario(config);
+    var maxErrors = typeof config.maxErrors === 'number' && config.maxErrors > 0 ? config.maxErrors : 4;
+    var correctSeq = scenario.slots.slice();
+    var decoys = (scenario.decoys || []).slice();
 
-    var correctSequence = sourceItems.map(function (item, idx) {
-      return {
-        id: item.id || 'ev_' + idx,
-        time: item.time || (DEFAULT_TIMELINE_SLOTS[idx] ? DEFAULT_TIMELINE_SLOTS[idx].time : '0' + idx + ':00'),
-        title: item.title || item.label || 'Событие #' + (idx + 1),
-        tag: item.tag || item.evidence || 'ПРОТОКОЛ СК'
-      };
-    });
+    var allCards = [];
+    var cardById = {};
+    var i;
+    for (i = 0; i < correctSeq.length; i++) {
+      var cObj = Object.assign({}, correctSeq[i], { isDecoy: false });
+      allCards.push(cObj);
+      cardById[cObj.id] = cObj;
+    }
+    for (i = 0; i < decoys.length; i++) {
+      var dObj = Object.assign({}, decoys[i], { isDecoy: true });
+      allCards.push(dObj);
+      cardById[dObj.id] = dObj;
+    }
 
-    var slotTimes = correctSequence.map(function (s) {
-      return s.time;
-    });
-    var placedIds = new Array(correctSequence.length);
-    var slotVerdict = new Array(correctSequence.length); // null | 'correct' | 'wrong'
-    for (var i = 0; i < correctSequence.length; i++) {
+    var placedIds = new Array(correctSeq.length);
+    var slotVerdict = new Array(correctSeq.length);
+    for (i = 0; i < correctSeq.length; i++) {
       placedIds[i] = null;
       slotVerdict[i] = null;
     }
 
-    var poolOrder = shuffleNonSolved(correctSequence).map(function (ev) {
-      return ev.id;
-    });
-
-    var eventById = {};
-    for (i = 0; i < correctSequence.length; i++) {
-      eventById[correctSequence[i].id] = correctSequence[i];
-    }
-
+    var poolOrder = shuffleNonSolved(allCards).map(function (c) { return c.id; });
+    var rejectedIds = {};
     var selectedPoolId = null;
     var selectedSlotIdx = -1;
+    var coverRemoved = false;
+    var errorsCount = 0;
+    var phase = 'board'; // 'board' | 'deduce' | 'fail'
 
     var shell = createShell(containerEl, {
-      title: config.title || 'Реконструкция хронологии',
-      subtitle: config.subtitle || 'ДЕЛО №418 • АКТ 6 • СЛЕДСТВЕННАЯ ДОСКА СК',
+      title: scenario.title,
+      subtitle: '',
       extraClass: 'mg-tl-wrap'
     });
 
+    shell.subEl.style.display = 'none';
+    var metaRow = document.createElement('div');
+    metaRow.className = 'mg-tl-meta';
+    var statSlots = document.createElement('span');
+    statSlots.className = 'mg-tl-stat';
+    var statErr = document.createElement('span');
+    statErr.className = 'mg-tl-err';
+    metaRow.appendChild(statSlots);
+    metaRow.appendChild(statErr);
+    shell.subEl.parentNode.appendChild(metaRow);
+
     listeners.on(shell.cancelBtn, 'click', function () {
-      haptic('light');
-      sfx('click');
+      haptic('light'); sfx('click');
       triggerCancel(callbacks);
     });
 
-    // Status banner
     var statusEl = document.createElement('div');
     statusEl.className = 'mg-f2-status';
     var statusText = document.createElement('span');
-    statusText.textContent = 'Выберите карточку снизу и нажмите на временной слот';
-    var filledBadge = document.createElement('span');
-    filledBadge.className = 'mg-f2-value';
-    filledBadge.textContent = '0 / ' + correctSequence.length;
+    statusText.textContent = 'Сдвиньте папку прикрытия, отсейте ложные версии и расставьте ' + correctSeq.length + ' звеньев.';
     statusEl.appendChild(statusText);
-    statusEl.appendChild(filledBadge);
     shell.body.appendChild(statusEl);
 
-    // Investigative board wrapper (slots + stamp overlay)
+    var coverWrap = document.createElement('div');
+    coverWrap.className = 'mg-tl-cover-wrap';
+
     var board = document.createElement('div');
     board.className = 'mg-tl-board';
-
     var slotsContainer = document.createElement('div');
     slotsContainer.className = 'mg-tl-slots';
     board.appendChild(slotsContainer);
-    shell.body.appendChild(board);
+    coverWrap.appendChild(board);
 
-    // Action button
+    // Physical draggable cover folder blocking the board initially
+    var folderSlip = document.createElement('div');
+    folderSlip.className = 'mg-tl-folder-slip';
+    var fStamp = document.createElement('div');
+    fStamp.className = 'mg-tl-folder-stamp';
+    fStamp.textContent = scenario.coverStamp;
+    var fTxt = document.createElement('div');
+    fTxt.className = 'mg-tl-folder-txt';
+    fTxt.textContent = scenario.coverText;
+    var fBtn = document.createElement('button');
+    fBtn.type = 'button';
+    fBtn.className = 'mg-f2-btn-sec is-active';
+    fBtn.textContent = 'СДВИНУТЬ ПАПКУ ⇄';
+    folderSlip.appendChild(fStamp);
+    folderSlip.appendChild(fTxt);
+    folderSlip.appendChild(fBtn);
+    coverWrap.appendChild(folderSlip);
+    shell.body.appendChild(coverWrap);
+
     var checkBtn = document.createElement('button');
     checkBtn.type = 'button';
     checkBtn.className = 'mg-f2-btn';
     checkBtn.textContent = 'ПРОВЕРИТЬ ХРОНОЛОГИЮ';
+    checkBtn.disabled = true;
     shell.body.appendChild(checkBtn);
 
-    // Pool panel
     var poolPanel = document.createElement('div');
     poolPanel.className = 'mg-f2-panel';
     var poolHead = document.createElement('div');
     poolHead.className = 'mg-f2-row';
     var poolLbl = document.createElement('span');
     poolLbl.className = 'mg-f2-label';
-    poolLbl.textContent = 'КАРТОЧКИ СОБЫТИЙ (НАЖМИТЕ ДЛЯ ВЫБОРА)';
+    poolLbl.textContent = 'КАРТОЧКИ (ПОСТАВЬТЕ В СЛОТ ИЛИ ОТСЕЙТЕ ЛОЖЬ)';
     var poolCount = document.createElement('span');
     poolCount.className = 'mg-f2-value';
     poolHead.appendChild(poolLbl);
@@ -3068,125 +3293,257 @@
     poolPanel.appendChild(poolContainer);
     shell.body.appendChild(poolPanel);
 
-    function clearVerdicts() {
-      for (var k = 0; k < slotVerdict.length; k++) {
-        slotVerdict[k] = null;
+    // Draggable folder peel logic
+    var slipDragging = false, slipPtrId = null, slipStartX = 0;
+    function peelFolder() {
+      if (coverRemoved) return;
+      coverRemoved = true;
+      slipDragging = false;
+      folderSlip.classList.remove('is-dragging');
+      folderSlip.classList.add('is-peeled');
+      checkBtn.disabled = false;
+      haptic('medium'); sfx('paper');
+      statusEl.className = 'mg-f2-status is-ok';
+      statusText.textContent = 'Доска открыта! Отсейте ' + decoys.length + ' ложные версии и расставьте ' + correctSeq.length + ' событий.';
+      timers.setTimeout(function () { folderSlip.style.display = 'none'; }, 270);
+    }
+
+    listeners.on(fBtn, 'pointerdown', function (e) { e.stopPropagation(); });
+    listeners.on(fBtn, 'click', function (e) { e.stopPropagation(); peelFolder(); });
+    listeners.on(folderSlip, 'pointerdown', function (e) {
+      if (coverRemoved) return;
+      slipDragging = true; slipPtrId = e.pointerId; slipStartX = e.clientX;
+      folderSlip.classList.add('is-dragging');
+      try { folderSlip.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    listeners.on(folderSlip, 'pointermove', function (e) {
+      if (!slipDragging || coverRemoved || e.pointerId !== slipPtrId) return;
+      var dx = e.clientX - slipStartX;
+      folderSlip.style.transform = 'translate3d(' + dx + 'px, 0, 0) rotate(' + clamp(dx * 0.06, -12, 12) + 'deg)';
+      folderSlip.style.opacity = String(clamp(1 - Math.abs(dx) / 150, 0.25, 1));
+      if (Math.abs(dx) >= 48) peelFolder();
+    });
+    function endSlipDrag(e) {
+      if (!slipDragging || (slipPtrId !== null && e.pointerId !== slipPtrId)) return;
+      slipDragging = false; slipPtrId = null;
+      if (!coverRemoved) {
+        folderSlip.classList.remove('is-dragging');
+        folderSlip.style.transform = ''; folderSlip.style.opacity = '';
       }
+    }
+    listeners.on(folderSlip, 'pointerup', endSlipDrag);
+    listeners.on(folderSlip, 'pointercancel', endSlipDrag);
+
+    function clearVerdicts() {
+      for (var k = 0; k < slotVerdict.length; k++) slotVerdict[k] = null;
     }
 
     function countFilled() {
       var n = 0;
-      for (var k = 0; k < placedIds.length; k++) {
-        if (placedIds[k]) n++;
-      }
+      for (var k = 0; k < placedIds.length; k++) if (placedIds[k]) n++;
       return n;
     }
 
-    function isInPlaced(evId) {
-      return placedIds.indexOf(evId) !== -1;
+    function syncHeaderMeta() {
+      statSlots.textContent = 'СЛОТЫ: ' + countFilled() + ' / ' + correctSeq.length;
+      statErr.textContent = 'ОШИБКИ: ' + errorsCount + ' / ' + maxErrors;
+      statErr.classList.toggle('is-warn', errorsCount >= maxErrors - 1);
+    }
+
+    function showFailScreen(reason, msg) {
+      phase = 'fail';
+      statusEl.style.display = 'none';
+      coverWrap.style.display = 'none';
+      checkBtn.style.display = 'none';
+      poolPanel.style.display = 'none';
+
+      var box = document.createElement('div');
+      box.className = 'mg-tl-stamp-box';
+      var st = document.createElement('div');
+      st.className = 'mg-tl-bigstamp';
+      st.textContent = 'ПРОТОКОЛ ОТКЛОНЁН';
+      var txt = document.createElement('div');
+      txt.className = 'mg-tl-dq';
+      txt.textContent = msg || 'Превышен лимит ошибок при реконструкции хронологии.';
+      box.appendChild(st);
+      box.appendChild(txt);
+      shell.body.appendChild(box);
+      timers.setTimeout(function () {
+        triggerTlFail({ minigame: 'timeline_reconstruct', scenarioId: scenario.id, reason: reason, errors: errorsCount });
+      }, 950);
+    }
+
+    function openDeductionPhase() {
+      phase = 'deduce';
+      statusEl.style.display = 'none';
+      coverWrap.style.display = 'none';
+      checkBtn.style.display = 'none';
+      poolPanel.style.display = 'none';
+
+      var card = document.createElement('div');
+      card.className = 'mg-tl-deduce';
+      var kicker = document.createElement('div');
+      kicker.className = 'mg-tl-dkicker';
+      kicker.textContent = 'ФАЗА 3 // ПОСТАНОВЛЕНИЕ ДЛЯ ПРОКУРОРА';
+      card.appendChild(kicker);
+
+      var facts = document.createElement('div');
+      facts.className = 'mg-tl-dfacts';
+      for (var k = 0; k < correctSeq.length; k++) {
+        var row = document.createElement('div');
+        row.textContent = correctSeq[k].time + ' — ' + correctSeq[k].title;
+        facts.appendChild(row);
+      }
+      card.appendChild(facts);
+
+      var q = document.createElement('div');
+      q.className = 'mg-tl-dq';
+      q.textContent = scenario.conclusion.question;
+      card.appendChild(q);
+
+      var optsWrap = document.createElement('div');
+      optsWrap.className = 'mg-tl-dopts';
+      var fb = document.createElement('div');
+      fb.className = 'mg-tl-dfb';
+
+      var settled = false;
+      var opts = scenario.conclusion.options || [];
+      for (var oi = 0; oi < opts.length; oi++) {
+        (function (opt) {
+          var ob = document.createElement('button');
+          ob.type = 'button';
+          ob.className = 'mg-tl-dopt';
+          ob.textContent = opt.text;
+          listeners.on(ob, 'click', function () {
+            if (settled || phase !== 'deduce') return;
+            if (opt.isCorrect) {
+              settled = true;
+              ob.classList.add('is-correct');
+              fb.className = 'mg-tl-dfb is-ok';
+              fb.textContent = opt.reason;
+              haptic('success'); sfx('stamp');
+              timers.setTimeout(function () {
+                card.innerHTML = '';
+                var box = document.createElement('div');
+                box.className = 'mg-tl-stamp-box';
+                var st = document.createElement('div');
+                st.className = 'mg-tl-bigstamp is-ok';
+                st.textContent = scenario.stampWin;
+                var btnDone = document.createElement('button');
+                btnDone.type = 'button';
+                btnDone.className = 'mg-f2-btn is-ready';
+                btnDone.textContent = 'ПЕРЕДАТЬ В ДЕЛО';
+                listeners.on(btnDone, 'click', function () {
+                  haptic('success'); sfx('success');
+                  triggerWin({
+                    minigame: 'timeline_reconstruct',
+                    scenarioId: scenario.id,
+                    order: placedIds.slice(),
+                    errors: errorsCount,
+                    deduced: opt.id
+                  });
+                });
+                box.appendChild(st);
+                box.appendChild(btnDone);
+                card.appendChild(box);
+              }, 550);
+            } else {
+              errorsCount += 1;
+              syncHeaderMeta();
+              ob.classList.add('is-wrong');
+              fb.className = 'mg-tl-dfb';
+              fb.textContent = opt.reason;
+              haptic('error'); sfx('alert');
+              flashShake(card);
+              if (errorsCount >= maxErrors) {
+                settled = true;
+                timers.setTimeout(function () {
+                  showFailScreen('wrong_deduction', 'Лимит ошибок исчерпан — постановление отклонено.');
+                }, 700);
+              }
+            }
+          });
+          optsWrap.appendChild(ob);
+        })(opts[oi]);
+      }
+
+      card.appendChild(optsWrap);
+      card.appendChild(fb);
+      shell.body.appendChild(card);
+    }
+
+    function registerTlError(msg, reason) {
+      errorsCount += 1;
+      syncHeaderMeta();
+      haptic('error'); sfx('alert');
+      flashShake(board);
+      statusEl.className = 'mg-f2-status is-err';
+      statusText.textContent = msg;
+      if (errorsCount >= maxErrors) {
+        timers.setTimeout(function () { showFailScreen(reason || 'too_many_errors', msg); }, 620);
+      }
     }
 
     function handleSlotClick(slotIdx) {
-      if (finished) return;
+      if (phase !== 'board' || !coverRemoved) return;
       clearVerdicts();
-
-      // Case 1: A pool card is currently selected -> place it here (returning old card to pool if any)
       if (selectedPoolId) {
         placedIds[slotIdx] = selectedPoolId;
-        selectedPoolId = null;
-        selectedSlotIdx = -1;
-        haptic('light');
-        sfx('click');
+        selectedPoolId = null; selectedSlotIdx = -1;
+        haptic('light'); sfx('click');
         renderBoard();
         return;
       }
-
-      // Case 2: Another slot was selected -> swap contents between the two slots
       if (selectedSlotIdx !== -1) {
         if (selectedSlotIdx === slotIdx) {
-          // Clicking same selected slot deselects it
           selectedSlotIdx = -1;
-          haptic('light');
-          renderBoard();
-          return;
+        } else {
+          var tmp = placedIds[slotIdx];
+          placedIds[slotIdx] = placedIds[selectedSlotIdx];
+          placedIds[selectedSlotIdx] = tmp;
+          selectedSlotIdx = -1;
         }
-        var tmp = placedIds[slotIdx];
-        placedIds[slotIdx] = placedIds[selectedSlotIdx];
-        placedIds[selectedSlotIdx] = tmp;
-        selectedSlotIdx = -1;
-        haptic('light');
-        sfx('click');
+        haptic('light'); sfx('click');
         renderBoard();
         return;
       }
-
-      // Case 3: Nothing selected yet
       if (placedIds[slotIdx]) {
         selectedSlotIdx = slotIdx;
-        haptic('light');
-        sfx('click');
+        haptic('light'); sfx('click');
         statusEl.className = 'mg-f2-status is-warn';
-        statusText.textContent = 'Нажмите другой слот для обмена или «×», чтобы вернуть в пул';
+        statusText.textContent = 'Нажмите другой слот для обмена или «×», чтобы вернуть в пул.';
         renderBoard();
       } else {
         haptic('light');
         statusEl.className = 'mg-f2-status';
-        statusText.textContent = 'Сначала выберите карточку события в списке ниже';
+        statusText.textContent = 'Сначала выберите карточку события в пуле ниже.';
       }
     }
 
-    function handleClearSlot(slotIdx, ev) {
-      if (ev) ev.stopPropagation();
-      if (finished || !placedIds[slotIdx]) return;
-      clearVerdicts();
-      placedIds[slotIdx] = null;
-      if (selectedSlotIdx === slotIdx) selectedSlotIdx = -1;
-      haptic('light');
-      sfx('click');
-      renderBoard();
-    }
-
-    function handlePoolCardClick(evId) {
-      if (finished) return;
-      clearVerdicts();
-
-      // If a slot was already selected, put this pool card straight into that slot
-      if (selectedSlotIdx !== -1) {
-        placedIds[selectedSlotIdx] = evId;
-        selectedSlotIdx = -1;
-        selectedPoolId = null;
-        haptic('light');
-        sfx('click');
+    function handleRejectCard(evId, e) {
+      if (e) e.stopPropagation();
+      if (phase !== 'board' || !coverRemoved) return;
+      var cardObj = cardById[evId];
+      if (!cardObj) return;
+      if (cardObj.isDecoy) {
+        rejectedIds[evId] = true;
+        if (selectedPoolId === evId) selectedPoolId = null;
+        haptic('medium'); sfx('stamp');
+        statusEl.className = 'mg-f2-status is-ok';
+        statusText.textContent = cardObj.rejectMsg || 'Ложная версия отбракована!';
         renderBoard();
-        return;
-      }
-
-      if (selectedPoolId === evId) {
-        selectedPoolId = null;
       } else {
-        selectedPoolId = evId;
-        statusEl.className = 'mg-f2-status is-warn';
-        statusText.textContent = 'Теперь нажмите на подходящее время сверху';
+        registerTlError('ОШИБКА ОТСЕВА (+1): «' + cardObj.title + '» — подлинное звено дела!', 'rejected_real');
       }
-      haptic('light');
-      sfx('click');
-      renderBoard();
     }
 
     function renderBoard() {
+      syncHeaderMeta();
       var filled = countFilled();
-      filledBadge.textContent = filled + ' / ' + correctSequence.length;
-      filledBadge.className = 'mg-f2-value' + (filled === correctSequence.length ? ' is-ok' : '');
+      checkBtn.classList.toggle('is-ready', coverRemoved && filled === correctSeq.length && phase === 'board');
 
-      if (filled === correctSequence.length && !finished) {
-        checkBtn.classList.add('is-ready');
-      } else if (!finished) {
-        checkBtn.classList.remove('is-ready');
-      }
-
-      // Rebuild slots DOM cleanly
       slotsContainer.innerHTML = '';
-      for (var s = 0; s < correctSequence.length; s++) {
+      for (var s = 0; s < correctSeq.length; s++) {
         (function (idx) {
           var row = document.createElement('div');
           var cls = 'mg-tl-slot';
@@ -3197,22 +3554,21 @@
 
           var timeBox = document.createElement('div');
           timeBox.className = 'mg-tl-time';
-          timeBox.textContent = slotTimes[idx];
+          timeBox.textContent = correctSeq[idx].time;
           row.appendChild(timeBox);
 
           var content = document.createElement('div');
           content.className = 'mg-tl-slot-content';
-
           var placedId = placedIds[idx];
-          if (placedId && eventById[placedId]) {
-            var evData = eventById[placedId];
-            var titleDiv = document.createElement('div');
-            titleDiv.className = 'mg-tl-card-title';
-            titleDiv.textContent = evData.title;
+          if (placedId && cardById[placedId]) {
+            var evData = cardById[placedId];
+            var tDiv = document.createElement('div');
+            tDiv.className = 'mg-tl-card-title';
+            tDiv.textContent = evData.title;
             var tagDiv = document.createElement('div');
             tagDiv.className = 'mg-tl-card-tag';
             tagDiv.textContent = evData.tag;
-            content.appendChild(titleDiv);
+            content.appendChild(tDiv);
             content.appendChild(tagDiv);
           } else {
             var ph = document.createElement('div');
@@ -3222,128 +3578,120 @@
           }
           row.appendChild(content);
 
-          if (placedId && !finished) {
+          if (placedId && phase === 'board') {
             var clearBtn = document.createElement('button');
             clearBtn.type = 'button';
             clearBtn.className = 'mg-tl-clear';
             clearBtn.textContent = '×';
-            clearBtn.setAttribute('aria-label', 'Убрать карточку');
             clearBtn.addEventListener('click', function (e) {
-              handleClearSlot(idx, e);
+              e.stopPropagation();
+              clearVerdicts();
+              placedIds[idx] = null;
+              if (selectedSlotIdx === idx) selectedSlotIdx = -1;
+              haptic('light'); sfx('click');
+              renderBoard();
             });
             row.appendChild(clearBtn);
           }
 
-          row.addEventListener('click', function () {
-            handleSlotClick(idx);
-          });
+          row.addEventListener('click', function () { handleSlotClick(idx); });
           slotsContainer.appendChild(row);
         })(s);
       }
 
-      // Rebuild remaining pool cards
       poolContainer.innerHTML = '';
       var remaining = 0;
       for (var p = 0; p < poolOrder.length; p++) {
-        var evId = poolOrder[p];
-        if (isInPlaced(evId)) continue;
-        remaining++;
+        var cid = poolOrder[p];
+        if (rejectedIds[cid] || placedIds.indexOf(cid) !== -1) continue;
+        remaining += 1;
         (function (id) {
-          var evData = eventById[id];
+          var evData = cardById[id];
+          var wrapRow = document.createElement('div');
+          wrapRow.className = 'mg-tl-card-row';
+
           var card = document.createElement('div');
           card.className = 'mg-tl-card' + (selectedPoolId === id ? ' is-selected' : '');
-
           var tDiv = document.createElement('div');
           tDiv.className = 'mg-tl-card-title';
           tDiv.textContent = evData.title;
-
           var tagDiv = document.createElement('div');
           tagDiv.className = 'mg-tl-card-tag';
           tagDiv.textContent = evData.tag;
-
           card.appendChild(tDiv);
           card.appendChild(tagDiv);
+
           card.addEventListener('click', function () {
-            handlePoolCardClick(id);
+            if (phase !== 'board' || !coverRemoved) return;
+            clearVerdicts();
+            if (selectedSlotIdx !== -1) {
+              placedIds[selectedSlotIdx] = id;
+              selectedSlotIdx = -1; selectedPoolId = null;
+            } else {
+              selectedPoolId = selectedPoolId === id ? null : id;
+            }
+            haptic('light'); sfx('click');
+            renderBoard();
           });
-          poolContainer.appendChild(card);
-        })(evId);
+
+          var rejBtn = document.createElement('button');
+          rejBtn.type = 'button';
+          rejBtn.className = 'mg-tl-reject-btn';
+          rejBtn.innerHTML = '<span>✕</span><span>ЛОЖЬ</span>';
+          rejBtn.addEventListener('click', function (e) { handleRejectCard(id, e); });
+
+          wrapRow.appendChild(card);
+          wrapRow.appendChild(rejBtn);
+          poolContainer.appendChild(wrapRow);
+        })(cid);
       }
 
-      poolCount.textContent = 'ОСТАЛОСЬ: ' + remaining;
+      poolCount.textContent = 'В ПУЛЕ: ' + remaining;
       poolPanel.style.display = remaining === 0 ? 'none' : 'flex';
     }
 
     listeners.on(checkBtn, 'click', function () {
-      if (finished) return;
+      if (phase !== 'board' || !coverRemoved) return;
       var filled = countFilled();
-      if (filled < correctSequence.length) {
-        haptic('error');
-        sfx('error');
-        flashShake(board);
+      if (filled < correctSeq.length) {
+        haptic('light');
         statusEl.className = 'mg-f2-status is-warn';
-        statusText.textContent =
-          'Заполните все временные слоты (' + filled + ' из ' + correctSequence.length + ')';
+        statusText.textContent = 'Заполните все ' + correctSeq.length + ' временных слотов (' + filled + ' из ' + correctSeq.length + ').';
         return;
       }
 
-      selectedPoolId = null;
-      selectedSlotIdx = -1;
-
+      selectedPoolId = null; selectedSlotIdx = -1;
       var wrongCount = 0;
-      for (var k = 0; k < correctSequence.length; k++) {
-        if (placedIds[k] === correctSequence[k].id) {
+      var decoyPlacedMsg = '';
+      for (var k = 0; k < correctSeq.length; k++) {
+        var pid = placedIds[k];
+        if (pid === correctSeq[k].id) {
           slotVerdict[k] = 'correct';
         } else {
           slotVerdict[k] = 'wrong';
-          wrongCount++;
+          wrongCount += 1;
+          if (cardById[pid] && cardById[pid].isDecoy && !decoyPlacedMsg) {
+            decoyPlacedMsg = cardById[pid].slotErrMsg || 'ЛОЖНАЯ ВЕРСИЯ НА ДОСКЕ — отсейте её кнопкой «✕ ЛОЖЬ»!';
+          }
         }
       }
 
       renderBoard();
-
       if (wrongCount === 0) {
-        finished = true;
         checkBtn.disabled = true;
-        checkBtn.classList.add('is-ready');
         statusEl.className = 'mg-f2-status is-ok';
-        statusText.textContent = 'СХЕМА ПРЕСТУПЛЕНИЯ ПОДТВЕРЖДЕНА // ОРДЕР ОДОБРЕН';
-
-        var stamp = document.createElement('div');
-        stamp.className = 'mg-tl-stamp';
-        var stampInner = document.createElement('div');
-        stampInner.className = 'mg-tl-stamp-inner';
-        stampInner.textContent = 'СХЕМА ПРЕСТУПЛЕНИЯ ПОДТВЕРЖДЕНА // ОРДЕР ОДОБРЕН';
-        stamp.appendChild(stampInner);
-        board.appendChild(stamp);
-
-        haptic('success');
-        sfx('success');
-
+        statusText.textContent = 'Все 6 звеньев сошлись идеально! Переход к постановлению...';
+        haptic('success'); sfx('success');
         timers.setTimeout(function () {
-          triggerWin({
-            minigame: 'timeline_reconstruct',
-            order: placedIds.slice()
-          });
-        }, 1000);
+          if (phase === 'board') openDeductionPhase();
+        }, 720);
       } else {
-        haptic('error');
-        sfx('error');
-        flashShake(board);
-        statusEl.className = 'mg-f2-status is-err';
-        var word =
-          wrongCount === 1
-            ? 'событие'
-            : wrongCount >= 2 && wrongCount <= 4
-            ? 'события'
-            : 'событий';
-        statusText.textContent =
-          'Нарушена хронология: не на своих местах — ' + wrongCount + ' ' + word;
+        var msg = decoyPlacedMsg || ('Нарушена хронология (+1 ошибка): не на своих местах — ' + wrongCount + ' слот(а).');
+        registerTlError(msg, 'wrong_timeline');
       }
     });
 
     renderBoard();
-
     return function cleanup() {
       timers.clearAll();
       listeners.clearAll();
