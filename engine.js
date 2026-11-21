@@ -559,7 +559,7 @@
     }
 
     return (
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice">' +
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid meet">' +
       '<defs>' +
       '<radialGradient id="phBg" cx="50%" cy="38%" r="72%">' +
       '<stop offset="0%" stop-color="#232833"/>' +
@@ -597,7 +597,7 @@
       '<circle cx="11" cy="10" r="3" fill="#dc2626"/>' +
       '<text x="20" y="13.5" fill="#f0b4b4" font-family="IBM Plex Mono, monospace" font-size="9.5" font-weight="600" letter-spacing="0.8">АРХИВ // НЕТ ФОТО</text>' +
       '</g>' +
-      '<text x="382" y="37" text-anchor="end" fill="#6f7582" font-family="IBM Plex Mono, monospace" font-size="9" letter-spacing="1">' + getCaseCode() + '</text>' +
+      '<text x="372" y="37" text-anchor="end" fill="#6f7582" font-family="IBM Plex Mono, monospace" font-size="9" letter-spacing="1">' + getCaseCode() + '</text>' +
       '<text x="200" y="160" text-anchor="middle" fill="#b7afa0" fill-opacity="0.72" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="1.4">' +
       safeLabel +
       '</text>' +
@@ -1000,7 +1000,8 @@
     if (beat.type === 'action') {
       var actionEl = document.createElement('div');
       actionEl.className = 'beat-action';
-      setElementContent(actionEl, beat.text || '');
+      var cleanActionText = String(beat.text || '').replace(/\*([^*\n]+)\*/g, '$1');
+      setElementContent(actionEl, cleanActionText);
       if (dom.sceneText) {
         dom.sceneText.appendChild(actionEl);
       }
@@ -1888,7 +1889,7 @@
       dom.sceneLocation.textContent = 'ТЕРМИНАЛ СК // ТЕСТОВЫЙ РЕЖИМ';
     }
     if (dom.sceneSpeaker) {
-      dom.sceneSpeaker.textContent = 'ОЖИДАНИЕ МАТЕРИАЛОВ ДЕЛА №409';
+      dom.sceneSpeaker.textContent = 'ОЖИДАНИЕ МАТЕРИАЛОВ ДЕЛА ' + getCaseNumber();
     }
 
     renderPortrait(null, 'ТЕРМИНАЛ СК // ДЕЛО ' + getCaseNumber());
