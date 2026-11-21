@@ -3616,8 +3616,52 @@
   }
 
   // ============================================================================
-  // MINIGAME 3: arson_lab (mode: 'chem' | 'map')
+  // MINIGAME 3: arson_lab (3-phase GC-FID 'chem' & thermal V-cone 'map')
   // ============================================================================
+
+  var ARSON_EXTRA_STYLE_ID = 'minigames-forensics-arson-extra';
+
+  var ARSON_EXTRA_CSS = [
+    '.mg-ars-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 3px; }',
+    '.mg-ars-stat { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; font-weight: 600; color: var(--case-accent, #c98a2e); }',
+    '.mg-ars-err { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; font-weight: 600; color: #9ca3af; }',
+    '.mg-ars-err.is-warn { color: #f87171; }',
+    '.mg-ars-modes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }',
+    '.mg-ars-mbtn {',
+    '  padding: 7px 6px; border-radius: 6px; background: #161a23; border: 1px solid #2f3646;',
+    '  font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 700;',
+    '  color: #9ca3af; text-transform: uppercase; cursor: pointer;',
+    '}',
+    '.mg-ars-mbtn.is-norm { background: rgba(212, 202, 180, 0.14); border-color: #d4cab4; color: #f5efe2; }',
+    '.mg-ars-mbtn.is-spec { background: rgba(245, 158, 11, 0.22); border-color: var(--case-accent, #f59e0b); color: #fde68a; box-shadow: 0 0 10px rgba(245, 158, 11, 0.24); }',
+    '.mg-ars-deduce { display: flex; flex-direction: column; gap: 9px; padding: 12px; background: #14171f; border: 1px solid #353b4a; border-top: 3px solid var(--case-accent, #c98a2e); border-radius: 8px; }',
+    '.mg-ars-dkicker { font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 700; color: var(--case-accent, #c98a2e); text-transform: uppercase; }',
+    '.mg-ars-dfacts { padding: 8px 9px; background: #0d1016; border: 1px solid #262b36; border-radius: 6px; font-family: "IBM Plex Mono", monospace; font-size: 10px; line-height: 1.4; color: #c2cad8; display: flex; flex-direction: column; gap: 3px; }',
+    '.mg-ars-dq { font-size: 12.8px; line-height: 1.4; color: #f3efe6; font-weight: 500; }',
+    '.mg-ars-dopts { display: flex; flex-direction: column; gap: 6px; }',
+    '.mg-ars-dopt { width: 100%; text-align: left; padding: 9px 10px; background: #1b202b; border: 1px solid #353d4e; border-radius: 6px; color: #e4e0d8; font-size: 12px; line-height: 1.36; cursor: pointer; }',
+    '.mg-ars-dopt.is-wrong { border-color: #ef4444; background: rgba(153, 27, 27, 0.25); color: #fecaca; }',
+    '.mg-ars-dopt.is-correct { border-color: #22c55e; background: rgba(34, 197, 94, 0.2); color: #bbf7d0; }',
+    '.mg-ars-dfb { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; line-height: 1.38; min-height: 16px; color: #fca5a5; }',
+    '.mg-ars-dfb.is-ok { color: #86efac; }',
+    '.mg-ars-stamp-box { padding: 24px 14px; background: #0d1016; border: 1px solid #2a2e38; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }',
+    '.mg-ars-stamp { padding: 8px 16px; font-family: "Oswald", sans-serif; font-size: 18px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #ef4444; border: 3px double #ef4444; border-radius: 4px; transform: rotate(-5deg); }',
+    '.mg-ars-stamp.is-ok { color: #4ade80; border-color: #22c55e; background: rgba(34, 197, 94, 0.12); }'
+  ].join('\n');
+
+  function injectArsonStyles() {
+    if (document.getElementById(ARSON_EXTRA_STYLE_ID)) return;
+    var el = document.createElement('style');
+    el.id = ARSON_EXTRA_STYLE_ID;
+    el.textContent = ARSON_EXTRA_CSS;
+    document.head.appendChild(el);
+  }
+
+  var PYROLYSIS_NOISE_PEAKS = [
+    [0.21, 0.72, 0.032],
+    [0.44, 0.84, 0.042],
+    [0.67, 0.68, 0.036]
+  ];
 
   var DEFAULT_CHEM_SUBSTANCES = [
     {
@@ -3625,12 +3669,29 @@
       name: 'Бензин АИ-92',
       shortName: 'Бензин АИ-92',
       isMatch: false,
+      wrongMsg: 'ЛОЖНЫЙ ЭТАЛОН: бензин АИ-92 даёт лёгкие летучие пики на 2–7 мин, а в пробе тяжёлая фракция растворителя.',
       peaks: [
-        [0.14, 0.90, 0.015],
-        [0.19, 0.60, 0.014],
-        [0.24, 0.98, 0.016],
-        [0.30, 0.72, 0.015],
-        [0.36, 0.46, 0.017]
+        [0.14, 0.90, 0.015], [0.19, 0.60, 0.014], [0.24, 0.98, 0.016], [0.30, 0.72, 0.015], [0.36, 0.46, 0.017]
+      ]
+    },
+    {
+      id: 'kerosene',
+      name: 'Керосин ТС-1',
+      shortName: 'Керосин ТС-1',
+      isMatch: false,
+      wrongMsg: 'ЛОЖНЫЙ ЭТАЛОН: керосин ТС-1 похож в средней зоне, но смещён по тяжёлым пикам (12–17 мин) — проверьте растворитель.',
+      peaks: [
+        [0.34, 0.64, 0.019], [0.46, 0.82, 0.020], [0.56, 0.90, 0.019], [0.68, 0.84, 0.020], [0.79, 0.60, 0.021]
+      ]
+    },
+    {
+      id: 'whitespirit',
+      name: 'Уайт-спирит (пром. растворитель)',
+      shortName: 'Уайт-спирит',
+      isMatch: true,
+      wrongMsg: '',
+      peaks: [
+        [0.30, 0.94, 0.017], [0.36, 0.42, 0.015], [0.53, 0.82, 0.020], [0.59, 0.93, 0.018], [0.74, 0.45, 0.019]
       ]
     },
     {
@@ -3638,37 +3699,9 @@
       name: 'Дизельное топливо',
       shortName: 'Дизель',
       isMatch: false,
+      wrongMsg: 'ЛОЖНЫЙ ЭТАЛОН: дизельное топливо образует ровную «гребёнку» на 10–17 мин, не совпадающую с пробой.',
       peaks: [
-        [0.42, 0.46, 0.019],
-        [0.50, 0.70, 0.019],
-        [0.58, 0.86, 0.019],
-        [0.66, 0.92, 0.019],
-        [0.74, 0.76, 0.019],
-        [0.82, 0.50, 0.019]
-      ]
-    },
-    {
-      id: 'whitespirit',
-      name: 'Уайт-спирит / пром. растворитель',
-      shortName: 'Уайт-спирит',
-      isMatch: true,
-      peaks: [
-        [0.30, 0.94, 0.017],
-        [0.36, 0.42, 0.015],
-        [0.53, 0.82, 0.020],
-        [0.59, 0.93, 0.018],
-        [0.74, 0.45, 0.019]
-      ]
-    },
-    {
-      id: 'oil',
-      name: 'Машинное масло',
-      shortName: 'Маш. масло',
-      isMatch: false,
-      peaks: [
-        [0.69, 0.34, 0.052],
-        [0.81, 0.90, 0.068],
-        [0.90, 0.52, 0.044]
+        [0.44, 0.48, 0.019], [0.52, 0.72, 0.019], [0.60, 0.88, 0.019], [0.68, 0.92, 0.019], [0.76, 0.76, 0.019], [0.84, 0.50, 0.019]
       ]
     }
   ];
@@ -3685,58 +3718,116 @@
     return clamp(sum, 0, 1.05);
   }
 
+  function resolveArsonChemScenario(config) {
+    var cfg = config || {};
+    var caseId = String(window.ACTIVE_CASE_ID || '').toLowerCase();
+    var isCase418 = cfg.preset === 'case418' || !caseId || caseId === 'case418';
+
+    return {
+      id: isCase418 ? 'case418_act2_chem' : 'generic_chem',
+      title: cfg.title || 'ГАЗОВЫЙ ХРОМАТОГРАФ (ЭКЦ)',
+      sampleTag: isCase418 ? 'GC-FID • ПРОБА ЗОЛЫ #418-З' : 'GC-FID • ПРОБА ЗОЛЫ',
+      stampWin: isCase418 ? 'СПЕКТР ПОДТВЕРЖДЁН // УАЙТ-СПИРИТ' : 'ВЕЩЕСТВО ИДЕНТИФИЦИРОВАНО',
+      substances: Array.isArray(cfg.substances) && cfg.substances.length > 0 ? cfg.substances : DEFAULT_CHEM_SUBSTANCES,
+      conclusion: cfg.conclusion || (isCase418
+        ? {
+            question: 'После отсечения пиролиза древесины проба золы #418-З на >95% совпала с уайт-спиритом (пром. растворитель), а не с бензином или дизелем. Вывод:',
+            options: [
+              {
+                id: 'mower',
+                text: 'Разлился бытовой бензин АИ-92 из канистры для газонокосилки в прихожей.',
+                isCorrect: false,
+                reason: 'Противоречие: лёгкие пики бензина АИ-92 отсутствуют — в пробе чистый уайт-спирит.'
+              },
+              {
+                id: 'industrial_solvent',
+                text: 'Поджигатель применил промышленный уайт-спирит (горит быстро и с минимальной копотью) — ищите привязку к стройбазе или лакокрасочному складу.',
+                isCorrect: true,
+                reason: 'Верно: промышленный растворитель объясняет характер выгорания и сужает круг поиска источника.'
+              },
+              {
+                id: 'wood_resin',
+                text: 'Пики дала обычная сосновая смола сгоревших балок, ускорителя горения в пробе нет.',
+                isCorrect: false,
+                reason: 'Противоречие: фон пиролиза древесины был полностью отфильтрован угольной колонкой, а пики уайт-спирита остались >95%.'
+              }
+            ]
+          }
+        : {
+            question: 'После очистки от фона пиролиза хроматограмма пробы совпала с эталоном ускорителя горения (>94%). Вывод:',
+            options: [
+              { id: 'none', text: 'Ускорителя горения не было, горела только древесина.', isCorrect: false, reason: 'Противоречие: фон пиролиза древесины отфильтрован, а пики ЛВЖ чётко выделены.' },
+              { id: 'arson', text: 'Присутствие постороннего горючего ускорителя в пробе золы лабораторно подтверждено.', isCorrect: true, reason: 'Верно: хроматография подтверждает применение ЛВЖ.' },
+              { id: 'noise', text: 'Прибор дал случайный шум калибровки.', isCorrect: false, reason: 'Противоречие: после калибровки совпадение пиков превысило 94%.' }
+            ]
+          })
+    };
+  }
+
   function initArsonChem(containerEl, config, callbacks) {
+    injectArsonStyles();
     var timers = createTimerBag();
     var listeners = createListenerBag();
     var triggerWin = createWinTrigger(callbacks);
-    var finished = false;
+    var failFired = false;
+    function triggerArsonFail(res) {
+      if (failFired) return;
+      failFired = true;
+      if (callbacks && typeof callbacks.onFail === 'function') {
+        callbacks.onFail(res || { success: false });
+      }
+    }
 
-    var rawSubs =
-      Array.isArray(config.substances) && config.substances.length > 0
-        ? config.substances
-        : DEFAULT_CHEM_SUBSTANCES;
-
+    var scenario = resolveArsonChemScenario(config);
+    var maxErrors = typeof config.maxErrors === 'number' && config.maxErrors > 0 ? config.maxErrors : 4;
+    var rawSubs = scenario.substances;
     var targetIdx = -1;
     var i;
     for (i = 0; i < rawSubs.length; i++) {
-      if (config.targetId && rawSubs[i].id === config.targetId) {
-        targetIdx = i;
-        break;
-      }
-      if (!config.targetId && rawSubs[i].isMatch) {
-        targetIdx = i;
-        break;
-      }
+      if (config.targetId && rawSubs[i].id === config.targetId) { targetIdx = i; break; }
+      if (!config.targetId && rawSubs[i].isMatch) { targetIdx = i; break; }
     }
     if (targetIdx === -1) targetIdx = Math.min(2, rawSubs.length - 1);
 
     var substances = rawSubs.map(function (s, idx) {
       return {
         id: s.id || 'sub_' + idx,
-        name: s.name || 'Образец #' + (idx + 1),
-        shortName: s.shortName || s.name || 'Образец #' + (idx + 1),
+        name: s.name || ('Образец #' + (idx + 1)),
+        shortName: s.shortName || s.name || ('Образец #' + (idx + 1)),
+        wrongMsg: s.wrongMsg || 'ЛОЖНЫЙ ЭТАЛОН: пики вещества не совпадают с очищенной пробой.',
         peaks: s.peaks || DEFAULT_CHEM_SUBSTANCES[idx % DEFAULT_CHEM_SUBSTANCES.length].peaks,
         isMatch: idx === targetIdx
       };
     });
 
-    // Unknown ash sample is the target substance shifted by a realistic column calibration offset
-    var samplePhaseOffset = typeof config.phaseOffset === 'number' ? clamp(config.phaseOffset, -0.11, 0.11) : 0.078;
+    var samplePhaseOffset = typeof config.phaseOffset === 'number' ? clamp(config.phaseOffset, -0.11, 0.11) : 0.074;
     var SAMPLE_POINTS = 180;
     var noiseRand = mulberry32(41844);
-    var unknownCurve = [];
+    var cleanTargetCurve = [];
+    var pyroNoiseCurve = [];
     for (i = 0; i < SAMPLE_POINTS; i++) {
       var xn = i / (SAMPLE_POINTS - 1);
-      var noise = (noiseRand() - 0.5) * 0.022;
-      var yVal = clamp(evalSpectrum(substances[targetIdx].peaks, xn, samplePhaseOffset) + noise, 0, 1.02);
-      unknownCurve.push(yVal);
+      var microNoise = (noiseRand() - 0.5) * 0.02;
+      cleanTargetCurve.push(clamp(evalSpectrum(substances[targetIdx].peaks, xn, samplePhaseOffset) + microNoise, 0, 1.02));
+      pyroNoiseCurve.push(evalSpectrum(PYROLYSIS_NOISE_PEAKS, xn, 0));
     }
 
     var shell = createShell(containerEl, {
-      title: config.title || 'Газовый хроматограф',
-      subtitle: config.subtitle || 'ДЕЛО №418 • АНАЛИЗ ПРОБЫ ЗОЛЫ',
+      title: scenario.title,
+      subtitle: '',
       extraClass: 'mg-arson-wrap'
     });
+
+    shell.subEl.style.display = 'none';
+    var metaRow = document.createElement('div');
+    metaRow.className = 'mg-ars-meta';
+    var statPhase = document.createElement('span');
+    statPhase.className = 'mg-ars-stat';
+    var statErr = document.createElement('span');
+    statErr.className = 'mg-ars-err';
+    metaRow.appendChild(statPhase);
+    metaRow.appendChild(statErr);
+    shell.subEl.parentNode.appendChild(metaRow);
 
     listeners.on(shell.cancelBtn, 'click', function () {
       haptic('light');
@@ -3744,7 +3835,6 @@
       triggerCancel(callbacks);
     });
 
-    // Stage
     var stage = document.createElement('div');
     stage.className = 'mg-for-stage mg-arson-stage';
     var canvas = document.createElement('canvas');
@@ -3752,43 +3842,62 @@
     stage.appendChild(canvas);
     shell.body.appendChild(stage);
 
-    // Legend + match % status
     var statusEl = document.createElement('div');
     statusEl.className = 'mg-for-status';
     var legendSpan = document.createElement('span');
-    legendSpan.innerHTML =
-      '<span class="mg-dot" style="background:#38bdf8"></span>Зола  ' +
-      '<span class="mg-dot" style="background:#f59e0b;margin-left:8px"></span>Эталон ЛВЖ';
     var matchBadge = document.createElement('span');
     matchBadge.className = 'mg-for-value';
-    matchBadge.textContent = 'СОВП.: 0.0%';
     statusEl.appendChild(legendSpan);
     statusEl.appendChild(matchBadge);
     shell.body.appendChild(statusEl);
 
-    // Controls panel
     var panel = document.createElement('div');
     panel.className = 'mg-for-panel';
 
+    // Step 1: Pyrolysis sorbent filter slider
+    var pyroWrap = document.createElement('div');
+    pyroWrap.className = 'mg-for-slider-wrap';
+    var pyroRow = document.createElement('div');
+    pyroRow.className = 'mg-for-row';
+    var pyroLbl = document.createElement('span');
+    pyroLbl.className = 'mg-for-label';
+    pyroLbl.textContent = '1. ФИЛЬТР ПИРОЛИЗА (СМОЛА / ЛАК)';
+    var pyroVal = document.createElement('span');
+    pyroVal.className = 'mg-for-value';
+    pyroRow.appendChild(pyroLbl);
+    pyroRow.appendChild(pyroVal);
+
+    var pyroSlider = document.createElement('input');
+    pyroSlider.type = 'range';
+    pyroSlider.className = 'mg-for-slider';
+    pyroSlider.min = '0';
+    pyroSlider.max = '100';
+    pyroSlider.step = '1';
+    pyroSlider.value = '10';
+    pyroWrap.appendChild(pyroRow);
+    pyroWrap.appendChild(pyroSlider);
+    panel.appendChild(pyroWrap);
+
+    // Reference substance buttons
     var subGrid = document.createElement('div');
     subGrid.className = 'mg-arson-grid';
     var subBtns = [];
     var selectedIdx = 0;
+    var pyroFilterVal = 10; // clean target window: 65..85
     var phaseShift = -0.04;
     var matchPct = 0;
-    var wasAboveThreshold = false;
+    var errorsCount = 0;
+    var phase = 'lab'; // 'lab' | 'deduce' | 'fail'
     var redFlash = 0;
     var dragging = false;
     var dragStartX = 0;
     var dragStartPhase = 0;
+    var wasCleanLock = false;
+    var wasPyroClean = false;
 
     function updateSubButtons() {
       for (var b = 0; b < subBtns.length; b++) {
-        if (b === selectedIdx) {
-          subBtns[b].classList.add('is-active');
-        } else {
-          subBtns[b].classList.remove('is-active');
-        }
+        subBtns[b].classList.toggle('is-active', b === selectedIdx);
       }
     }
 
@@ -3799,11 +3908,10 @@
         btn.className = 'mg-for-btn-sec';
         btn.textContent = substances[idx].shortName;
         listeners.on(btn, 'click', function () {
-          if (finished) return;
+          if (phase !== 'lab') return;
           selectedIdx = idx;
           updateSubButtons();
-          haptic('light');
-          sfx('click');
+          haptic('light'); sfx('click');
           recomputeMatch();
         });
         subGrid.appendChild(btn);
@@ -3813,16 +3921,16 @@
     updateSubButtons();
     panel.appendChild(subGrid);
 
+    // Step 2: Phase calibration slider
     var sliderWrap = document.createElement('div');
     sliderWrap.className = 'mg-for-slider-wrap';
     var sliderRow = document.createElement('div');
     sliderRow.className = 'mg-for-row';
     var sliderLbl = document.createElement('span');
     sliderLbl.className = 'mg-for-label';
-    sliderLbl.textContent = 'КАЛИБРОВКА БАЗЫ (СДВИГ ФАЗЫ)';
+    sliderLbl.textContent = '2. КАЛИБРОВКА БАЗЫ (СДВИГ ФАЗЫ)';
     var sliderVal = document.createElement('span');
     sliderVal.className = 'mg-for-value';
-    sliderVal.textContent = '-0.80 мин';
     sliderRow.appendChild(sliderLbl);
     sliderRow.appendChild(sliderVal);
 
@@ -3833,7 +3941,6 @@
     phaseSlider.max = '0.15';
     phaseSlider.step = '0.002';
     phaseSlider.value = String(phaseShift);
-
     sliderWrap.appendChild(sliderRow);
     sliderWrap.appendChild(phaseSlider);
     panel.appendChild(sliderWrap);
@@ -3843,278 +3950,347 @@
     lockBtn.className = 'mg-for-btn';
     lockBtn.textContent = 'ЗАФИКСИРОВАТЬ ВЕЩЕСТВО';
     panel.appendChild(lockBtn);
-
     shell.body.appendChild(panel);
 
     var canvasMgr = setupResponsiveCanvas(canvas, stage);
 
+    function getPyroState() {
+      if (pyroFilterVal >= 65 && pyroFilterVal <= 85) {
+        return { clean: true, noiseFactor: 0.04, atten: 1.0, label: 'ПИРОЛИЗ ОТСЕЧЁН' };
+      }
+      if (pyroFilterVal > 85) {
+        var over = (pyroFilterVal - 85) / 15;
+        return { clean: false, noiseFactor: 0.03, atten: 1 - over * 0.58, label: 'ПЕРЕФИЛЬТР (ПОТЕРЯ ЛВЖ!)' };
+      }
+      var rem = 1 - pyroFilterVal / 65;
+      return { clean: false, noiseFactor: 0.14 + rem * 0.86, atten: 1.0, label: 'ШУМ СМОЛЫ: ' + Math.round(rem * 100) + '%' };
+    }
+
+    function syncHeaderMeta() {
+      statPhase.textContent = phase === 'deduce' ? 'ФАЗА 3 / 3 // ВЫВОД' : (getPyroState().clean ? 'ЭТАП 2: СВЕРКА ЛВЖ' : 'ЭТАП 1: ФИЛЬТР ПИРОЛИЗА');
+      statErr.textContent = 'ОШИБКИ: ' + errorsCount + ' / ' + maxErrors;
+      statErr.classList.toggle('is-warn', errorsCount >= maxErrors - 1);
+    }
+
     function recomputeMatch() {
+      var ps = getPyroState();
       var refPeaks = substances[selectedIdx].peaks;
       var minSum = 0;
       var maxSum = 0;
       for (var k = 0; k < SAMPLE_POINTS; k++) {
         var xn = k / (SAMPLE_POINTS - 1);
-        var a = unknownCurve[k];
+        var observed = clamp(cleanTargetCurve[k] * ps.atten + pyroNoiseCurve[k] * ps.noiseFactor, 0, 1.02);
         var b = evalSpectrum(refPeaks, xn, phaseShift);
-        minSum += a < b ? a : b;
-        maxSum += a > b ? a : b;
+        minSum += observed < b ? observed : b;
+        maxSum += observed > b ? observed : b;
       }
       matchPct = maxSum > 0.0001 ? clamp((minSum / maxSum) * 100, 0, 99.6) : 0;
+
+      pyroVal.textContent = ps.label;
+      pyroVal.className = 'mg-for-value' + (ps.clean ? ' is-ok' : pyroFilterVal > 85 ? ' is-err' : '');
+      if (ps.clean && !wasPyroClean) { haptic('light'); sfx('click'); }
+      wasPyroClean = ps.clean;
 
       var minutesStr = (phaseShift * 20).toFixed(2);
       sliderVal.textContent = (phaseShift >= 0 ? '+' : '') + minutesStr + ' мин';
       phaseSlider.value = phaseShift.toFixed(3);
 
-      var ready = matchPct > 92;
+      var ready = ps.clean && matchPct > 93;
       matchBadge.textContent = 'СОВП.: ' + matchPct.toFixed(1) + '%';
       matchBadge.className = 'mg-for-value' + (ready ? ' is-ok' : '');
 
-      if (ready && !wasAboveThreshold) {
-        haptic('light');
-        sfx('scan');
-      }
-      wasAboveThreshold = ready;
+      if (ready && !wasCleanLock) { haptic('light'); sfx('click'); }
+      wasCleanLock = ready;
 
-      if (!finished) {
-        if (ready) {
-          statusEl.className = 'mg-for-status is-ok';
-          lockBtn.classList.add('is-ready');
-        } else {
-          statusEl.className = 'mg-for-status';
-          lockBtn.classList.remove('is-ready');
-        }
+      if (phase === 'lab') {
+        legendSpan.innerHTML = ps.clean
+          ? '<span class="mg-dot" style="background:#38bdf8"></span>Проба (чист.) <span class="mg-dot" style="background:#f59e0b;margin-left:6px"></span>Эталон'
+          : '<span class="mg-dot" style="background:#ef4444"></span>Фон пиролиза мешает сверке (подберите 65–85%)';
+        statusEl.className = 'mg-for-status' + (ready ? ' is-ok' : !ps.clean ? ' is-warn' : '');
+        lockBtn.classList.toggle('is-ready', ready);
       }
+      syncHeaderMeta();
     }
 
-    recomputeMatch();
+    function showFailScreen(reason, msg) {
+      phase = 'fail';
+      stage.style.display = 'none';
+      statusEl.style.display = 'none';
+      panel.style.display = 'none';
+      var box = document.createElement('div');
+      box.className = 'mg-ars-stamp-box';
+      var st = document.createElement('div');
+      st.className = 'mg-ars-stamp';
+      st.textContent = 'АНАЛИЗ ПРОВАЛЕН';
+      var txt = document.createElement('div');
+      txt.className = 'mg-ars-dq';
+      txt.textContent = msg || 'Превышен лимит ошибок лабораторной экспертизы.';
+      box.appendChild(st);
+      box.appendChild(txt);
+      shell.body.appendChild(box);
+      timers.setTimeout(function () {
+        triggerArsonFail({ minigame: 'arson_lab', mode: 'chem', reason: reason, errors: errorsCount });
+      }, 950);
+    }
+
+    function openChemDeduction(sub) {
+      phase = 'deduce';
+      syncHeaderMeta();
+      stage.style.display = 'none';
+      statusEl.style.display = 'none';
+      panel.style.display = 'none';
+
+      var card = document.createElement('div');
+      card.className = 'mg-ars-deduce';
+      var kicker = document.createElement('div');
+      kicker.className = 'mg-ars-dkicker';
+      kicker.textContent = 'ФАЗА 3 // ХИМИЧЕСКОЕ ЗАКЛЮЧЕНИЕ';
+      card.appendChild(kicker);
+
+      var facts = document.createElement('div');
+      facts.className = 'mg-ars-dfacts';
+      facts.innerHTML =
+        '<div>• Угольная колонка: фон пиролиза древесины и лака полностью отсечён</div>' +
+        '<div>• Идентифицированное вещество: ' + sub.name + '</div>' +
+        '<div>• Точность совпадения пиков хроматограммы: ' + matchPct.toFixed(1) + '%</div>';
+      card.appendChild(facts);
+
+      var q = document.createElement('div');
+      q.className = 'mg-ars-dq';
+      q.textContent = scenario.conclusion.question;
+      card.appendChild(q);
+
+      var optsWrap = document.createElement('div');
+      optsWrap.className = 'mg-ars-dopts';
+      var fb = document.createElement('div');
+      fb.className = 'mg-ars-dfb';
+
+      var settled = false;
+      var opts = scenario.conclusion.options || [];
+      for (var oi = 0; oi < opts.length; oi++) {
+        (function (opt) {
+          var ob = document.createElement('button');
+          ob.type = 'button';
+          ob.className = 'mg-ars-dopt';
+          ob.textContent = opt.text;
+          listeners.on(ob, 'click', function () {
+            if (settled || phase !== 'deduce') return;
+            if (opt.isCorrect) {
+              settled = true;
+              ob.classList.add('is-correct');
+              fb.className = 'mg-ars-dfb is-ok';
+              fb.textContent = opt.reason;
+              haptic('success'); sfx('stamp');
+              timers.setTimeout(function () {
+                card.innerHTML = '';
+                var box = document.createElement('div');
+                box.className = 'mg-ars-stamp-box';
+                var st = document.createElement('div');
+                st.className = 'mg-ars-stamp is-ok';
+                st.textContent = scenario.stampWin;
+                var btnDone = document.createElement('button');
+                btnDone.type = 'button';
+                btnDone.className = 'mg-for-btn is-ready';
+                btnDone.textContent = 'ПРИОБЩИТЬ К ДЕЛУ';
+                listeners.on(btnDone, 'click', function () {
+                  haptic('success'); sfx('success');
+                  triggerWin({
+                    minigame: 'arson_lab', mode: 'chem',
+                    substanceId: sub.id, substanceName: sub.name,
+                    similarity: Number(matchPct.toFixed(1)),
+                    errors: errorsCount, deduced: opt.id
+                  });
+                });
+                box.appendChild(st);
+                box.appendChild(btnDone);
+                card.appendChild(box);
+              }, 550);
+            } else {
+              errorsCount += 1;
+              syncHeaderMeta();
+              ob.classList.add('is-wrong');
+              fb.className = 'mg-ars-dfb';
+              fb.textContent = opt.reason;
+              haptic('error'); sfx('alert');
+              flashShake(card);
+              if (errorsCount >= maxErrors) {
+                settled = true;
+                timers.setTimeout(function () {
+                  showFailScreen('wrong_deduction', 'Лимит ошибок исчерпан — химическое заключение отклонено.');
+                }, 700);
+              }
+            }
+          });
+          optsWrap.appendChild(ob);
+        })(opts[oi]);
+      }
+
+      card.appendChild(optsWrap);
+      card.appendChild(fb);
+      shell.body.appendChild(card);
+    }
+
+    listeners.on(pyroSlider, 'input', function () {
+      if (phase !== 'lab') return;
+      pyroFilterVal = parseInt(pyroSlider.value, 10) || 0;
+      recomputeMatch();
+    });
 
     listeners.on(phaseSlider, 'input', function () {
-      if (finished) return;
+      if (phase !== 'lab') return;
       phaseShift = clamp(parseFloat(phaseSlider.value) || 0, -0.15, 0.15);
       recomputeMatch();
     });
 
-    // Direct horizontal drag on chromatograph canvas shifts amber reference curve
     listeners.on(canvas, 'pointerdown', function (ev) {
-      if (finished) return;
+      if (phase !== 'lab') return;
       dragging = true;
       dragStartX = ev.clientX;
       dragStartPhase = phaseShift;
-      try {
-        canvas.setPointerCapture(ev.pointerId);
-      } catch (e) {}
+      try { canvas.setPointerCapture(ev.pointerId); } catch (e) {}
     });
-
     listeners.on(canvas, 'pointermove', function (ev) {
-      if (!dragging || finished) return;
+      if (!dragging || phase !== 'lab') return;
       var rect = canvas.getBoundingClientRect();
       if (!rect.width) return;
-      var dxNorm = (ev.clientX - dragStartX) / rect.width;
-      phaseShift = clamp(dragStartPhase + dxNorm, -0.15, 0.15);
+      phaseShift = clamp(dragStartPhase + (ev.clientX - dragStartX) / rect.width, -0.15, 0.15);
       recomputeMatch();
     });
-
-    listeners.on(canvas, 'pointerup', function () {
-      dragging = false;
-    });
-    listeners.on(canvas, 'pointercancel', function () {
-      dragging = false;
-    });
+    listeners.on(canvas, 'pointerup', function () { dragging = false; });
+    listeners.on(canvas, 'pointercancel', function () { dragging = false; });
 
     listeners.on(lockBtn, 'click', function () {
-      if (finished) return;
+      if (phase !== 'lab') return;
+      var ps = getPyroState();
       var sub = substances[selectedIdx];
-      if (matchPct > 92 && sub.isMatch) {
-        finished = true;
-        lockBtn.disabled = true;
-        lockBtn.classList.add('is-ready');
-        statusEl.className = 'mg-for-status is-ok';
-        legendSpan.textContent = 'ПОДТВЕРЖДЕНО: ' + sub.name;
-        haptic('success');
-        sfx('success');
-        timers.setTimeout(function () {
-          triggerWin({
-            minigame: 'arson_lab',
-            mode: 'chem',
-            substanceId: sub.id,
-            substanceName: sub.name,
-            similarity: Number(matchPct.toFixed(1))
-          });
-        }, 950);
-      } else {
-        redFlash = 0.9;
-        haptic('error');
-        sfx('error');
-        flashShake(stage);
+      if (!ps.clean) {
+        errorsCount += 1; redFlash = 0.9; syncHeaderMeta();
+        haptic('error'); sfx('alert'); flashShake(stage);
         statusEl.className = 'mg-for-status is-err';
-        matchBadge.className = 'mg-for-value is-err';
-        matchBadge.textContent = 'НИЖЕ 92% (' + matchPct.toFixed(1) + '%)';
+        legendSpan.textContent = pyroFilterVal > 85
+          ? 'МЕТОДИКА: перефильтрация стёрла пики ЛВЖ (верните фильтр в 65–85%)!'
+          : 'МЕТОДИКА: сначала отсеките фон пиролиза древесины фильтром (65–85%)!';
+        if (errorsCount >= maxErrors) timers.setTimeout(function () { showFailScreen('pyrolysis_fail', legendSpan.textContent); }, 550);
+        return;
       }
+      if (!sub.isMatch) {
+        errorsCount += 1; redFlash = 0.9; syncHeaderMeta();
+        haptic('error'); sfx('alert'); flashShake(stage);
+        statusEl.className = 'mg-for-status is-err';
+        legendSpan.textContent = sub.wrongMsg;
+        if (errorsCount >= maxErrors) timers.setTimeout(function () { showFailScreen('wrong_substance', sub.wrongMsg); }, 550);
+        return;
+      }
+      if (matchPct <= 93) {
+        errorsCount += 1; redFlash = 0.85; syncHeaderMeta();
+        haptic('error'); sfx('alert'); flashShake(stage);
+        statusEl.className = 'mg-for-status is-err';
+        legendSpan.textContent = 'Совпадение ниже 93% — точно откалибруйте сдвиг фазы базы!';
+        if (errorsCount >= maxErrors) timers.setTimeout(function () { showFailScreen('bad_calibration', legendSpan.textContent); }, 550);
+        return;
+      }
+
+      lockBtn.disabled = true;
+      haptic('success'); sfx('success');
+      statusEl.className = 'mg-for-status is-ok';
+      legendSpan.textContent = 'ПОДТВЕРЖДЕНО: ' + sub.name + ' (' + matchPct.toFixed(1) + '%)';
+      timers.setTimeout(function () {
+        if (phase === 'lab') openChemDeduction(sub);
+      }, 720);
     });
 
+    recomputeMatch();
     var lastTs = performance.now();
 
     function render(now) {
       var dt = Math.min((now - lastTs) / 1000, 0.05);
       lastTs = now;
 
-      var metrics = canvasMgr.getMetrics();
-      var w = metrics.width;
-      var h = metrics.height;
-      var dpr = metrics.dpr;
-      var ctx = canvas.getContext('2d');
+      if (phase === 'lab') {
+        var metrics = canvasMgr.getMetrics();
+        var w = metrics.width, h = metrics.height, dpr = metrics.dpr;
+        var ctx = canvas.getContext('2d');
+        var ps = getPyroState();
 
-      ctx.save();
-      ctx.scale(dpr, dpr);
-
-      // Dark instrument panel background
-      ctx.fillStyle = '#080a0e';
-      ctx.fillRect(0, 0, w, h);
-
-      var padL = 32;
-      var padR = 12;
-      var padT = 24;
-      var padB = 26;
-      var plotW = w - padL - padR;
-      var plotH = h - padT - padB;
-
-      // Grid lines
-      ctx.strokeStyle = 'rgba(42, 46, 56, 0.65)';
-      ctx.lineWidth = 1;
-      var gx, gy;
-      for (gx = 0; gx <= 10; gx++) {
-        var px = padL + (gx / 10) * plotW;
-        ctx.beginPath();
-        ctx.moveTo(px, padT);
-        ctx.lineTo(px, padT + plotH);
-        ctx.stroke();
-      }
-      for (gy = 0; gy <= 5; gy++) {
-        var py = padT + (gy / 5) * plotH;
-        ctx.beginPath();
-        ctx.moveTo(padL, py);
-        ctx.lineTo(padL + plotW, py);
-        ctx.stroke();
-      }
-
-      // Axes border
-      ctx.strokeStyle = '#3b4252';
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.moveTo(padL, padT);
-      ctx.lineTo(padL, padT + plotH);
-      ctx.lineTo(padL + plotW, padT + plotH);
-      ctx.stroke();
-
-      // Axis labels
-      ctx.fillStyle = '#6b7280';
-      ctx.font = '500 9px "IBM Plex Mono", monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      for (gx = 0; gx <= 10; gx += 2) {
-        ctx.fillText(String(gx * 2) + 'm', padL + (gx / 10) * plotW, padT + plotH + 6);
-      }
-      ctx.textAlign = 'right';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('100', padL - 5, padT + 2);
-      ctx.fillText('50', padL - 5, padT + plotH * 0.5);
-      ctx.fillText('0', padL - 5, padT + plotH);
-
-      // Top telemetry label
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillStyle = '#9ca3af';
-      ctx.font = '600 9.5px "IBM Plex Mono", monospace';
-      ctx.fillText('GC-FID • ПРОБА ЗОЛЫ #418-З', padL, 7);
-
-      ctx.textAlign = 'right';
-      ctx.fillStyle = matchPct > 92 ? '#4ade80' : '#f59e0b';
-      ctx.fillText(substances[selectedIdx].shortName.toUpperCase(), w - padR, 7);
-
-      // Draw Blue Unknown Sample Curve (with translucent area fill)
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(padL, padT + plotH);
-      var k, pxC, pyC;
-      for (k = 0; k < SAMPLE_POINTS; k++) {
-        pxC = padL + (k / (SAMPLE_POINTS - 1)) * plotW;
-        pyC = padT + plotH - unknownCurve[k] * (plotH - 8);
-        ctx.lineTo(pxC, pyC);
-      }
-      ctx.lineTo(padL + plotW, padT + plotH);
-      ctx.closePath();
-      var blueFill = ctx.createLinearGradient(0, padT, 0, padT + plotH);
-      blueFill.addColorStop(0, 'rgba(56, 189, 248, 0.28)');
-      blueFill.addColorStop(1, 'rgba(56, 189, 248, 0.02)');
-      ctx.fillStyle = blueFill;
-      ctx.fill();
-
-      ctx.beginPath();
-      for (k = 0; k < SAMPLE_POINTS; k++) {
-        pxC = padL + (k / (SAMPLE_POINTS - 1)) * plotW;
-        pyC = padT + plotH - unknownCurve[k] * (plotH - 8);
-        if (k === 0) ctx.moveTo(pxC, pyC);
-        else ctx.lineTo(pxC, pyC);
-      }
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.restore();
-
-      // Draw Amber Reference Curve (turns glowing green when matched > 92%)
-      var refPeaks = substances[selectedIdx].peaks;
-      var refColor = finished ? '#22c55e' : matchPct > 92 ? '#4ade80' : '#f59e0b';
-      ctx.save();
-      ctx.beginPath();
-      for (k = 0; k < SAMPLE_POINTS; k++) {
-        var xn = k / (SAMPLE_POINTS - 1);
-        var val = evalSpectrum(refPeaks, xn, phaseShift);
-        pxC = padL + xn * plotW;
-        pyC = padT + plotH - val * (plotH - 8);
-        if (k === 0) ctx.moveTo(pxC, pyC);
-        else ctx.lineTo(pxC, pyC);
-      }
-      ctx.strokeStyle = refColor;
-      ctx.lineWidth = 2.2;
-      ctx.setLineDash(finished ? [] : [6, 3]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.restore();
-
-      // Moving faint CRT chromatograph scan beam
-      var scanX = padL + (((now * 0.06) % 1) * plotW);
-      var beamGrad = ctx.createLinearGradient(scanX - 18, 0, scanX + 4, 0);
-      beamGrad.addColorStop(0, 'rgba(245, 158, 11, 0)');
-      beamGrad.addColorStop(1, 'rgba(245, 158, 11, 0.09)');
-      ctx.fillStyle = beamGrad;
-      ctx.fillRect(Math.max(padL, scanX - 18), padT, Math.min(22, padL + plotW - Math.max(padL, scanX - 18)), plotH);
-
-      // Stamp on win
-      if (finished) {
-        ctx.fillStyle = 'rgba(5, 46, 22, 0.88)';
-        ctx.fillRect(w / 2 - 96, padT + plotH * 0.35 - 16, 192, 34);
-        ctx.strokeStyle = '#22c55e';
-        ctx.lineWidth = 1.6;
-        ctx.strokeRect(w / 2 - 96, padT + plotH * 0.35 - 16, 192, 34);
-        ctx.fillStyle = '#4ade80';
-        ctx.font = '700 12px "IBM Plex Mono", monospace';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('СПЕКТР ПОДТВЕРЖДЁН', w / 2, padT + plotH * 0.35 + 1);
-      }
-
-      if (redFlash > 0.01) {
-        ctx.fillStyle = 'rgba(220, 38, 38, ' + (redFlash * 0.38).toFixed(3) + ')';
+        ctx.save();
+        ctx.scale(dpr, dpr);
+        ctx.fillStyle = '#080a0e';
         ctx.fillRect(0, 0, w, h);
-        redFlash = Math.max(0, redFlash - dt * 2.5);
-      }
 
-      ctx.restore();
+        var padL = 32, padR = 12, padT = 24, padB = 24;
+        var plotW = w - padL - padR, plotH = h - padT - padB;
+
+        ctx.strokeStyle = 'rgba(42, 46, 56, 0.65)'; ctx.lineWidth = 1;
+        for (var gx = 0; gx <= 10; gx++) {
+          var px = padL + (gx / 10) * plotW;
+          ctx.beginPath(); ctx.moveTo(px, padT); ctx.lineTo(px, padT + plotH); ctx.stroke();
+        }
+        for (var gy = 0; gy <= 5; gy++) {
+          var py = padT + (gy / 5) * plotH;
+          ctx.beginPath(); ctx.moveTo(padL, py); ctx.lineTo(padL + plotW, py); ctx.stroke();
+        }
+
+        ctx.fillStyle = '#9ca3af'; ctx.font = '600 9.5px "IBM Plex Mono", monospace';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        ctx.fillText(scenario.sampleTag, padL, 7);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = ps.clean && matchPct > 93 ? '#4ade80' : '#f59e0b';
+        ctx.fillText(substances[selectedIdx].shortName.toUpperCase(), w - padR, 7);
+
+        // Red wood-tar pyrolysis ghost envelope (fades away as filter enters 65..85%)
+        if (ps.noiseFactor > 0.08) {
+          ctx.beginPath();
+          ctx.moveTo(padL, padT + plotH);
+          for (var np = 0; np < SAMPLE_POINTS; np++) {
+            var npx = padL + (np / (SAMPLE_POINTS - 1)) * plotW;
+            var npy = padT + plotH - clamp(pyroNoiseCurve[np] * ps.noiseFactor, 0, 1) * (plotH - 8);
+            ctx.lineTo(npx, npy);
+          }
+          ctx.lineTo(padL + plotW, padT + plotH);
+          ctx.closePath();
+          ctx.fillStyle = 'rgba(239, 68, 68, ' + (ps.noiseFactor * 0.25).toFixed(2) + ')';
+          ctx.fill();
+        }
+
+        // Blue observed sample curve
+        ctx.beginPath();
+        for (var k = 0; k < SAMPLE_POINTS; k++) {
+          var obs = clamp(cleanTargetCurve[k] * ps.atten + pyroNoiseCurve[k] * ps.noiseFactor, 0, 1.02);
+          var cx = padL + (k / (SAMPLE_POINTS - 1)) * plotW;
+          var cy = padT + plotH - obs * (plotH - 8);
+          if (k === 0) ctx.moveTo(cx, cy); else ctx.lineTo(cx, cy);
+        }
+        ctx.strokeStyle = ps.clean ? '#38bdf8' : '#f87171';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Amber/green reference curve
+        var refPeaks = substances[selectedIdx].peaks;
+        ctx.beginPath();
+        for (k = 0; k < SAMPLE_POINTS; k++) {
+          var xRef = k / (SAMPLE_POINTS - 1);
+          var vRef = evalSpectrum(refPeaks, xRef, phaseShift);
+          var rx = padL + xRef * plotW;
+          var ry = padT + plotH - vRef * (plotH - 8);
+          if (k === 0) ctx.moveTo(rx, ry); else ctx.lineTo(rx, ry);
+        }
+        ctx.strokeStyle = ps.clean && matchPct > 93 ? '#4ade80' : '#f59e0b';
+        ctx.lineWidth = 2.2;
+        ctx.setLineDash([6, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        if (redFlash > 0.01) {
+          ctx.fillStyle = 'rgba(220, 38, 38, ' + (redFlash * 0.36).toFixed(3) + ')';
+          ctx.fillRect(0, 0, w, h);
+          redFlash = Math.max(0, redFlash - dt * 2.5);
+        }
+        ctx.restore();
+      }
       timers.raf(render);
     }
 
     timers.raf(render);
-
     return function cleanup() {
       timers.clearAll();
       listeners.clearAll();
@@ -4123,106 +4299,134 @@
     };
   }
 
-  // ---- Mode 'map': Схема прогара коттеджа ----
 
   var DEFAULT_MAP_NODES = [
     {
       id: 'living',
       room: 'Гостиная (у дивана)',
-      x: 0.30,
-      y: 0.36,
-      isOrigin: true,
-      isDecoy: false,
-      charDepth: '19 мм',
-      coneAngle: -0.45,
-      coneOutward: true,
-      note: 'Глубокий кольцевой прогар пола, следы розлива ЛВЖ, V-конус расходится от пола вверх.'
+      x: 0.30, y: 0.36, isOrigin: true, isDecoy: false, rubble: 1.0,
+      charDepth: '19 мм', coneAngle: -0.45, coneOutward: true,
+      noteNormal: 'Пол сильно обуглен. Включите ТЕРМО-ВЕКТОРЫ, чтобы замерить глубину прогара и V-конус.',
+      noteThermal: 'ТЕРМО: глубокий кольцевой прогар 19 мм, расходящийся V-конус вверх от пола — независимый очаг розлива ЛВЖ!'
     },
     {
       id: 'study',
       room: 'Кабинет (под окном)',
-      x: 0.74,
-      y: 0.32,
-      isOrigin: true,
-      isDecoy: false,
-      charDepth: '17 мм',
-      coneAngle: 2.35,
-      coneOutward: true,
-      note: 'Изолированный кратер выгорания досок, между комнатами — полоса слабого обугливания.'
+      x: 0.74, y: 0.32, isOrigin: true, isDecoy: false, rubble: 0,
+      charDepth: '17 мм', coneAngle: 2.35, coneOutward: true,
+      noteNormal: 'Выгоревшее пятно у письменного стола. Проверьте направление V-конуса в ТЕРМО-ВЕКТОРАХ.',
+      noteThermal: 'ТЕРМО: изолированный кратер 17 мм, расходящийся V-конус; порог в гостиную почти не прогорел!'
     },
     {
       id: 'hall',
       room: 'Прихожая (у порога)',
-      x: 0.48,
-      y: 0.74,
-      isOrigin: true,
-      isDecoy: false,
-      charDepth: '16 мм',
-      coneAngle: -1.55,
-      coneOutward: true,
-      note: 'Интенсивный локальный прогар на уровне плинтуса, самостоятельный расходящийся V-конус.'
+      x: 0.48, y: 0.74, isOrigin: true, isDecoy: false, rubble: 1.0,
+      charDepth: '16 мм', coneAngle: -1.55, coneOutward: true,
+      noteNormal: 'Тёмный прогар вдоль плинтуса. Проверьте вектор пламени в ТЕРМО-ВЕКТОРАХ.',
+      noteThermal: 'ТЕРМО: локальный прогар 16 мм с самостоятельным расходящимся V-конусом от пола!'
     },
     {
       id: 'panel',
       room: 'Щитовая (электрощиток)',
-      x: 0.19,
-      y: 0.72,
-      isOrigin: false,
-      isDecoy: true,
-      charDepth: '3 мм',
-      coneAngle: 0.15,
-      coneOutward: false,
-      note: 'Корпус обгорел только СНАРУЖИ, медные жилы и автоматы внутри целы. Тепловой вектор входящий из прихожей.'
+      x: 0.19, y: 0.72, isOrigin: false, isDecoy: true, rubble: 1.0,
+      charDepth: '3 мм', coneAngle: 0.15, coneOutward: false,
+      noteNormal: 'Закопчённый корпус щитка (версия Мельникова). Проверьте вектор тепла в ТЕРМО-ВЕКТОРАХ.',
+      noteThermal: 'ТЕРМО: прогар всего 3 мм, медные жилы внутри целы — тепловой вектор ВХОДЯЩИЙ из прихожей (ложный очаг!).'
     },
     {
       id: 'kitchen',
       room: 'Кухня (газовая плита)',
-      x: 0.77,
-      y: 0.68,
-      isOrigin: false,
-      isDecoy: false,
-      charDepth: '4 мм',
-      coneAngle: 3.0,
-      coneOutward: false,
-      note: 'Газовый вентиль перекрыт, копоть преимущественно в верхней зоне под потолком — вторичный занос дыма.'
+      x: 0.77, y: 0.68, isOrigin: false, isDecoy: false, rubble: 0,
+      charDepth: '4 мм', coneAngle: 3.0, coneOutward: false,
+      noteNormal: 'Копоть в верхней части стены у плиты.',
+      noteThermal: 'ТЕРМО: газовый вентиль перекрыт, прогар 4 мм — вторичный занос дыма под потолком.'
     },
     {
       id: 'veranda',
       room: 'Веранда (выход в сад)',
-      x: 0.52,
-      y: 0.18,
-      isOrigin: false,
-      isDecoy: false,
-      charDepth: '2 мм',
-      coneAngle: -1.55,
-      coneOutward: false,
-      note: 'Слабый налёт копоти от выходящего потока газов через выбитую раму. Очага на полу нет.'
+      x: 0.52, y: 0.18, isOrigin: false, isDecoy: false, rubble: 0,
+      charDepth: '2 мм', coneAngle: -1.55, coneOutward: false,
+      noteNormal: 'Закопчённая оконная рама веранды.',
+      noteThermal: 'ТЕРМО: слабый налёт 2 мм от выхода горячих газов наружу, очага на полу нет.'
     }
   ];
 
+  function resolveArsonMapScenario(config) {
+    var cfg = config || {};
+    var caseId = String(window.ACTIVE_CASE_ID || '').toLowerCase();
+    var isCase418 = cfg.preset === 'case418' || !caseId || caseId === 'case418';
+
+    return {
+      id: isCase418 ? 'case418_act1_map' : 'generic_burnmap',
+      title: cfg.title || 'СХЕМА ПРОГАРА КОТТЕДЖА',
+      stampWin: isCase418 ? 'УМЫШЛЕННЫЙ ПОДЖОГ ПОДТВЕРЖДЁН' : 'ОЧАГИ ВОЗГОРАНИЯ УСТАНОВЛЕНЫ',
+      nodes: Array.isArray(cfg.nodes) && cfg.nodes.length > 0 ? cfg.nodes : DEFAULT_MAP_NODES,
+      conclusion: cfg.conclusion || (isCase418
+        ? {
+            question: 'Установлены 3 изолированных очага (16–19 мм) в гостиной, кабинете и прихожей с чистыми порогами, а у щитка — входящий вектор (3 мм). Вывод:',
+            options: [
+              {
+                id: 'melnikov_wire',
+                text: 'Огонь пошёл от короткого замыкания электрощитка и сам перекинулся через пороги в три комнаты.',
+                isCorrect: false,
+                reason: 'Противоречие: в щитовой прогар всего 3 мм и входящий тепловой вектор, а пороги между комнатами почти не прогорели.'
+              },
+              {
+                id: 'three_origins',
+                text: 'Совершён умышленный поджог с разливом горючего в трёх независимых очагах; версия Мельникова о проводке опровергнута.',
+                isCorrect: true,
+                reason: 'Верно: геометрия трёх расходящихся V-конусов и чистый изнутри щиток однозначно доказывают поджог.'
+              },
+              {
+                id: 'gas_stove',
+                text: 'Произошла утечка газа на кухне, после чего пламя ушло через веранду в сад.',
+                isCorrect: false,
+                reason: 'Противоречие: газовый вентиль на кухне перекрыт, а прогар там лишь поверхностный (4 мм).'
+              }
+            ]
+          }
+        : {
+            question: 'Термоанализ V-конусов и глубины прогара подтвердил наличие независимых очагов возгорания. Вывод:',
+            options: [
+              { id: 'acc', text: 'Очаг был единственным и возник случайно.', isCorrect: false, reason: 'Противоречие: выявлено несколько изолированных очагов с расходящимися V-конусами.' },
+              { id: 'arson', text: 'Подтверждён умышленный поджог с несколькими независимыми точками розлива.', isCorrect: true, reason: 'Верно: схема прогара подтверждает поджог.' },
+              { id: 'smoke', text: 'Повреждения вызваны только задымлением без открытого пламени.', isCorrect: false, reason: 'Противоречие: зафиксированы глубокие прогары пола 16–19 мм.' }
+            ]
+          })
+    };
+  }
+
   function initArsonMap(containerEl, config, callbacks) {
+    injectArsonStyles();
     var timers = createTimerBag();
     var listeners = createListenerBag();
     var triggerWin = createWinTrigger(callbacks);
-    var finished = false;
+    var failFired = false;
+    function triggerMapFail(res) {
+      if (failFired) return;
+      failFired = true;
+      if (callbacks && typeof callbacks.onFail === 'function') {
+        callbacks.onFail(res || { success: false });
+      }
+    }
 
-    var rawNodes =
-      Array.isArray(config.nodes) && config.nodes.length > 0
-        ? config.nodes
-        : DEFAULT_MAP_NODES;
+    var scenario = resolveArsonMapScenario(config);
+    var maxErrors = typeof config.maxErrors === 'number' && config.maxErrors > 0 ? config.maxErrors : 4;
 
-    var nodes = rawNodes.map(function (n, idx) {
+    var nodes = scenario.nodes.map(function (n, idx) {
       return {
         id: n.id || 'node_' + idx,
-        room: n.room || 'Зона #' + (idx + 1),
+        room: n.room || ('Зона #' + (idx + 1)),
         x: clamp(typeof n.x === 'number' ? n.x : 0.2 + idx * 0.12, 0.1, 0.9),
         y: clamp(typeof n.y === 'number' ? n.y : 0.5, 0.12, 0.88),
-        isOrigin: !!n.isOrigin,
-        isDecoy: !!n.isDecoy,
+        isOrigin: Boolean(n.isOrigin),
+        isDecoy: Boolean(n.isDecoy),
+        rubble: typeof n.rubble === 'number' ? n.rubble : 0,
         charDepth: n.charDepth || (n.isOrigin ? '17 мм' : '3 мм'),
         coneAngle: typeof n.coneAngle === 'number' ? n.coneAngle : -1.2,
-        coneOutward: typeof n.coneOutward === 'boolean' ? n.coneOutward : !!n.isOrigin,
-        note: n.note || '',
+        coneOutward: typeof n.coneOutward === 'boolean' ? n.coneOutward : Boolean(n.isOrigin),
+        noteNormal: n.noteNormal || n.note || '',
+        noteThermal: n.noteThermal || n.note || '',
         scanned: false,
         marked: false
       };
@@ -4230,23 +4434,32 @@
 
     var requiredCount = 0;
     for (var i = 0; i < nodes.length; i++) {
-      if (nodes[i].isOrigin) requiredCount++;
+      if (nodes[i].isOrigin) requiredCount += 1;
     }
     if (requiredCount === 0) requiredCount = 3;
 
     var shell = createShell(containerEl, {
-      title: config.title || 'Схема прогара коттеджа',
-      subtitle: config.subtitle || 'ДЕЛО №418 • УСТАНОВЛЕНИЕ ОЧАГОВ',
+      title: scenario.title,
+      subtitle: '',
       extraClass: 'mg-arson-wrap'
     });
 
+    shell.subEl.style.display = 'none';
+    var metaRow = document.createElement('div');
+    metaRow.className = 'mg-ars-meta';
+    var statMarked = document.createElement('span');
+    statMarked.className = 'mg-ars-stat';
+    var statErr = document.createElement('span');
+    statErr.className = 'mg-ars-err';
+    metaRow.appendChild(statMarked);
+    metaRow.appendChild(statErr);
+    shell.subEl.parentNode.appendChild(metaRow);
+
     listeners.on(shell.cancelBtn, 'click', function () {
-      haptic('light');
-      sfx('click');
+      haptic('light'); sfx('click');
       triggerCancel(callbacks);
     });
 
-    // Blueprint canvas
     var stage = document.createElement('div');
     stage.className = 'mg-for-stage mg-arson-stage';
     var canvas = document.createElement('canvas');
@@ -4254,21 +4467,30 @@
     stage.appendChild(canvas);
     shell.body.appendChild(stage);
 
-    // Status row
     var statusEl = document.createElement('div');
     statusEl.className = 'mg-for-status';
     var statusText = document.createElement('span');
-    statusText.textContent = 'Нажмите на зоны плана для осмотра и отметьте ' + requiredCount + ' истинных очага';
-    var countVal = document.createElement('span');
-    countVal.className = 'mg-for-value';
-    countVal.textContent = '0 / ' + requiredCount;
+    statusText.textContent = 'Расчистите завалы пепла на плане, включите ТЕРМО-ВЕКТОРЫ и отметьте ' + requiredCount + ' очага.';
     statusEl.appendChild(statusText);
-    statusEl.appendChild(countVal);
     shell.body.appendChild(statusEl);
 
-    // Inspection dossier & toggle button panel
     var panel = document.createElement('div');
     panel.className = 'mg-for-panel';
+
+    // Mode toggle: Clear/Plan vs Thermal V-Cones
+    var modesRow = document.createElement('div');
+    modesRow.className = 'mg-ars-modes';
+    var btnPlan = document.createElement('button');
+    btnPlan.type = 'button';
+    btnPlan.className = 'mg-ars-mbtn is-norm';
+    btnPlan.textContent = '1. ПЛАН / ЗАЧИСТКА';
+    var btnThermal = document.createElement('button');
+    btnThermal.type = 'button';
+    btnThermal.className = 'mg-ars-mbtn';
+    btnThermal.textContent = '2. ТЕРМО-ВЕКТОРЫ';
+    modesRow.appendChild(btnPlan);
+    modesRow.appendChild(btnThermal);
+    panel.appendChild(modesRow);
 
     var inspectBox = document.createElement('div');
     inspectBox.className = 'mg-arson-inspect';
@@ -4276,7 +4498,7 @@
     inspectHead.className = 'mg-arson-inspect-head';
     var inspectTitle = document.createElement('span');
     inspectTitle.className = 'mg-arson-inspect-title';
-    inspectTitle.textContent = 'ТЕРМОСКАНЕР ГОТОВ';
+    inspectTitle.textContent = 'ПЛАН КОТТЕДЖА ГОТОВ';
     var togglePinBtn = document.createElement('button');
     togglePinBtn.type = 'button';
     togglePinBtn.className = 'mg-for-btn-sec';
@@ -4287,8 +4509,7 @@
 
     var inspectDesc = document.createElement('div');
     inspectDesc.className = 'mg-arson-inspect-desc';
-    inspectDesc.textContent = 'Коснитесь любой точки на чертеже, чтобы замерить глубину прогара и направление V-конуса.';
-
+    inspectDesc.textContent = 'Потрите серые зоны завала в режиме ПЛАН/ЗАЧИСТКА, затем исследуйте V-конусы.';
     inspectBox.appendChild(inspectHead);
     inspectBox.appendChild(inspectDesc);
     panel.appendChild(inspectBox);
@@ -4296,45 +4517,60 @@
     var submitBtn = document.createElement('button');
     submitBtn.type = 'button';
     submitBtn.className = 'mg-for-btn';
-    submitBtn.textContent = 'ОФОРМИТЬ ЗАКЛЮЧЕНИЕ';
+    submitBtn.textContent = 'ПОДТВЕРДИТЬ ОЧАГИ';
     panel.appendChild(submitBtn);
-
     shell.body.appendChild(panel);
 
+    var mapMode = 'plan'; // 'plan' | 'thermal'
+    var phase = 'map'; // 'map' | 'deduce' | 'fail'
     var focusedNode = null;
-    var pointerX = -1;
-    var pointerY = -1;
+    var pointerDown = false;
+    var lastNx = 0.5;
+    var lastNy = 0.5;
+    var errorsCount = 0;
     var redFlash = 0;
+    var rubbleParticles = [];
     var lastTs = performance.now();
 
     var canvasMgr = setupResponsiveCanvas(canvas, stage);
 
     function countMarked() {
-      var cnt = 0;
-      for (var k = 0; k < nodes.length; k++) {
-        if (nodes[k].marked) cnt++;
-      }
-      return cnt;
+      var n = 0;
+      for (var k = 0; k < nodes.length; k++) if (nodes[k].marked) n++;
+      return n;
+    }
+
+    function syncHeaderMeta() {
+      statMarked.textContent = 'ОЧАГИ: ' + countMarked() + ' / ' + requiredCount;
+      statErr.textContent = 'ОШИБКИ: ' + errorsCount + ' / ' + maxErrors;
+      statErr.classList.toggle('is-warn', errorsCount >= maxErrors - 1);
+    }
+
+    function syncModesUI() {
+      btnPlan.className = 'mg-ars-mbtn' + (mapMode === 'plan' ? ' is-norm' : '');
+      btnThermal.className = 'mg-ars-mbtn' + (mapMode === 'thermal' ? ' is-spec' : '');
+      updateInspectUI();
     }
 
     function updateInspectUI() {
-      var cnt = countMarked();
-      countVal.textContent = cnt + ' / ' + requiredCount;
-      countVal.className = 'mg-for-value' + (cnt === requiredCount ? ' is-ok' : '');
-
-      if (cnt === requiredCount && !finished) {
-        submitBtn.classList.add('is-ready');
-      } else if (!finished) {
-        submitBtn.classList.remove('is-ready');
-      }
+      syncHeaderMeta();
+      submitBtn.classList.toggle('is-ready', countMarked() === requiredCount && mapMode === 'thermal' && phase === 'map');
 
       if (!focusedNode) {
         togglePinBtn.style.display = 'none';
         return;
       }
 
-      inspectTitle.textContent = focusedNode.room + ' • Прогар ' + focusedNode.charDepth;
-      inspectDesc.textContent = focusedNode.note;
+      if (focusedNode.rubble > 0.02) {
+        inspectTitle.textContent = focusedNode.room + ' • ЗАВАЛ ПЕПЛА';
+        inspectDesc.textContent = 'Зона засыпана пеплом — потрите её пальцем в режиме ПЛАН/ЗАЧИСТКА.';
+        togglePinBtn.style.display = 'none';
+        return;
+      }
+
+      inspectTitle.textContent =
+        focusedNode.room + (mapMode === 'thermal' ? (' • ' + focusedNode.charDepth) : '');
+      inspectDesc.textContent = mapMode === 'thermal' ? focusedNode.noteThermal : focusedNode.noteNormal;
       togglePinBtn.style.display = 'inline-block';
 
       if (focusedNode.marked) {
@@ -4346,359 +4582,397 @@
       }
     }
 
+    function showFailScreen(reason, msg) {
+      phase = 'fail';
+      stage.style.display = 'none';
+      statusEl.style.display = 'none';
+      panel.style.display = 'none';
+
+      var box = document.createElement('div');
+      box.className = 'mg-ars-stamp-box';
+      var st = document.createElement('div');
+      st.className = 'mg-ars-stamp';
+      st.textContent = 'СХЕМА ОТКЛОНЕНА';
+      var txt = document.createElement('div');
+      txt.className = 'mg-ars-dq';
+      txt.textContent = msg || 'Превышен лимит ошибок при определении очагов возгорания.';
+      box.appendChild(st);
+      box.appendChild(txt);
+      shell.body.appendChild(box);
+      timers.setTimeout(function () {
+        triggerMapFail({ minigame: 'arson_lab', mode: 'map', reason: reason, errors: errorsCount });
+      }, 950);
+    }
+
+    function openMapDeduction(markedList) {
+      phase = 'deduce';
+      syncHeaderMeta();
+      stage.style.display = 'none';
+      statusEl.style.display = 'none';
+      panel.style.display = 'none';
+
+      var card = document.createElement('div');
+      card.className = 'mg-ars-deduce';
+      var kicker = document.createElement('div');
+      kicker.className = 'mg-ars-dkicker';
+      kicker.textContent = 'ФАЗА 3 // ПОЖАРНО-ТЕХНИЧЕСКИЙ ВЫВОД';
+      card.appendChild(kicker);
+
+      var facts = document.createElement('div');
+      facts.className = 'mg-ars-dfacts';
+      for (var fi = 0; fi < markedList.length; fi++) {
+        var row = document.createElement('div');
+        row.textContent = '• ' + markedList[fi].room + ' — прогар ' + markedList[fi].charDepth + ', расходящийся V-конус';
+        facts.appendChild(row);
+      }
+      card.appendChild(facts);
+
+      var q = document.createElement('div');
+      q.className = 'mg-ars-dq';
+      q.textContent = scenario.conclusion.question;
+      card.appendChild(q);
+
+      var optsWrap = document.createElement('div');
+      optsWrap.className = 'mg-ars-dopts';
+      var fb = document.createElement('div');
+      fb.className = 'mg-ars-dfb';
+
+      var settled = false;
+      var opts = scenario.conclusion.options || [];
+      for (var oi = 0; oi < opts.length; oi++) {
+        (function (opt) {
+          var ob = document.createElement('button');
+          ob.type = 'button';
+          ob.className = 'mg-ars-dopt';
+          ob.textContent = opt.text;
+          listeners.on(ob, 'click', function () {
+            if (settled || phase !== 'deduce') return;
+            if (opt.isCorrect) {
+              settled = true;
+              ob.classList.add('is-correct');
+              fb.className = 'mg-ars-dfb is-ok';
+              fb.textContent = opt.reason;
+              haptic('success'); sfx('stamp');
+              timers.setTimeout(function () {
+                card.innerHTML = '';
+                var box = document.createElement('div');
+                box.className = 'mg-ars-stamp-box';
+                var st = document.createElement('div');
+                st.className = 'mg-ars-stamp is-ok';
+                st.textContent = scenario.stampWin;
+                var btnDone = document.createElement('button');
+                btnDone.type = 'button';
+                btnDone.className = 'mg-for-btn is-ready';
+                btnDone.textContent = 'ПРИОБЩИТЬ К ДЕЛУ';
+                listeners.on(btnDone, 'click', function () {
+                  haptic('success'); sfx('success');
+                  triggerWin({
+                    minigame: 'arson_lab', mode: 'map',
+                    origins: markedList.map(function (n) { return n.id; }),
+                    errors: errorsCount, deduced: opt.id
+                  });
+                });
+                box.appendChild(st);
+                box.appendChild(btnDone);
+                card.appendChild(box);
+              }, 550);
+            } else {
+              errorsCount += 1;
+              syncHeaderMeta();
+              ob.classList.add('is-wrong');
+              fb.className = 'mg-ars-dfb';
+              fb.textContent = opt.reason;
+              haptic('error'); sfx('alert');
+              flashShake(card);
+              if (errorsCount >= maxErrors) {
+                settled = true;
+                timers.setTimeout(function () {
+                  showFailScreen('wrong_deduction', 'Лимит ошибок исчерпан — заключение отклонено.');
+                }, 700);
+              }
+            }
+          });
+          optsWrap.appendChild(ob);
+        })(opts[oi]);
+      }
+
+      card.appendChild(optsWrap);
+      card.appendChild(fb);
+      shell.body.appendChild(card);
+    }
+
     function toggleNodeMark(node) {
-      if (!node || finished) return;
+      if (!node || phase !== 'map' || node.rubble > 0.02) return;
       if (node.marked) {
         node.marked = false;
-        haptic('light');
-        sfx('click');
+        haptic('light'); sfx('click');
       } else {
         if (countMarked() >= requiredCount) {
-          haptic('error');
-          sfx('error');
+          haptic('light');
           statusEl.className = 'mg-for-status is-warn';
-          statusText.textContent = 'Уже выбрано ' + requiredCount + ' очага — снимите одну метку перед переносом';
+          statusText.textContent = 'Уже отмечено ' + requiredCount + ' очага — снимите одну метку перед переносом.';
           return;
         }
         node.marked = true;
-        haptic('medium');
-        sfx('click');
+        haptic('medium'); sfx('click');
       }
-      statusEl.className = 'mg-for-status';
-      statusText.textContent =
-        countMarked() === requiredCount
-          ? 'Выбрано ' + requiredCount + ' очага — нажмите «ОФОРМИТЬ ЗАКЛЮЧЕНИЕ»'
-          : 'Отметьте все ' + requiredCount + ' независимых очага возгорания';
       updateInspectUI();
     }
 
-    listeners.on(togglePinBtn, 'click', function () {
-      toggleNodeMark(focusedNode);
+    listeners.on(btnPlan, 'click', function () {
+      if (phase !== 'map') return;
+      mapMode = 'plan'; syncModesUI();
+      haptic('light'); sfx('click');
+    });
+    listeners.on(btnThermal, 'click', function () {
+      if (phase !== 'map') return;
+      mapMode = 'thermal'; syncModesUI();
+      haptic('light'); sfx('click');
+      statusEl.className = 'mg-for-status is-ok';
+      statusText.textContent = 'ТЕРМО-ВЕКТОРЫ: ищите глубокие прогары (>15 мм) с расходящимся V-конусом!';
     });
 
-    listeners.on(canvas, 'pointermove', function (ev) {
-      if (finished) return;
-      var rect = canvas.getBoundingClientRect();
-      if (!rect.width || !rect.height) return;
-      pointerX = (ev.clientX - rect.left) / rect.width;
-      pointerY = (ev.clientY - rect.top) / rect.height;
-    });
+    listeners.on(togglePinBtn, 'click', function () { toggleNodeMark(focusedNode); });
 
-    listeners.on(canvas, 'pointerleave', function () {
-      pointerX = -1;
-      pointerY = -1;
-    });
+    function scrubRubble(nx, ny, distNorm) {
+      if (mapMode !== 'plan') return;
+      for (var k = 0; k < nodes.length; k++) {
+        var nd = nodes[k];
+        if (nd.rubble <= 0) continue;
+        if (Math.hypot(nd.x - nx, nd.y - ny) < 0.14) {
+          nd.rubble = Math.max(0, nd.rubble - Math.max(0.16, distNorm * 2.8));
+          for (var p = 0; p < 3; p++) {
+            rubbleParticles.push({
+              x: nd.x + (Math.random() - 0.5) * 0.07,
+              y: nd.y + (Math.random() - 0.5) * 0.06,
+              vx: (Math.random() - 0.5) * 0.24,
+              vy: (Math.random() - 0.2) * 0.20 + 0.05,
+              r: 1.5 + Math.random() * 2,
+              alpha: 0.9
+            });
+          }
+          if (nd.rubble <= 0.14) {
+            nd.rubble = 0;
+            nd.scanned = true;
+            focusedNode = nd;
+            haptic('medium'); sfx('paper');
+            statusEl.className = 'mg-for-status is-ok';
+            statusText.textContent = 'Завал расчищен (' + nd.room + ')! Сверьте зону в ТЕРМО-ВЕКТОРАХ.';
+            updateInspectUI();
+          }
+        }
+      }
+    }
 
     listeners.on(canvas, 'pointerdown', function (ev) {
-      if (finished) return;
+      if (phase !== 'map') return;
+      pointerDown = true;
+      try { canvas.setPointerCapture(ev.pointerId); } catch (e) {}
       var rect = canvas.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
       var nx = (ev.clientX - rect.left) / rect.width;
       var ny = (ev.clientY - rect.top) / rect.height;
-      pointerX = nx;
-      pointerY = ny;
+      lastNx = nx; lastNy = ny;
+      scrubRubble(nx, ny, 0.05);
 
-      var best = null;
-      var bestDist = 0.14;
+      var best = null, bestDist = 0.14;
       for (var k = 0; k < nodes.length; k++) {
         var d = Math.hypot(nodes[k].x - nx, nodes[k].y - ny);
-        if (d < bestDist) {
-          bestDist = d;
-          best = nodes[k];
-        }
+        if (d < bestDist) { bestDist = d; best = nodes[k]; }
       }
-
       if (best) {
         best.scanned = true;
-        if (focusedNode === best) {
-          // Second tap on same inspected node directly toggles its origin pin
+        if (focusedNode === best && best.rubble <= 0.02) {
           toggleNodeMark(best);
         } else {
           focusedNode = best;
-          haptic('light');
-          sfx('scan');
+          haptic('light'); sfx('click');
           updateInspectUI();
         }
       }
     });
 
-    listeners.on(submitBtn, 'click', function () {
-      if (finished) return;
-      var markedNodes = [];
-      var decoyMarked = false;
-      var correctMarked = 0;
+    listeners.on(canvas, 'pointermove', function (ev) {
+      if (!pointerDown || phase !== 'map') return;
+      var rect = canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      var nx = (ev.clientX - rect.left) / rect.width;
+      var ny = (ev.clientY - rect.top) / rect.height;
+      var dist = Math.hypot(nx - lastNx, ny - lastNy);
+      lastNx = nx; lastNy = ny;
+      scrubRubble(nx, ny, dist);
+    });
+    listeners.on(canvas, 'pointerup', function () { pointerDown = false; });
+    listeners.on(canvas, 'pointercancel', function () { pointerDown = false; });
 
+    listeners.on(submitBtn, 'click', function () {
+      if (phase !== 'map') return;
+      var marked = [];
+      var decoyHit = false;
+      var okCount = 0;
       for (var k = 0; k < nodes.length; k++) {
         if (nodes[k].marked) {
-          markedNodes.push(nodes[k]);
-          if (nodes[k].isOrigin) correctMarked++;
-          if (nodes[k].isDecoy) decoyMarked = true;
+          marked.push(nodes[k]);
+          if (nodes[k].isOrigin) okCount++;
+          if (nodes[k].isDecoy) decoyHit = true;
         }
       }
-
-      if (markedNodes.length !== requiredCount) {
-        redFlash = 0.8;
-        haptic('error');
-        sfx('error');
-        flashShake(stage);
+      if (marked.length !== requiredCount) {
+        haptic('light');
         statusEl.className = 'mg-for-status is-warn';
-        statusText.textContent = 'Нужно отметить ровно ' + requiredCount + ' независимых очага возгорания';
+        statusText.textContent = 'Отметьте ровно ' + requiredCount + ' независимых очага возгорания.';
         return;
       }
-
-      if (correctMarked === requiredCount) {
-        finished = true;
-        submitBtn.disabled = true;
-        submitBtn.classList.add('is-ready');
-        statusEl.className = 'mg-for-status is-ok';
-        statusText.textContent = 'ЗАКЛЮЧЕНИЕ ОФОРМЛЕНО: УМЫШЛЕННЫЙ ПОДЖОГ (' + requiredCount + ' ОЧАГА)';
-        haptic('success');
-        sfx('success');
-        timers.setTimeout(function () {
-          triggerWin({
-            minigame: 'arson_lab',
-            mode: 'map',
-            origins: markedNodes.map(function (n) {
-              return n.id;
-            })
-          });
-        }, 1000);
-      } else {
-        redFlash = 0.95;
-        haptic('error');
-        sfx('error');
-        flashShake(stage);
+      if (mapMode !== 'thermal') {
+        errorsCount += 1; redFlash = 0.85; syncHeaderMeta();
+        haptic('error'); sfx('alert'); flashShake(stage);
         statusEl.className = 'mg-for-status is-err';
-        statusText.textContent = decoyMarked
-          ? 'ОШИБКА: Электрощиток — ложный очаг (обгорел снаружи)!'
-          : 'ОШИБКА: Очаги не соответствуют V-конусам и глубине прогара';
+        statusText.textContent = 'МЕТОДИКА: подтвердите V-конусы в режиме 2. ТЕРМО-ВЕКТОРЫ перед сдачей!';
+        if (errorsCount >= maxErrors) timers.setTimeout(function () { showFailScreen('no_thermal', statusText.textContent); }, 550);
+        return;
+      }
+      if (okCount === requiredCount) {
+        submitBtn.disabled = true;
+        haptic('success'); sfx('success');
+        statusEl.className = 'mg-for-status is-ok';
+        statusText.textContent = 'Все ' + requiredCount + ' очага подтверждены! Переход к выводу...';
+        timers.setTimeout(function () {
+          if (phase === 'map') openMapDeduction(marked);
+        }, 720);
+      } else {
+        errorsCount += 1; redFlash = 0.92; syncHeaderMeta();
+        haptic('error'); sfx('alert'); flashShake(stage);
+        statusEl.className = 'mg-for-status is-err';
+        statusText.textContent = decoyHit
+          ? 'ЛОЖНЫЙ ОЧАГ (+1 ОШИБКА): электрощиток обгорел лишь снаружи (3 мм, входящий вектор)!'
+          : 'ОШИБКА (+1): отмеченные зоны не соответствуют глубоким прогарам и расходящимся V-конусам!';
+        if (errorsCount >= maxErrors) timers.setTimeout(function () { showFailScreen('wrong_origins', statusText.textContent); }, 550);
       }
     });
 
-    function drawBlueprint(ctx, w, h, now) {
-      // Dark architectural blueprint slate
-      ctx.fillStyle = '#090d14';
+    function drawBlueprint(ctx, w, h, now, dt) {
+      ctx.fillStyle = mapMode === 'thermal' ? '#070a12' : '#090d14';
       ctx.fillRect(0, 0, w, h);
 
-      // Fine blueprint millimeter grid
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.08)';
-      ctx.lineWidth = 1;
-      var g;
-      for (g = 0; g < w; g += 16) {
-        ctx.beginPath();
-        ctx.moveTo(g, 0);
-        ctx.lineTo(g, h);
-        ctx.stroke();
-      }
-      for (g = 0; g < h; g += 16) {
-        ctx.beginPath();
-        ctx.moveTo(0, g);
-        ctx.lineTo(w, g);
-        ctx.stroke();
-      }
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.08)'; ctx.lineWidth = 1;
+      for (var g = 0; g < w; g += 16) { ctx.beginPath(); ctx.moveTo(g, 0); ctx.lineTo(g, h); ctx.stroke(); }
+      for (g = 0; g < h; g += 16) { ctx.beginPath(); ctx.moveTo(0, g); ctx.lineTo(w, g); ctx.stroke(); }
 
-      // House perimeter & interior rooms
-      var bx = w * 0.09;
-      var by = h * 0.13;
-      var bw = w * 0.82;
-      var bh = h * 0.76;
-
-      // Subtle floor base fill
+      var bx = w * 0.09, by = h * 0.13, bw = w * 0.82, bh = h * 0.76;
       ctx.fillStyle = 'rgba(17, 22, 31, 0.85)';
       ctx.fillRect(bx, by, bw, bh);
 
-      // Thermal/char heat stains at nodes (origins have wider intense floor char craters; decoy has localized edge stain)
+      // Thermal heat spots & V-cones
       for (var k = 0; k < nodes.length; k++) {
         var nd = nodes[k];
-        var nx = nd.x * w;
-        var ny = nd.y * h;
-        var rad = nd.isOrigin ? Math.min(w, h) * 0.17 : nd.isDecoy ? Math.min(w, h) * 0.11 : Math.min(w, h) * 0.085;
+        var nx = nd.x * w, ny = nd.y * h;
+        if (nd.rubble <= 0.02 && mapMode === 'thermal') {
+          var rad = nd.isOrigin ? Math.min(w, h) * 0.17 : Math.min(w, h) * 0.095;
+          var heat = ctx.createRadialGradient(nx, ny, 2, nx, ny, rad);
+          if (nd.isOrigin) {
+            heat.addColorStop(0, 'rgba(220, 38, 38, 0.45)');
+            heat.addColorStop(0.45, 'rgba(245, 158, 11, 0.28)');
+            heat.addColorStop(1, 'rgba(0,0,0,0)');
+          } else {
+            heat.addColorStop(0, 'rgba(56, 189, 248, 0.25)');
+            heat.addColorStop(1, 'rgba(0,0,0,0)');
+          }
+          ctx.fillStyle = heat;
+          ctx.beginPath(); ctx.arc(nx, ny, rad, 0, Math.PI * 2); ctx.fill();
 
-        var heat = ctx.createRadialGradient(nx, ny, 2, nx, ny, rad);
-        if (nd.isOrigin) {
-          heat.addColorStop(0, 'rgba(220, 38, 38, 0.42)');
-          heat.addColorStop(0.42, 'rgba(201, 138, 46, 0.28)');
-          heat.addColorStop(0.78, 'rgba(12, 10, 10, 0.45)');
-          heat.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        } else if (nd.isDecoy) {
-          heat.addColorStop(0, 'rgba(201, 138, 46, 0.25)');
-          heat.addColorStop(0.65, 'rgba(15, 16, 20, 0.35)');
-          heat.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        } else {
-          heat.addColorStop(0, 'rgba(100, 116, 139, 0.22)');
-          heat.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        }
-        ctx.fillStyle = heat;
-        ctx.beginPath();
-        ctx.arc(nx, ny, rad, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Draw V-shaped flame/smoke cone vector if scanned, focused, or pointer loupe is near
-        var nearLoupe = pointerX >= 0 && Math.hypot(pointerX - nd.x, pointerY - nd.y) < 0.20;
-        if (nd.scanned || focusedNode === nd || nearLoupe || finished) {
+          // V-cone vector
           ctx.save();
           ctx.translate(nx, ny);
           ctx.rotate(nd.coneAngle);
           var coneLen = nd.isOrigin ? 34 : 24;
-          var coneSpread = 0.42;
-
-          ctx.strokeStyle = nd.coneOutward
-            ? 'rgba(245, 158, 11, 0.72)'
-            : 'rgba(56, 189, 248, 0.65)';
-          ctx.fillStyle = nd.coneOutward
-            ? 'rgba(245, 158, 11, 0.14)'
-            : 'rgba(56, 189, 248, 0.10)';
-          ctx.lineWidth = 1.3;
-
+          ctx.strokeStyle = nd.coneOutward ? '#f59e0b' : '#38bdf8';
+          ctx.fillStyle = nd.coneOutward ? 'rgba(245, 158, 11, 0.18)' : 'rgba(56, 189, 248, 0.12)';
+          ctx.lineWidth = 1.4;
           ctx.beginPath();
           if (nd.coneOutward) {
-            // V-cone fanning OUTWARD from true floor origin
             ctx.moveTo(0, 0);
-            ctx.lineTo(Math.cos(-coneSpread) * coneLen, Math.sin(-coneSpread) * coneLen);
-            ctx.lineTo(Math.cos(coneSpread) * coneLen, Math.sin(coneSpread) * coneLen);
+            ctx.lineTo(Math.cos(-0.42) * coneLen, Math.sin(-0.42) * coneLen);
+            ctx.lineTo(Math.cos(0.42) * coneLen, Math.sin(0.42) * coneLen);
           } else {
-            // Incoming smoke drift cone pointing INTO wall/panel from outside
-            ctx.moveTo(coneLen, 0);
-            ctx.lineTo(4, -10);
-            ctx.lineTo(4, 10);
+            ctx.moveTo(coneLen, 0); ctx.lineTo(4, -10); ctx.lineTo(4, 10);
           }
-          ctx.closePath();
-          ctx.fill();
-          ctx.stroke();
+          ctx.closePath(); ctx.fill(); ctx.stroke();
           ctx.restore();
         }
       }
 
       // Crisp architectural walls
-      ctx.strokeStyle = '#cbd5e1';
-      ctx.lineWidth = 2.4;
+      ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 2.4;
       ctx.strokeRect(bx, by, bw, bh);
-
-      // Interior partition walls
-      ctx.strokeStyle = 'rgba(203, 213, 225, 0.75)';
-      ctx.lineWidth = 1.8;
+      var midY = by + bh * 0.54, midXTop = bx + bw * 0.56, xPanel = bx + bw * 0.29, xKitchen = bx + bw * 0.67;
+      ctx.strokeStyle = 'rgba(203, 213, 225, 0.72)'; ctx.lineWidth = 1.8;
       ctx.beginPath();
-      // Horizontal mid wall separating top rooms & bottom hall/utility/kitchen
-      var midY = by + bh * 0.54;
-      ctx.moveTo(bx, midY);
-      ctx.lineTo(bx + bw * 0.36, midY);
-      ctx.moveTo(bx + bw * 0.48, midY);
-      ctx.lineTo(bx + bw * 0.62, midY);
-      ctx.moveTo(bx + bw * 0.74, midY);
-      ctx.lineTo(bx + bw, midY);
-
-      // Vertical upper divider (Living | Study)
-      var midXTop = bx + bw * 0.56;
-      ctx.moveTo(midXTop, by);
-      ctx.lineTo(midXTop, by + bh * 0.28);
-      ctx.moveTo(midXTop, by + bh * 0.41);
-      ctx.lineTo(midXTop, midY);
-
-      // Vertical lower dividers (Panel | Hall | Kitchen)
-      var xPanel = bx + bw * 0.29;
-      ctx.moveTo(xPanel, midY);
-      ctx.lineTo(xPanel, midY + bh * 0.14);
-      ctx.moveTo(xPanel, midY + bh * 0.28);
-      ctx.lineTo(xPanel, by + bh);
-
-      var xKitchen = bx + bw * 0.67;
-      ctx.moveTo(xKitchen, midY);
-      ctx.lineTo(xKitchen, midY + bh * 0.18);
-      ctx.moveTo(xKitchen, midY + bh * 0.32);
-      ctx.lineTo(xKitchen, by + bh);
+      ctx.moveTo(bx, midY); ctx.lineTo(bx + bw, midY);
+      ctx.moveTo(midXTop, by); ctx.lineTo(midXTop, midY);
+      ctx.moveTo(xPanel, midY); ctx.lineTo(xPanel, by + bh);
+      ctx.moveTo(xKitchen, midY); ctx.lineTo(xKitchen, by + bh);
       ctx.stroke();
 
-      // Room architectural labels
-      ctx.font = '600 9px "IBM Plex Mono", monospace';
-      ctx.fillStyle = 'rgba(148, 163, 184, 0.65)';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillText('ГОСТИНАЯ', bx + 8, by + 7);
-      ctx.fillText('КАБИНЕТ', midXTop + 8, by + 7);
-      ctx.fillText('ЩИТОВАЯ', bx + 7, midY + 6);
-      ctx.fillText('ПРИХОЖАЯ', xPanel + 8, midY + 6);
-      ctx.fillText('КУХНЯ', xKitchen + 8, midY + 6);
+      ctx.font = '600 8.5px "IBM Plex Mono", monospace';
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.68)'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillText('ГОСТИНАЯ', bx + 7, by + 6);
+      ctx.fillText('КАБИНЕТ', midXTop + 7, by + 6);
+      ctx.fillText('ЩИТОВАЯ', bx + 6, midY + 6);
+      ctx.fillText('ПРИХОЖАЯ', xPanel + 7, midY + 6);
+      ctx.fillText('КУХНЯ', xKitchen + 7, midY + 6);
 
-      // Interactive pointer thermal scan ring
-      if (pointerX >= 0 && pointerY >= 0 && !finished) {
-        ctx.strokeStyle = 'rgba(245, 158, 11, 0.42)';
-        ctx.lineWidth = 1.2;
-        ctx.setLineDash([4, 3]);
-        ctx.beginPath();
-        ctx.arc(pointerX * w, pointerY * h, 28, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-      }
-
-      // Forensic inspection nodes & origin markers
+      // Nodes & physical ash/rubble layers
       var pulse = 0.5 + 0.5 * Math.sin(now * 0.006);
       for (k = 0; k < nodes.length; k++) {
         var node = nodes[k];
-        var cx = node.x * w;
-        var cy = node.y * h;
+        var cx = node.x * w, cy = node.y * h;
+        if (node.rubble > 0.02) {
+          ctx.save();
+          ctx.globalAlpha = clamp(node.rubble, 0.2, 0.95);
+          ctx.fillStyle = '#383430';
+          ctx.beginPath(); ctx.ellipse(cx, cy, 26, 18, 0.15, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = 'rgba(212, 202, 180, 0.65)'; ctx.lineWidth = 1.1; ctx.setLineDash([3, 3]);
+          ctx.stroke(); ctx.setLineDash([]);
+          ctx.fillStyle = '#fde68a'; ctx.font = '700 8px "IBM Plex Mono", monospace';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText('ЗАВАЛ', cx, cy);
+          ctx.restore();
+          continue;
+        }
+
         var isFoc = focusedNode === node;
-
         if (node.marked) {
-          // Red/Amber arson origin target marker
-          ctx.fillStyle = finished ? 'rgba(34, 197, 94, 0.28)' : 'rgba(220, 38, 38, 0.28)';
-          ctx.beginPath();
-          ctx.arc(cx, cy, 15 + pulse * 3, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.strokeStyle = finished ? '#22c55e' : '#ef4444';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(cx, cy, 11, 0, Math.PI * 2);
-          ctx.stroke();
-
-          ctx.fillStyle = finished ? '#4ade80' : '#fca5a5';
-          ctx.font = '700 10px "IBM Plex Mono", monospace';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
+          ctx.fillStyle = 'rgba(220, 38, 38, 0.28)';
+          ctx.beginPath(); ctx.arc(cx, cy, 14 + pulse * 3, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(cx, cy, 11, 0, Math.PI * 2); ctx.stroke();
+          ctx.fillStyle = '#fca5a5'; ctx.font = '700 10px "IBM Plex Mono", monospace';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           ctx.fillText('О', cx, cy + 0.5);
         } else {
-          // Unmarked inspectable zone ring
-          ctx.fillStyle = isFoc ? 'rgba(245, 158, 11, 0.25)' : 'rgba(15, 23, 42, 0.72)';
-          ctx.beginPath();
-          ctx.arc(cx, cy, isFoc ? 11 : 8.5, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.strokeStyle = isFoc ? '#f59e0b' : node.scanned ? '#38bdf8' : '#94a3b8';
-          ctx.lineWidth = isFoc ? 2 : 1.4;
-          ctx.beginPath();
-          ctx.arc(cx, cy, isFoc ? 11 : 8.5, 0, Math.PI * 2);
+          ctx.fillStyle = isFoc ? 'rgba(245, 158, 11, 0.25)' : 'rgba(15, 23, 42, 0.78)';
+          ctx.beginPath(); ctx.arc(cx, cy, isFoc ? 11 : 8.5, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = isFoc ? '#f59e0b' : '#94a3b8'; ctx.lineWidth = isFoc ? 2 : 1.4;
           ctx.stroke();
-
           ctx.fillStyle = isFoc ? '#fde68a' : '#cbd5e1';
-          ctx.beginPath();
-          ctx.arc(cx, cy, 2.3, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.beginPath(); ctx.arc(cx, cy, 2.3, 0, Math.PI * 2); ctx.fill();
         }
       }
 
-      // Blueprint header/footer metadata
-      ctx.font = '600 9.5px "IBM Plex Mono", monospace';
-      ctx.fillStyle = '#94a3b8';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillText('ПЛАН 1-ГО ЭТАЖА • МАСШТАБ 1:100', 10, 7);
-
-      ctx.textAlign = 'right';
-      ctx.fillStyle = '#f59e0b';
-      ctx.fillText('V-КОНУС: ТЕРМОАНАЛИЗ', w - 10, 7);
-
-      if (finished) {
-        ctx.fillStyle = 'rgba(5, 46, 22, 0.9)';
-        ctx.fillRect(w / 2 - 105, h / 2 - 18, 210, 36);
-        ctx.strokeStyle = '#22c55e';
-        ctx.lineWidth = 1.6;
-        ctx.strokeRect(w / 2 - 105, h / 2 - 18, 210, 36);
-        ctx.fillStyle = '#4ade80';
-        ctx.font = '700 12px "IBM Plex Mono", monospace';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('ПОДЖОГ ПОДТВЕРЖДЁН', w / 2, h / 2 + 0.5);
+      // Flying rubble ash particles
+      for (var p = rubbleParticles.length - 1; p >= 0; p--) {
+        var rp = rubbleParticles[p];
+        rp.x += rp.vx * dt; rp.y += rp.vy * dt; rp.alpha -= dt * 1.9;
+        if (rp.alpha <= 0) { rubbleParticles.splice(p, 1); continue; }
+        ctx.fillStyle = 'rgba(165, 156, 145, ' + rp.alpha.toFixed(2) + ')';
+        ctx.beginPath(); ctx.arc(rp.x * w, rp.y * h, rp.r, 0, Math.PI * 2); ctx.fill();
       }
+
+      ctx.font = '600 9.5px "IBM Plex Mono", monospace';
+      ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillText('ПЛАН 1-ГО ЭТАЖА • МАСШТАБ 1:100', 10, 7);
+      ctx.textAlign = 'right'; ctx.fillStyle = mapMode === 'thermal' ? '#f59e0b' : '#94a3b8';
+      ctx.fillText(mapMode === 'thermal' ? 'V-КОНУС: АКТИВЕН' : 'РЕЖИМ ЗАЧИСТКИ', w - 10, 7);
 
       if (redFlash > 0.01) {
         ctx.fillStyle = 'rgba(220, 38, 38, ' + (redFlash * 0.36).toFixed(3) + ')';
@@ -4706,23 +4980,25 @@
       }
     }
 
+    syncModesUI();
+
     function render(now) {
       var dt = Math.min((now - lastTs) / 1000, 0.05);
       lastTs = now;
       if (redFlash > 0) redFlash = Math.max(0, redFlash - dt * 2.5);
 
-      var metrics = canvasMgr.getMetrics();
-      var ctx = canvas.getContext('2d');
-      ctx.save();
-      ctx.scale(metrics.dpr, metrics.dpr);
-      drawBlueprint(ctx, metrics.width, metrics.height, now);
-      ctx.restore();
-
+      if (phase === 'map') {
+        var metrics = canvasMgr.getMetrics();
+        var ctx = canvas.getContext('2d');
+        ctx.save();
+        ctx.scale(metrics.dpr, metrics.dpr);
+        drawBlueprint(ctx, metrics.width, metrics.height, now, dt);
+        ctx.restore();
+      }
       timers.raf(render);
     }
 
     timers.raf(render);
-
     return function cleanup() {
       timers.clearAll();
       listeners.clearAll();
