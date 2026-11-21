@@ -712,87 +712,181 @@
   }
 
   // ============================================================================
-  // MINIGAME 1: dental_xray (Сверка рентгена и зубной карты — Морг, Акт 2)
+  // MINIGAME 1: dental_xray (3-phase negatoscope, film cleaning, alignment & verdict)
   // ============================================================================
+
+  var XRAY_EXTRA_STYLE_ID = 'minigames-f2-xray-extra';
+
+  var XRAY_EXTRA_CSS = [
+    '.mg-xr-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 3px; }',
+    '.mg-xr-stat { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; font-weight: 600; color: var(--case-accent, #c98a2e); }',
+    '.mg-xr-err { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; font-weight: 600; color: #9ca3af; }',
+    '.mg-xr-err.is-warn { color: #f87171; }',
+    '.mg-xr-inspector { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; background: #12151d; border: 1px solid #2b3140; border-radius: 7px; }',
+    '.mg-xr-ins-info { flex: 1; min-width: 0; }',
+    '.mg-xr-ins-title { font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 700; color: var(--case-accent, #f59e0b); text-transform: uppercase; margin-bottom: 2px; }',
+    '.mg-xr-ins-title.is-ok { color: #4ade80; }',
+    '.mg-xr-ins-title.is-err { color: #f87171; }',
+    '.mg-xr-ins-desc { font-size: 11.2px; line-height: 1.35; color: #d6d3cb; }',
+    '.mg-xr-fix-btn { flex-shrink: 0; width: auto; padding: 8px 11px; font-size: 12px; }',
+    '.mg-xr-deduce { display: flex; flex-direction: column; gap: 9px; padding: 12px; background: #14171f; border: 1px solid #353b4a; border-top: 3px solid var(--case-accent, #c98a2e); border-radius: 8px; }',
+    '.mg-xr-dkicker { font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 700; color: var(--case-accent, #c98a2e); text-transform: uppercase; }',
+    '.mg-xr-dfacts { padding: 8px 9px; background: #0d1016; border: 1px solid #262b36; border-radius: 6px; font-family: "IBM Plex Mono", monospace; font-size: 10px; line-height: 1.4; color: #c2cad8; display: flex; flex-direction: column; gap: 3px; }',
+    '.mg-xr-dq { font-size: 12.8px; line-height: 1.4; color: #f3efe6; font-weight: 500; }',
+    '.mg-xr-dopts { display: flex; flex-direction: column; gap: 6px; }',
+    '.mg-xr-dopt { width: 100%; text-align: left; padding: 9px 10px; background: #1b202b; border: 1px solid #353d4e; border-radius: 6px; color: #e4e0d8; font-size: 12px; line-height: 1.36; cursor: pointer; }',
+    '.mg-xr-dopt.is-wrong { border-color: #ef4444; background: rgba(153, 27, 27, 0.25); color: #fecaca; }',
+    '.mg-xr-dopt.is-correct { border-color: #22c55e; background: rgba(34, 197, 94, 0.2); color: #bbf7d0; }',
+    '.mg-xr-dfb { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; line-height: 1.38; min-height: 16px; color: #fca5a5; }',
+    '.mg-xr-dfb.is-ok { color: #86efac; }',
+    '.mg-xr-stamp-box { padding: 24px 14px; background: #0d1016; border: 1px solid #2a2e38; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }',
+    '.mg-xr-stamp { padding: 8px 14px; font-family: "Oswald", sans-serif; font-size: 17px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ef4444; border: 3px double #ef4444; border-radius: 4px; transform: rotate(-5deg); line-height: 1.25; }',
+    '.mg-xr-stamp.is-ok { color: #fca5a5; background: rgba(153, 27, 27, 0.22); }'
+  ].join('\n');
+
+  function injectXrayStyles() {
+    if (document.getElementById(XRAY_EXTRA_STYLE_ID)) return;
+    var el = document.createElement('style');
+    el.id = XRAY_EXTRA_STYLE_ID;
+    el.textContent = XRAY_EXTRA_CSS;
+    document.head.appendChild(el);
+  }
 
   var DEFAULT_DENTAL_TEETH = [
     {
-      num: '17',
-      shape: 'molar',
-      clinicType: 'rootcanal',
-      bodyType: 'rootcanal',
-      isMismatch: false
+      num: '17', shape: 'molar', clinicType: 'rootcanal', bodyType: 'rootcanal',
+      isMismatch: false, requiredMode: 'none', smudge: 1.0,
+      readLight: 'В каналах видны светлые линии. Проверьте плотность в НЕГАТИВЕ.',
+      readNeg: 'НЕГАТИВ: пломбирование обоих корней гуттаперчей полностью совпадает с картой 2019 г.',
+      readOverlay: 'НАЛОЖЕНИЕ: контуры каналов зуба 17 совпадают с картой клиники.',
+      matchReason: 'СОВПАДЕНИЕ (+1 ОШИБКА): пломбировка каналов зуба 17 одинакова и в карте, и у тела.'
     },
     {
-      num: '16',
-      shape: 'molar',
-      clinicType: 'implant',
-      bodyType: 'normal',
-      isMismatch: true,
+      num: '16', shape: 'molar', clinicType: 'implant', bodyType: 'normal',
+      isMismatch: true, requiredMode: 'negative', smudge: 1.0,
       shortDesc: 'Зуб 16: нет импланта',
-      desc: 'Зуб 16: в карте Сафонова — титановый имплант, у тела свой целый моляр'
+      desc: 'Зуб 16: в карте Сафонова — титановый имплант с резьбой, у тела родной живой моляр с корнями.',
+      readLight: 'В карте виден имплант, а у тела живые корни — подтвердите контраст металла в режиме НЕГАТИВ!',
+      readNeg: 'НЕГАТИВ: на снимке карты титановый штифт чёрный от плотности, а у тела — обычные живые корни!',
+      readOverlay: 'НАЛОЖЕНИЕ: видны расходящиеся корни — для доказательства отсутствия металла переключитесь в НЕГАТИВ!',
+      wrongModeMsg: 'МЕТОДИКА: отсутствие рентгеноконтрастного титана доказывается в режиме 2. НЕГАТИВ!'
     },
     {
-      num: '14',
-      shape: 'premolar',
-      clinicType: 'filling',
-      bodyType: 'filling',
-      isMismatch: false
+      num: '14', shape: 'premolar', clinicType: 'filling', bodyType: 'filling',
+      isMismatch: false, requiredMode: 'none', smudge: 0,
+      readLight: 'Небольшая старая пломба на жевательной поверхности.',
+      readNeg: 'НЕГАТИВ: форма и размер пломбы на зубе 14 совпадают на обоих снимках.',
+      readOverlay: 'НАЛОЖЕНИЕ: зуб 14 и старая пломба точно ложатся друг на друга.',
+      matchReason: 'СОВПАДЕНИЕ (+1 ОШИБКА): старая пломба на зубе 14 идентична на обоих снимках.'
     },
     {
-      num: '12',
-      shape: 'incisor',
-      clinicType: 'normal',
-      bodyType: 'normal',
-      isMismatch: false
+      num: '12', shape: 'incisor', clinicType: 'normal', bodyType: 'normal',
+      isMismatch: false, requiredMode: 'none', smudge: 0,
+      readLight: 'Здоровый боковой резец без следов лечения.',
+      readNeg: 'НЕГАТИВ: эмаль и корень без металлических включений на обоих снимках.',
+      readOverlay: 'НАЛОЖЕНИЕ: полная анатомическая идентичность зуба 12.',
+      matchReason: 'СОВПАДЕНИЕ (+1 ОШИБКА): зуб 12 здоров и совпадает на обоих снимках.'
     },
     {
-      num: '11',
-      shape: 'incisor',
-      clinicType: 'normal',
-      bodyType: 'normal',
-      isMismatch: false
+      num: '11', shape: 'incisor', clinicType: 'normal', bodyType: 'normal',
+      isMismatch: false, requiredMode: 'none', smudge: 0,
+      readLight: 'Центральный резец, пломб и протезов нет.',
+      readNeg: 'НЕГАТИВ: плотность дентина и корня идентична.',
+      readOverlay: 'НАЛОЖЕНИЕ: контуры центрального резца совпадают.',
+      matchReason: 'СОВПАДЕНИЕ (+1 ОШИБКА): центральный резец 11 не имеет расхождений.'
     },
     {
-      num: '21',
-      shape: 'incisor',
-      clinicType: 'normal',
-      bodyType: 'normal',
-      isMismatch: false
+      num: '21', shape: 'incisor', clinicType: 'normal', bodyType: 'normal',
+      isMismatch: false, requiredMode: 'none', smudge: 0,
+      readLight: 'Центральный резец слева без вмешательств.',
+      readNeg: 'НЕГАТИВ: однородная ткань зуба на обоих снимках.',
+      readOverlay: 'НАЛОЖЕНИЕ: форма зуба 21 совпадает с картой.',
+      matchReason: 'СОВПАДЕНИЕ (+1 ОШИБКА): зуб 21 совпадает с картой клиники.'
     },
     {
-      num: '24',
-      shape: 'premolar',
-      clinicType: 'missing',
-      bodyType: 'normal',
-      isMismatch: true,
+      num: '24', shape: 'premolar', clinicType: 'missing', bodyType: 'normal',
+      isMismatch: true, requiredMode: 'overlay', smudge: 0,
       shortDesc: 'Зуб 24: зуб на месте',
-      desc: 'Зуб 24: по карте удалён в 2019 году, но у тела зуб на месте'
+      desc: 'Зуб 24: по карте удалён в 2019 году (пустая лунка), но у тела стоит целый премоляр.',
+      readLight: 'По карте зуб 24 удалён, а у тела он на месте — совместите плёнки в режиме 3. НАЛОЖЕНИЕ!',
+      readNeg: 'НЕГАТИВ: виден живой корень зуба 24 — наложите плёнку карты (3. НАЛОЖЕНИЕ), чтобы зафиксировать пустую лунку!',
+      readOverlay: 'НАЛОЖЕНИЕ: пустой пунктир удалённого зуба 24 в карте ложится прямо поверх живого зуба тела!',
+      wrongModeMsg: 'МЕТОДИКА: наложите плёнку карты на снимок тела в режиме 3. НАЛОЖЕНИЕ и выровняйте сдвиг!'
     },
     {
-      num: '26',
-      shape: 'molar',
-      clinicType: 'filling',
-      bodyType: 'filling',
-      isMismatch: false
+      num: '26', shape: 'molar', clinicType: 'filling', bodyType: 'filling',
+      isMismatch: false, requiredMode: 'none', smudge: 0,
+      readLight: 'Пломба на коронковой части моляра.',
+      readNeg: 'НЕГАТИВ: рентгеноконтрастная пломба зуба 26 совпадает с картой.',
+      readOverlay: 'НАЛОЖЕНИЕ: контуры зуба 26 и пломбы совпадают.',
+      matchReason: 'СОВПАДЕНИЕ (+1 ОШИБКА): пломба на зубе 26 присутствует и в карте, и у тела.'
     },
     {
-      num: '36',
-      shape: 'molar',
-      clinicType: 'normal',
-      bodyType: 'crown',
-      isMismatch: true,
-      shortDesc: 'Зуб 36: новая коронка',
-      desc: 'Зуб 36: у тела свежая металлокерамическая коронка, отсутствующая в карте'
+      num: '36', shape: 'molar', clinicType: 'normal', bodyType: 'crown',
+      isMismatch: true, requiredMode: 'negative', smudge: 1.0,
+      shortDesc: 'Зуб 36: чужая коронка',
+      desc: 'Зуб 36: у тела свежая металлокерамическая коронка, которой нет в карте Сафонова.',
+      readLight: 'Коронка зуба 36 выглядит ярче остальных — подтвердите металлический колпачок в режиме 2. НЕГАТИВ!',
+      readNeg: 'НЕГАТИВ: сплошной чёрный металлический каркас свежей металлокерамической коронки (в карте 2019 — родной зуб)!',
+      readOverlay: 'НАЛОЖЕНИЕ: форма отличается — подтвердите рентгеноконтрастный металл коронки в режиме 2. НЕГАТИВ!',
+      wrongModeMsg: 'МЕТОДИКА: металлический каркас коронки доказывается в режиме 2. НЕГАТИВ!'
     },
     {
-      num: '37',
-      shape: 'molar',
-      clinicType: 'normal',
-      bodyType: 'normal',
-      isMismatch: false
+      num: '37', shape: 'molar', clinicType: 'normal', bodyType: 'normal',
+      isMismatch: false, requiredMode: 'none', smudge: 0,
+      readLight: 'Здоровый крайний моляр без следов протезирования.',
+      readNeg: 'НЕГАТИВ: корни и коронка без отличий.',
+      readOverlay: 'НАЛОЖЕНИЕ: совпадение по обоим снимкам.',
+      matchReason: 'СОВПАДЕНИЕ (+1 ОШИБКА): моляр 37 полностью совпадает с картой.'
     }
   ];
+
+  function resolveDentalScenario(config) {
+    var cfg = config || {};
+    var caseId = String(window.ACTIVE_CASE_ID || '').toLowerCase();
+    var isCase418 = cfg.preset === 'case418' || !caseId || caseId === 'case418';
+
+    return {
+      id: isCase418 ? 'case418_act2_dental' : 'generic_dental',
+      title: cfg.title || 'СВЕРКА РЕНТГЕНА И ЗУБНОЙ КАРТЫ',
+      clinicHeader: isCase418 ? 'КАРТА О. САФОНОВА (КЛИНИКА, 2019)' : 'АРХИВНАЯ ЗУБНАЯ КАРТА',
+      bodyHeader: isCase418 ? 'СНИМОК ТЕЛА ИЗ ДОМА (#418-Т)' : 'СНИМОК НЕОПОЗНАННОГО ТЕЛА',
+      stampWin: isCase418 ? 'ЛИЧНОСТЬ НЕ ПОДТВЕРЖДЕНА: ЭТО НЕ САФОНОВ' : 'ЛИЧНОСТЬ НЕ СОВПАДАЕТ С КАРТОЙ',
+      teeth: Array.isArray(cfg.teeth) && cfg.teeth.length > 0 ? cfg.teeth : DEFAULT_DENTAL_TEETH,
+      conclusion: cfg.conclusion || (isCase418
+        ? {
+            question: 'У тела #418-Т нет титанового импланта (зуб 16), на месте удалённый в 2019 г. зуб 24 и стоит неучтённая коронка (зуб 36). Вывод СМЭ:',
+            options: [
+              {
+                id: 'regrow',
+                text: 'Тело принадлежит Олегу Сафонову: зуб 24 мог отрасти заново, а карту клиники заполнили с опечаткой.',
+                isCorrect: false,
+                reason: 'Противоречие: удалённый коренной зуб не вырастает заново, а титановый имплант не превращается в живой корень.'
+              },
+              {
+                id: 'not_safonov',
+                text: 'Погибший в коттедже мужчина — НЕ Олег Сафонов! На месте поджога оставили чужое тело, а настоящий Сафонов скрыт или убит отдельно.',
+                isCorrect: true,
+                reason: 'Верно: три анатомических несовпадения полностью исключают личность Сафонова.'
+              },
+              {
+                id: 'melted',
+                text: 'Огонь расплавил титановый имплант 16 и сплавил соседнюю эмаль в коронку на зубе 36.',
+                isCorrect: false,
+                reason: 'Противоречие: титан плавится выше 1660°C, и пожар не способен вырастить на его месте родной живой моляр.'
+              }
+            ]
+          }
+        : {
+            question: 'Выявлены три анатомических и протезных несовпадения между картой и снимком тела. Вывод экспертизы:',
+            options: [
+              { id: 'match', text: 'Снимки принадлежат одному человеку.', isCorrect: false, reason: 'Противоречие: выявленные несовпадения по импланту и удалённому зубу исключают совпадение.' },
+              { id: 'diff', text: 'Личность тела не совпадает с архивной стоматологической картой.', isCorrect: true, reason: 'Верно: идентификация исключена.' },
+              { id: 'artifact', text: 'Все отличия — дефект проявки плёнки.', isCorrect: false, reason: 'Противоречие: плёнка очищена и проверена в негативе и наложении.' }
+            ]
+          })
+    };
+  }
 
   function drawToothXray(ctx, cx, gumY, cellW, toothH, shape, type, palette, rootUp) {
     var dir = rootUp ? -1 : 1;
@@ -805,7 +899,6 @@
     ctx.translate(cx, gumY);
 
     if (type === 'missing') {
-      // Empty healed alveolar socket gap
       ctx.strokeStyle = palette.missingStroke;
       ctx.lineWidth = 1.2;
       ctx.setLineDash([3, 3]);
@@ -821,13 +914,10 @@
     }
 
     if (type === 'implant') {
-      // Bright radiopaque threaded titanium screw post in alveolar bone
       var screwW = crownW * 0.42;
       var screwLen = rootH * 0.92;
       ctx.fillStyle = palette.metal;
       ctx.fillRect(-screwW / 2, dir > 0 ? 0 : -screwLen, screwW, screwLen);
-
-      // Screw threads
       ctx.strokeStyle = palette.metalDetail;
       ctx.lineWidth = 1.2;
       for (var t = 4; t < screwLen - 2; t += 4.5) {
@@ -837,59 +927,41 @@
         ctx.lineTo(screwW * 0.68, ty + dir * 1.5);
         ctx.stroke();
       }
-
-      // Prosthetic abutment & bright crown cap
       ctx.fillStyle = palette.metalBright;
-      ctx.beginPath();
-      ctx.roundRect
-        ? ctx.roundRect(-halfW * 0.94, dir > 0 ? -crownH : 0, crownW * 0.94, crownH, 4)
-        : ctx.rect(-halfW * 0.94, dir > 0 ? -crownH : 0, crownW * 0.94, crownH);
-      ctx.fill();
+      ctx.fillRect(-halfW * 0.92, dir > 0 ? -crownH : 0, crownW * 0.92, crownH);
       ctx.strokeStyle = palette.metalEdge;
       ctx.lineWidth = 1.1;
-      ctx.stroke();
-
-      // Collar ring
+      ctx.strokeRect(-halfW * 0.92, dir > 0 ? -crownH : 0, crownW * 0.92, crownH);
       ctx.fillStyle = palette.metalDetail;
       ctx.fillRect(-screwW * 0.62, -1.5, screwW * 1.24, 3);
       ctx.restore();
       return;
     }
 
-    // Roots (double root for molars, single tapered root for premolars/incisors)
     ctx.fillStyle = palette.dentin;
     ctx.strokeStyle = palette.outline;
     ctx.lineWidth = 1;
 
     if (shape === 'molar') {
-      // Left root
       ctx.beginPath();
       ctx.moveTo(-halfW * 0.72, 0);
       ctx.quadraticCurveTo(-halfW * 0.85, dir * rootH * 0.55, -halfW * 0.42, dir * rootH);
       ctx.quadraticCurveTo(-halfW * 0.14, dir * rootH * 0.55, -halfW * 0.05, dir * rootH * 0.18);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
+      ctx.closePath(); ctx.fill(); ctx.stroke();
 
-      // Right root
       ctx.beginPath();
       ctx.moveTo(halfW * 0.72, 0);
       ctx.quadraticCurveTo(halfW * 0.85, dir * rootH * 0.55, halfW * 0.42, dir * rootH);
       ctx.quadraticCurveTo(halfW * 0.14, dir * rootH * 0.55, halfW * 0.05, dir * rootH * 0.18);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
+      ctx.closePath(); ctx.fill(); ctx.stroke();
     } else {
       ctx.beginPath();
       ctx.moveTo(-halfW * 0.68, 0);
       ctx.quadraticCurveTo(-halfW * 0.42, dir * rootH * 0.75, 0, dir * rootH);
       ctx.quadraticCurveTo(halfW * 0.42, dir * rootH * 0.75, halfW * 0.68, 0);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
+      ctx.closePath(); ctx.fill(); ctx.stroke();
     }
 
-    // Crown enamel body
     var cyTop = dir > 0 ? -crownH : 0;
     ctx.fillStyle = type === 'crown' ? palette.metalBright : palette.enamel;
     ctx.strokeStyle = type === 'crown' ? palette.metalEdge : palette.outline;
@@ -907,11 +979,8 @@
       ctx.lineTo(halfW * 0.48, -dir * crownH);
       ctx.quadraticCurveTo(halfW * 0.96, -dir * crownH * 0.78, halfW, 0);
     }
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+    ctx.closePath(); ctx.fill(); ctx.stroke();
 
-    // Dark translucent pulp chamber (not visible inside radiopaque metal-ceramic crown)
     if (type !== 'crown') {
       ctx.fillStyle = palette.pulp;
       ctx.beginPath();
@@ -919,38 +988,28 @@
       ctx.fill();
     }
 
-    // Dental work overlays
     if (type === 'crown') {
-      // Inner metallic coping sheen lines on metal-ceramic crown
       ctx.strokeStyle = palette.metalDetail;
       ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.moveTo(-halfW * 0.72, -dir * 3);
-      ctx.lineTo(halfW * 0.72, -dir * 3);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-halfW * 0.72, -dir * 3); ctx.lineTo(halfW * 0.72, -dir * 3); ctx.stroke();
       ctx.fillStyle = palette.metal;
       ctx.fillRect(-halfW * 0.62, cyTop + (dir > 0 ? 4 : crownH - 9), crownW * 0.62, 5);
     } else if (type === 'filling') {
-      // Bright radiopaque occlusal filling spot
       ctx.fillStyle = palette.metalBright;
       ctx.beginPath();
       ctx.ellipse(halfW * 0.16, -dir * crownH * 0.72, halfW * 0.42, crownH * 0.24, -0.2, 0, Math.PI * 2);
       ctx.fill();
     } else if (type === 'rootcanal') {
-      // Bright gutta-percha lines inside roots
       ctx.strokeStyle = palette.metalBright;
       ctx.lineWidth = 1.5;
       if (shape === 'molar') {
         ctx.beginPath();
-        ctx.moveTo(-halfW * 0.22, -dir * crownH * 0.3);
-        ctx.lineTo(-halfW * 0.45, dir * rootH * 0.88);
-        ctx.moveTo(halfW * 0.22, -dir * crownH * 0.3);
-        ctx.lineTo(halfW * 0.45, dir * rootH * 0.88);
+        ctx.moveTo(-halfW * 0.22, -dir * crownH * 0.3); ctx.lineTo(-halfW * 0.45, dir * rootH * 0.88);
+        ctx.moveTo(halfW * 0.22, -dir * crownH * 0.3); ctx.lineTo(halfW * 0.45, dir * rootH * 0.88);
         ctx.stroke();
       } else {
         ctx.beginPath();
-        ctx.moveTo(0, -dir * crownH * 0.3);
-        ctx.lineTo(0, dir * rootH * 0.88);
+        ctx.moveTo(0, -dir * crownH * 0.3); ctx.lineTo(0, dir * rootH * 0.88);
         ctx.stroke();
       }
     }
@@ -958,27 +1017,42 @@
     ctx.restore();
   }
 
+
   function initDentalXray(containerEl, config, callbacks) {
     config = config || {};
+    injectXrayStyles();
+
     var timers = createTimerBag();
     var listeners = createListenerBag();
     var triggerWin = createWinTrigger(callbacks);
-    var finished = false;
+    var failFired = false;
+    function triggerXrayFail(res) {
+      if (failFired) return;
+      failFired = true;
+      if (callbacks && typeof callbacks.onFail === 'function') {
+        callbacks.onFail(res || { success: false });
+      }
+    }
 
-    var rawTeeth =
-      Array.isArray(config.teeth) && config.teeth.length > 0
-        ? config.teeth
-        : DEFAULT_DENTAL_TEETH;
+    var scenario = resolveDentalScenario(config);
+    var maxErrors = typeof config.maxErrors === 'number' && config.maxErrors > 0 ? config.maxErrors : 4;
 
-    var teeth = rawTeeth.map(function (t, idx) {
+    var teeth = scenario.teeth.map(function (t, idx) {
       return {
         num: String(t.num || (11 + idx)),
         shape: t.shape || 'molar',
         clinicType: t.clinicType || 'normal',
         bodyType: t.bodyType || 'normal',
-        isMismatch: !!t.isMismatch,
-        shortDesc: t.shortDesc || 'Зуб ' + (t.num || idx + 1) + ': расхождение',
-        desc: t.desc || 'Выявлено несовпадение по зубу ' + (t.num || idx + 1),
+        isMismatch: Boolean(t.isMismatch),
+        requiredMode: t.requiredMode || 'none',
+        smudge: typeof t.smudge === 'number' ? t.smudge : 0,
+        shortDesc: t.shortDesc || ('Зуб ' + (t.num || idx + 1) + ': расхождение'),
+        desc: t.desc || ('Выявлено несовпадение по зубу ' + (t.num || idx + 1)),
+        readLight: t.readLight || 'Осмотрите зуб в разных режимах негатоскопа.',
+        readNeg: t.readNeg || t.readLight || '',
+        readOverlay: t.readOverlay || t.readLight || '',
+        wrongModeMsg: t.wrongModeMsg || 'Проверьте расхождение в профильном режиме негатоскопа!',
+        matchReason: t.matchReason || ('СОВПАДЕНИЕ (+1 ОШИБКА): зуб ' + (t.num || idx + 1) + ' совпадает с картой.'),
         found: false,
         errFlash: 0
       };
@@ -986,23 +1060,32 @@
 
     var totalMismatches = 0;
     for (var i = 0; i < teeth.length; i++) {
-      if (teeth[i].isMismatch) totalMismatches++;
+      if (teeth[i].isMismatch) totalMismatches += 1;
     }
     if (totalMismatches === 0) totalMismatches = 3;
 
     var shell = createShell(containerEl, {
-      title: config.title || 'Сверка рентгена и карты',
-      subtitle: config.subtitle || 'ДЕЛО №418 • МОРГ • ОПОЗНАНИЕ ТЕЛА',
+      title: scenario.title,
+      subtitle: '',
       extraClass: 'mg-xray-wrap'
     });
 
+    shell.subEl.style.display = 'none';
+    var metaRow = document.createElement('div');
+    metaRow.className = 'mg-xr-meta';
+    var statFound = document.createElement('span');
+    statFound.className = 'mg-xr-stat';
+    var statErr = document.createElement('span');
+    statErr.className = 'mg-xr-err';
+    metaRow.appendChild(statFound);
+    metaRow.appendChild(statErr);
+    shell.subEl.parentNode.appendChild(metaRow);
+
     listeners.on(shell.cancelBtn, 'click', function () {
-      haptic('light');
-      sfx('click');
+      haptic('light'); sfx('click');
       triggerCancel(callbacks);
     });
 
-    // Negatoscope canvas stage
     var stage = document.createElement('div');
     stage.className = 'mg-f2-stage mg-xray-stage';
     var canvas = document.createElement('canvas');
@@ -1010,46 +1093,42 @@
     stage.appendChild(canvas);
     shell.body.appendChild(stage);
 
-    // Status row
-    var statusEl = document.createElement('div');
-    statusEl.className = 'mg-f2-status';
-    var statusText = document.createElement('span');
-    statusText.textContent = 'Нажмите на ' + totalMismatches + ' несовпадения на снимке тела';
-    var countBadge = document.createElement('span');
-    countBadge.className = 'mg-f2-value';
-    countBadge.textContent = '0 / ' + totalMismatches;
-    statusEl.appendChild(statusText);
-    statusEl.appendChild(countBadge);
-    shell.body.appendChild(statusEl);
+    // Inspector dock (no accidental errors on tap!)
+    var inspectorEl = document.createElement('div');
+    inspectorEl.className = 'mg-xr-inspector';
+    var insInfo = document.createElement('div');
+    insInfo.className = 'mg-xr-ins-info';
+    var insTitle = document.createElement('div');
+    insTitle.className = 'mg-xr-ins-title';
+    var insDesc = document.createElement('div');
+    insDesc.className = 'mg-xr-ins-desc';
+    insInfo.appendChild(insTitle);
+    insInfo.appendChild(insDesc);
 
-    // Controls panel
+    var fixBtn = document.createElement('button');
+    fixBtn.type = 'button';
+    fixBtn.className = 'mg-f2-btn mg-xr-fix-btn';
+    fixBtn.textContent = 'ЗАФИКСИРОВАТЬ';
+    fixBtn.disabled = true;
+
+    inspectorEl.appendChild(insInfo);
+    inspectorEl.appendChild(fixBtn);
+    shell.body.appendChild(inspectorEl);
+
     var panel = document.createElement('div');
     panel.className = 'mg-f2-panel';
 
     var modesRow = document.createElement('div');
     modesRow.className = 'mg-xray-modes';
     var modeDefs = [
-      { id: 'light', label: 'СВЕТ' },
-      { id: 'negative', label: 'НЕГАТИВ' },
-      { id: 'overlay', label: 'НАЛОЖЕНИЕ' }
+      { id: 'light', label: '1. СВЕТ / ЧИСТКА' },
+      { id: 'negative', label: '2. НЕГАТИВ' },
+      { id: 'overlay', label: '3. НАЛОЖЕНИЕ' }
     ];
     var modeBtns = {};
     var viewMode = 'light';
-    var overlayAlpha = 0.55;
-
-    function updateModeUI() {
-      for (var k in modeBtns) {
-        if (Object.prototype.hasOwnProperty.call(modeBtns, k)) {
-          if (k === viewMode) {
-            modeBtns[k].classList.add('is-active');
-          } else {
-            modeBtns[k].classList.remove('is-active');
-          }
-        }
-      }
-      overlayVal.textContent =
-        viewMode === 'overlay' ? Math.round(overlayAlpha * 100) + '%' : 'ВЫКЛ';
-    }
+    var overlayAlpha = 0.62;
+    var filmShiftPx = 22; // misaligned film in overlay mode until centered near 0
 
     for (i = 0; i < modeDefs.length; i++) {
       (function (md) {
@@ -1058,11 +1137,12 @@
         btn.className = 'mg-f2-btn-sec';
         btn.textContent = md.label;
         listeners.on(btn, 'click', function () {
-          if (finished) return;
+          if (phase !== 'scan' || viewMode === md.id) return;
           viewMode = md.id;
-          haptic('light');
-          sfx('click');
-          updateModeUI();
+          tempFlash = null;
+          haptic('light'); sfx('click');
+          syncModeUI();
+          syncInspector();
         });
         modesRow.appendChild(btn);
         modeBtns[md.id] = btn;
@@ -1070,32 +1150,30 @@
     }
     panel.appendChild(modesRow);
 
-    var sliderWrap = document.createElement('div');
-    sliderWrap.className = 'mg-f2-slider-wrap';
-    var sliderRow = document.createElement('div');
-    sliderRow.className = 'mg-f2-row';
-    var sliderLbl = document.createElement('span');
-    sliderLbl.className = 'mg-f2-label';
-    sliderLbl.textContent = 'ПРОЗРАЧНОСТЬ НАЛОЖЕНИЯ КАРТЫ';
-    var overlayVal = document.createElement('span');
-    overlayVal.className = 'mg-f2-value';
-    overlayVal.textContent = 'ВЫКЛ';
-    sliderRow.appendChild(sliderLbl);
-    sliderRow.appendChild(overlayVal);
+    // Alignment slider (for Overlay mode film shift)
+    var alignWrap = document.createElement('div');
+    alignWrap.className = 'mg-f2-slider-wrap';
+    var alignRow = document.createElement('div');
+    alignRow.className = 'mg-f2-row';
+    var alignLbl = document.createElement('span');
+    alignLbl.className = 'mg-f2-label';
+    alignLbl.textContent = 'СДВИГ ПЛЁНКИ КАРТЫ (НАЛОЖЕНИЕ)';
+    var alignVal = document.createElement('span');
+    alignVal.className = 'mg-f2-value';
+    alignRow.appendChild(alignLbl);
+    alignRow.appendChild(alignVal);
 
-    var overlaySlider = document.createElement('input');
-    overlaySlider.type = 'range';
-    overlaySlider.className = 'mg-f2-slider';
-    overlaySlider.min = '0';
-    overlaySlider.max = '100';
-    overlaySlider.step = '1';
-    overlaySlider.value = '55';
+    var alignSlider = document.createElement('input');
+    alignSlider.type = 'range';
+    alignSlider.className = 'mg-f2-slider';
+    alignSlider.min = '-30';
+    alignSlider.max = '30';
+    alignSlider.step = '1';
+    alignSlider.value = String(filmShiftPx);
+    alignWrap.appendChild(alignRow);
+    alignWrap.appendChild(alignSlider);
+    panel.appendChild(alignWrap);
 
-    sliderWrap.appendChild(sliderRow);
-    sliderWrap.appendChild(overlaySlider);
-    panel.appendChild(sliderWrap);
-
-    // 3 mismatch checklist pills
     var foundList = document.createElement('div');
     foundList.className = 'mg-xray-found-list';
     foundList.style.gridTemplateColumns = 'repeat(' + Math.min(totalMismatches, 3) + ', 1fr)';
@@ -1103,423 +1181,542 @@
     for (i = 0; i < totalMismatches; i++) {
       var pill = document.createElement('div');
       pill.className = 'mg-f2-pill';
-      pill.textContent = 'НЕСОВПАДЕНИЕ #' + (i + 1);
+      pill.textContent = 'РАСХОЖДЕНИЕ #' + (i + 1);
       foundList.appendChild(pill);
       pills.push(pill);
     }
     panel.appendChild(foundList);
     shell.body.appendChild(panel);
 
-    updateModeUI();
-
-    listeners.on(overlaySlider, 'input', function () {
-      if (finished) return;
-      overlayAlpha = clamp((parseInt(overlaySlider.value, 10) || 0) / 100, 0, 1);
-      if (viewMode !== 'overlay') {
-        viewMode = 'overlay';
-      }
-      updateModeUI();
-    });
-
     var canvasMgr = setupResponsiveCanvas(canvas, stage);
-    var hoverIndex = -1;
+    var phase = 'scan'; // 'scan' | 'deduce' | 'fail'
+    var selectedIdx = -1;
     var foundCount = 0;
+    var errorsCount = 0;
     var globalErrFlash = 0;
+    var dragging = false;
+    var lastX = 0;
+    var lastY = 0;
+    var smudgeParticles = [];
+    var tempFlash = null;
+    var wasAlignedHaptic = false;
     var lastTs = performance.now();
 
+    function isOverlayAligned() {
+      return Math.abs(filmShiftPx) <= 4;
+    }
+
+    function syncHeaderMeta() {
+      statFound.textContent = 'НЕСОВПАДЕНИЯ: ' + foundCount + ' / ' + totalMismatches;
+      statErr.textContent = 'ОШИБКИ: ' + errorsCount + ' / ' + maxErrors;
+      statErr.classList.toggle('is-warn', errorsCount >= maxErrors - 1);
+    }
+
+    function syncModeUI() {
+      for (var k in modeBtns) {
+        if (Object.prototype.hasOwnProperty.call(modeBtns, k)) {
+          modeBtns[k].classList.toggle('is-active', k === viewMode);
+        }
+      }
+      alignWrap.style.display = viewMode === 'overlay' ? 'flex' : 'none';
+      if (viewMode === 'overlay') {
+        var ok = isOverlayAligned();
+        alignVal.textContent = ok ? '0 мм [СОВМЕЩЕНО]' : ((filmShiftPx > 0 ? '+' : '') + filmShiftPx + ' px');
+        alignVal.className = 'mg-f2-value' + (ok ? ' is-ok' : '');
+      }
+    }
+
+    function setTempFlash(title, desc, tone, ms) {
+      tempFlash = { title: title, desc: desc, tone: tone || 'err', until: performance.now() + (ms || 1800) };
+      syncInspector();
+    }
+
+    function syncInspector() {
+      var now = performance.now();
+      if (tempFlash && now < tempFlash.until) {
+        insTitle.textContent = tempFlash.title;
+        insTitle.className = 'mg-xr-ins-title ' + (tempFlash.tone === 'ok' ? 'is-ok' : 'is-err');
+        insDesc.textContent = tempFlash.desc;
+        fixBtn.disabled = selectedIdx === -1 || teeth[selectedIdx].found || phase !== 'scan';
+        return;
+      }
+      tempFlash = null;
+
+      if (selectedIdx === -1) {
+        insTitle.className = 'mg-xr-ins-title';
+        insTitle.textContent = viewMode === 'light' ? 'СВЕТ / ПРОТИРКА ПЛЁНКИ' : viewMode === 'negative' ? 'НЕГАТИВ (МЕТАЛЛ / ИМПЛАНТЫ)' : 'НАЛОЖЕНИЕ КАРТЫ НА ТЕЛО';
+        insDesc.textContent = viewMode === 'light'
+          ? 'Сотрите пальцем тёмные пятна копоти на нижнем снимке и нажимайте на зубы для сверки.'
+          : viewMode === 'overlay' && !isOverlayAligned()
+          ? 'Выровняйте сдвиг янтарной плёнки карты до 0 мм, затем выберите зуб с расхождением.'
+          : 'Тапните по зубу на снимке тела и нажмите «ЗАФИКСИРОВАТЬ» на расхождении.';
+        fixBtn.disabled = true;
+        return;
+      }
+
+      var th = teeth[selectedIdx];
+      if (th.found) {
+        insTitle.className = 'mg-xr-ins-title is-ok';
+        insTitle.textContent = 'ЗАФИКСИРОВАНО // ЗУБ ' + th.num;
+        insDesc.textContent = th.desc;
+        fixBtn.disabled = true;
+        return;
+      }
+      if (th.smudge > 0.02) {
+        insTitle.className = 'mg-xr-ins-title';
+        insTitle.textContent = 'ЗАСВЕТ / КОПОТЬ // ЗУБ ' + th.num;
+        insDesc.textContent = viewMode === 'light'
+          ? 'Потрите пальцем по зубу ' + th.num + ' на нижнем снимке, чтобы очистить плёнку.'
+          : 'Переключитесь в 1. СВЕТ / ЧИСТКА, чтобы протереть пятно на плёнке.';
+        fixBtn.disabled = true;
+        return;
+      }
+
+      insTitle.className = 'mg-xr-ins-title';
+      insTitle.textContent = 'ЗУБ ' + th.num + ' // ' + (viewMode === 'negative' ? 'НЕГАТИВ' : viewMode === 'overlay' ? 'НАЛОЖЕНИЕ' : 'СВЕТ');
+      insDesc.textContent = viewMode === 'negative' ? th.readNeg : viewMode === 'overlay' ? th.readOverlay : th.readLight;
+      fixBtn.disabled = false;
+    }
+
+    function showFailScreen(reason, msg) {
+      phase = 'fail';
+      stage.style.display = 'none';
+      inspectorEl.style.display = 'none';
+      panel.style.display = 'none';
+      var box = document.createElement('div');
+      box.className = 'mg-xr-stamp-box';
+      var st = document.createElement('div');
+      st.className = 'mg-xr-stamp';
+      st.textContent = 'АКТ СМЭ ОТКЛОНЁН';
+      var txt = document.createElement('div');
+      txt.className = 'mg-xr-dq';
+      txt.textContent = msg || 'Превышен лимит ошибок при сверке рентгена.';
+      box.appendChild(st);
+      box.appendChild(txt);
+      shell.body.appendChild(box);
+      timers.setTimeout(function () {
+        triggerXrayFail({ minigame: 'dental_xray', scenarioId: scenario.id, reason: reason, errors: errorsCount });
+      }, 950);
+    }
+
+    function openDeductionPhase() {
+      phase = 'deduce';
+      stage.style.display = 'none';
+      inspectorEl.style.display = 'none';
+      panel.style.display = 'none';
+
+      var card = document.createElement('div');
+      card.className = 'mg-xr-deduce';
+      var kicker = document.createElement('div');
+      kicker.className = 'mg-xr-dkicker';
+      kicker.textContent = 'ФАЗА 3 // АКТ ОПОЗНАНИЯ СМЭ';
+      card.appendChild(kicker);
+
+      var facts = document.createElement('div');
+      facts.className = 'mg-xr-dfacts';
+      for (var k = 0; k < teeth.length; k++) {
+        if (teeth[k].isMismatch) {
+          var line = document.createElement('div');
+          line.textContent = '• ' + teeth[k].desc;
+          facts.appendChild(line);
+        }
+      }
+      card.appendChild(facts);
+
+      var q = document.createElement('div');
+      q.className = 'mg-xr-dq';
+      q.textContent = scenario.conclusion.question;
+      card.appendChild(q);
+
+      var optsWrap = document.createElement('div');
+      optsWrap.className = 'mg-xr-dopts';
+      var fb = document.createElement('div');
+      fb.className = 'mg-xr-dfb';
+
+      var settled = false;
+      var opts = scenario.conclusion.options || [];
+      for (var oi = 0; oi < opts.length; oi++) {
+        (function (opt) {
+          var ob = document.createElement('button');
+          ob.type = 'button';
+          ob.className = 'mg-xr-dopt';
+          ob.textContent = opt.text;
+          listeners.on(ob, 'click', function () {
+            if (settled || phase !== 'deduce') return;
+            if (opt.isCorrect) {
+              settled = true;
+              ob.classList.add('is-correct');
+              fb.className = 'mg-xr-dfb is-ok';
+              fb.textContent = opt.reason;
+              haptic('success'); sfx('stamp');
+              timers.setTimeout(function () {
+                card.innerHTML = '';
+                var box = document.createElement('div');
+                box.className = 'mg-xr-stamp-box';
+                var st = document.createElement('div');
+                st.className = 'mg-xr-stamp is-ok';
+                st.textContent = scenario.stampWin;
+                var btnDone = document.createElement('button');
+                btnDone.type = 'button';
+                btnDone.className = 'mg-f2-btn is-ready';
+                btnDone.textContent = 'ПРИОБЩИТЬ К ДЕЛУ';
+                listeners.on(btnDone, 'click', function () {
+                  haptic('success'); sfx('success');
+                  triggerWin({
+                    minigame: 'dental_xray',
+                    scenarioId: scenario.id,
+                    errors: errorsCount,
+                    deduced: opt.id,
+                    mismatches: teeth.filter(function (t) { return t.isMismatch; }).map(function (t) { return t.num; })
+                  });
+                });
+                box.appendChild(st);
+                box.appendChild(btnDone);
+                card.appendChild(box);
+              }, 550);
+            } else {
+              errorsCount += 1;
+              syncHeaderMeta();
+              ob.classList.add('is-wrong');
+              fb.className = 'mg-xr-dfb';
+              fb.textContent = opt.reason;
+              haptic('error'); sfx('alert');
+              flashShake(card);
+              if (errorsCount >= maxErrors) {
+                settled = true;
+                timers.setTimeout(function () {
+                  showFailScreen('wrong_deduction', 'Лимит ошибок исчерпан — акт опознания СМЭ отклонён.');
+                }, 700);
+              }
+            }
+          });
+          optsWrap.appendChild(ob);
+        })(opts[oi]);
+      }
+
+      card.appendChild(optsWrap);
+      card.appendChild(fb);
+      shell.body.appendChild(card);
+    }
+
+    function triggerXrayError(title, desc, toothObj) {
+      errorsCount += 1;
+      globalErrFlash = 0.8;
+      if (toothObj) toothObj.errFlash = 1.0;
+      syncHeaderMeta();
+      haptic('error'); sfx('alert');
+      flashShake(stage);
+      if (errorsCount >= maxErrors) {
+        timers.setTimeout(function () { showFailScreen('too_many_errors', desc); }, 520);
+        return;
+      }
+      setTempFlash(title, desc, 'err', 1900);
+    }
+
+    listeners.on(alignSlider, 'input', function () {
+      if (phase !== 'scan') return;
+      filmShiftPx = parseInt(alignSlider.value, 10) || 0;
+      var ok = isOverlayAligned();
+      if (ok && !wasAlignedHaptic) { haptic('light'); sfx('click'); }
+      wasAlignedHaptic = ok;
+      syncModeUI();
+      syncInspector();
+    });
+
+    listeners.on(fixBtn, 'click', function () {
+      if (phase !== 'scan' || selectedIdx === -1) return;
+      var th = teeth[selectedIdx];
+      if (th.found || th.smudge > 0.02) return;
+
+      if (!th.isMismatch) {
+        triggerXrayError('ЛОЖНОЕ РАСХОЖДЕНИЕ (+1)', th.matchReason, th);
+        return;
+      }
+      if (th.requiredMode === 'negative' && viewMode !== 'negative') {
+        triggerXrayError('НАРУШЕНА МЕТОДИКА (+1)', th.wrongModeMsg, th);
+        return;
+      }
+      if (th.requiredMode === 'overlay' && (viewMode !== 'overlay' || !isOverlayAligned())) {
+        triggerXrayError(
+          'НАРУШЕНА МЕТОДИКА (+1)',
+          viewMode !== 'overlay' ? th.wrongModeMsg : 'Сначала выровняйте сдвиг плёнки карты до 0 мм!',
+          th
+        );
+        return;
+      }
+
+      th.found = true;
+      foundCount += 1;
+      haptic('success'); sfx('stamp');
+      if (pills[foundCount - 1]) {
+        pills[foundCount - 1].classList.add('is-mismatch');
+        pills[foundCount - 1].textContent = th.shortDesc;
+      }
+      syncHeaderMeta();
+      setTempFlash('РАСХОЖДЕНИЕ ЗАФИКСИРОВАНО', th.desc, 'ok', 1500);
+
+      if (foundCount >= totalMismatches) {
+        timers.setTimeout(function () {
+          if (phase === 'scan') openDeductionPhase();
+        }, 720);
+      }
+    });
+
     function getToothRects(w, h) {
-      var padX = 16;
-      var innerW = w - padX * 2;
-      var cellW = innerW / teeth.length;
+      var padX = 14;
+      var cellW = (w - padX * 2) / teeth.length;
       var rects = [];
       for (var k = 0; k < teeth.length; k++) {
-        var cx = padX + cellW * (k + 0.5);
-        if (viewMode === 'overlay') {
-          rects.push({
-            index: k,
-            x: padX + cellW * k,
-            y: h * 0.20,
-            w: cellW,
-            h: h * 0.64,
-            cx: cx
-          });
-        } else {
-          // Clickable area covers body scan (bottom half) and corresponding column
-          rects.push({
-            index: k,
-            x: padX + cellW * k,
-            y: h * 0.50,
-            w: cellW,
-            h: h * 0.44,
-            cx: cx
-          });
-        }
+        rects.push({
+          index: k,
+          x: padX + cellW * k,
+          y: viewMode === 'overlay' ? h * 0.18 : h * 0.48,
+          w: cellW,
+          h: viewMode === 'overlay' ? h * 0.68 : h * 0.48,
+          cx: padX + cellW * (k + 0.5),
+          cy: viewMode === 'overlay' ? h * 0.54 : h * 0.74
+        });
       }
       return rects;
     }
 
-    function pickToothAt(clientX, clientY) {
-      var rect = canvas.getBoundingClientRect();
-      if (!rect.width || !rect.height) return -1;
-      var x = clientX - rect.left;
-      var y = clientY - rect.top;
-      var boxes = getToothRects(rect.width, rect.height);
+    function pickToothAt(px, py, w, h) {
+      var boxes = getToothRects(w, h);
       for (var k = 0; k < boxes.length; k++) {
         var b = boxes[k];
-        if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) {
-          return k;
-        }
+        if (px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h) return k;
       }
       return -1;
     }
 
-    listeners.on(canvas, 'pointermove', function (ev) {
-      if (finished) return;
-      hoverIndex = pickToothAt(ev.clientX, ev.clientY);
-    });
-
-    listeners.on(canvas, 'pointerleave', function () {
-      hoverIndex = -1;
-    });
+    function scrubSmudgeAt(px, py, distPx, w, h) {
+      if (viewMode !== 'light') return;
+      var boxes = getToothRects(w, h);
+      for (var k = 0; k < boxes.length; k++) {
+        var th = teeth[k];
+        if (th.smudge <= 0) continue;
+        if (Math.hypot(px - boxes[k].cx, py - boxes[k].cy) <= boxes[k].w * 0.95) {
+          th.smudge = Math.max(0, th.smudge - Math.max(0.14, distPx * 0.015));
+          for (var p = 0; p < 2; p++) {
+            smudgeParticles.push({
+              x: boxes[k].cx + (Math.random() - 0.5) * 14,
+              y: boxes[k].cy + (Math.random() - 0.5) * 14,
+              vx: (Math.random() - 0.5) * 44,
+              vy: (Math.random() - 0.3) * 32 + 12,
+              r: 1.5 + Math.random() * 2,
+              alpha: 0.85
+            });
+          }
+          if (th.smudge <= 0.14) {
+            th.smudge = 0;
+            haptic('medium'); sfx('paper');
+            setTempFlash('ПЛЁНКА ОЧИЩЕНА', 'Участок зуба ' + th.num + ' чист — проверьте его в НЕГАТИВЕ или НАЛОЖЕНИИ.', 'ok', 1450);
+          }
+        }
+      }
+    }
 
     listeners.on(canvas, 'pointerdown', function (ev) {
-      if (finished) return;
-      var idx = pickToothAt(ev.clientX, ev.clientY);
-      if (idx === -1) {
-        // Gentle hint if user tapped the upper clinic reference instead of lower body X-ray
-        var rect = canvas.getBoundingClientRect();
-        if (viewMode !== 'overlay' && ev.clientY - rect.top < rect.height * 0.5) {
-          statusEl.className = 'mg-f2-status is-warn';
-          statusText.textContent = 'Кликайте по несовпадениям на нижнем СНИМКЕ ТЕЛА';
-          haptic('light');
-        }
-        return;
-      }
+      if (phase !== 'scan') return;
+      dragging = true;
+      try { canvas.setPointerCapture(ev.pointerId); } catch (e) {}
+      var rect = canvas.getBoundingClientRect();
+      var x = ev.clientX - rect.left;
+      var y = ev.clientY - rect.top;
+      lastX = x; lastY = y;
 
-      var tooth = teeth[idx];
-      if (tooth.found) {
-        statusEl.className = 'mg-f2-status is-ok';
-        statusText.textContent = 'Уже зафиксировано: ' + tooth.desc;
-        return;
-      }
-
-      if (tooth.isMismatch) {
-        tooth.found = true;
-        foundCount++;
-        haptic('medium');
-        sfx('scan');
-
-        if (pills[foundCount - 1]) {
-          pills[foundCount - 1].classList.add('is-mismatch');
-          pills[foundCount - 1].textContent = tooth.shortDesc;
-        }
-        countBadge.textContent = foundCount + ' / ' + totalMismatches;
-
-        if (foundCount >= totalMismatches) {
-          finished = true;
-          countBadge.classList.add('is-ok');
-          statusEl.className = 'mg-f2-status is-err';
-          statusText.textContent = 'ЛИЧНОСТЬ НЕ ПОДТВЕРЖДЕНА: ЭТО НЕ САФОНОВ!';
-          timers.setTimeout(function () {
-            haptic('success');
-            sfx('success');
-            triggerWin({
-              minigame: 'dental_xray',
-              mismatches: teeth
-                .filter(function (t) {
-                  return t.isMismatch;
-                })
-                .map(function (t) {
-                  return t.num;
-                })
-            });
-          }, 1000);
-        } else {
-          statusEl.className = 'mg-f2-status is-ok';
-          statusText.textContent = tooth.desc;
-        }
-      } else {
-        tooth.errFlash = 1;
-        globalErrFlash = 0.7;
-        haptic('error');
-        sfx('error');
-        flashShake(stage);
-        statusEl.className = 'mg-f2-status is-err';
-        statusText.textContent = 'Зуб ' + tooth.num + ': СОВПАДАЕТ С КАРТОЙ';
+      scrubSmudgeAt(x, y, 10, rect.width, rect.height);
+      var idx = pickToothAt(x, y, rect.width, rect.height);
+      if (idx !== -1) {
+        selectedIdx = idx;
+        tempFlash = null;
+        haptic('light'); sfx('click');
+        syncInspector();
       }
     });
+
+    listeners.on(canvas, 'pointermove', function (ev) {
+      if (!dragging || phase !== 'scan') return;
+      var rect = canvas.getBoundingClientRect();
+      var x = ev.clientX - rect.left;
+      var y = ev.clientY - rect.top;
+      var dist = Math.hypot(x - lastX, y - lastY);
+      lastX = x; lastY = y;
+      scrubSmudgeAt(x, y, dist, rect.width, rect.height);
+    });
+    listeners.on(canvas, 'pointerup', function () { dragging = false; });
+    listeners.on(canvas, 'pointercancel', function () { dragging = false; });
 
     function getPalettes(isNeg) {
       if (isNeg) {
         return {
-          bgTop: '#cbd5e1',
-          bgBot: '#94a3b8',
-          bone: 'rgba(100, 116, 139, 0.34)',
-          grid: 'rgba(15, 23, 42, 0.12)',
-          label: '#0f172a',
-          subLabel: '#1e293b',
+          bgTop: '#cbd5e1', bgBot: '#94a3b8', bone: 'rgba(100, 116, 139, 0.34)', grid: 'rgba(15, 23, 42, 0.12)',
+          label: '#0f172a', subLabel: '#1e293b',
           tooth: {
-            enamel: 'rgba(30, 41, 59, 0.85)',
-            dentin: 'rgba(51, 65, 85, 0.65)',
-            pulp: 'rgba(203, 213, 225, 0.55)',
-            outline: 'rgba(15, 23, 42, 0.92)',
-            metal: '#020617',
-            metalBright: '#090d16',
-            metalDetail: '#64748b',
-            metalEdge: '#000000',
-            missingStroke: 'rgba(15, 23, 42, 0.48)',
-            missingText: 'rgba(15, 23, 42, 0.72)'
+            enamel: 'rgba(30, 41, 59, 0.85)', dentin: 'rgba(51, 65, 85, 0.65)', pulp: 'rgba(203, 213, 225, 0.55)',
+            outline: 'rgba(15, 23, 42, 0.92)', metal: '#020617', metalBright: '#090d16',
+            metalDetail: '#64748b', metalEdge: '#000000', missingStroke: 'rgba(15, 23, 42, 0.48)', missingText: 'rgba(15, 23, 42, 0.72)'
           }
         };
       }
       return {
-        bgTop: '#06111e',
-        bgBot: '#0a1e33',
-        bone: 'rgba(56, 130, 196, 0.15)',
-        grid: 'rgba(125, 211, 252, 0.08)',
-        label: '#bae6fd',
-        subLabel: '#7dd3fc',
+        bgTop: '#06111e', bgBot: '#0a1e33', bone: 'rgba(56, 130, 196, 0.15)', grid: 'rgba(125, 211, 252, 0.08)',
+        label: '#bae6fd', subLabel: '#7dd3fc',
         tooth: {
-          enamel: 'rgba(186, 230, 253, 0.62)',
-          dentin: 'rgba(125, 211, 252, 0.34)',
-          pulp: 'rgba(7, 22, 40, 0.72)',
-          outline: 'rgba(224, 242, 254, 0.82)',
-          metal: '#e0f2fe',
-          metalBright: '#ffffff',
-          metalDetail: '#0c4a6e',
-          metalEdge: '#7dd3fc',
-          missingStroke: 'rgba(125, 211, 252, 0.35)',
-          missingText: 'rgba(125, 211, 252, 0.65)'
+          enamel: 'rgba(186, 230, 253, 0.62)', dentin: 'rgba(125, 211, 252, 0.34)', pulp: 'rgba(7, 22, 40, 0.72)',
+          outline: 'rgba(224, 242, 254, 0.82)', metal: '#e0f2fe', metalBright: '#ffffff',
+          metalDetail: '#0c4a6e', metalEdge: '#7dd3fc', missingStroke: 'rgba(125, 211, 252, 0.35)', missingText: 'rgba(125, 211, 252, 0.65)'
         },
         overlayClinic: {
-          enamel: 'rgba(245, 158, 11, 0.58)',
-          dentin: 'rgba(201, 138, 46, 0.36)',
-          pulp: 'rgba(30, 18, 5, 0.45)',
-          outline: 'rgba(253, 224, 71, 0.9)',
-          metal: '#fde047',
-          metalBright: '#fef08a',
-          metalDetail: '#78350f',
-          metalEdge: '#f59e0b',
-          missingStroke: 'rgba(251, 191, 36, 0.8)',
-          missingText: 'rgba(253, 224, 71, 0.95)'
+          enamel: 'rgba(245, 158, 11, 0.58)', dentin: 'rgba(201, 138, 46, 0.36)', pulp: 'rgba(30, 18, 5, 0.45)',
+          outline: 'rgba(253, 224, 71, 0.9)', metal: '#fde047', metalBright: '#fef08a',
+          metalDetail: '#78350f', metalEdge: '#f59e0b', missingStroke: 'rgba(251, 191, 36, 0.85)', missingText: 'rgba(253, 224, 71, 0.95)'
         }
       };
     }
 
+    syncHeaderMeta();
+    syncModeUI();
+    syncInspector();
+
     function render(now) {
       var dt = Math.min((now - lastTs) / 1000, 0.05);
       lastTs = now;
-
-      if (globalErrFlash > 0) globalErrFlash = Math.max(0, globalErrFlash - dt * 2.8);
+      if (globalErrFlash > 0) globalErrFlash = Math.max(0, globalErrFlash - dt * 2.6);
       for (var tIdx = 0; tIdx < teeth.length; tIdx++) {
-        if (teeth[tIdx].errFlash > 0) {
-          teeth[tIdx].errFlash = Math.max(0, teeth[tIdx].errFlash - dt * 2.4);
-        }
+        if (teeth[tIdx].errFlash > 0) teeth[tIdx].errFlash = Math.max(0, teeth[tIdx].errFlash - dt * 2.2);
       }
 
-      var metrics = canvasMgr.getMetrics();
-      var w = metrics.width;
-      var h = metrics.height;
-      var dpr = metrics.dpr;
-      var ctx = canvas.getContext('2d');
-      var isNeg = viewMode === 'negative';
-      var pal = getPalettes(isNeg);
-
-      ctx.save();
-      ctx.scale(dpr, dpr);
-
-      // Negatoscope backlit screen gradient
-      var bgGrad = ctx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, Math.max(w, h) * 0.72);
-      bgGrad.addColorStop(0, pal.bgBot);
-      bgGrad.addColorStop(1, pal.bgTop);
-      ctx.fillStyle = bgGrad;
-      ctx.fillRect(0, 0, w, h);
-
-      // Subtle radiology vertical calibration lines
-      var padX = 16;
-      var innerW = w - padX * 2;
-      var cellW = innerW / teeth.length;
-
-      ctx.strokeStyle = pal.grid;
-      ctx.lineWidth = 1;
-      for (var k = 0; k <= teeth.length; k++) {
-        var gx = padX + k * cellW;
-        ctx.beginPath();
-        ctx.moveTo(gx, 22);
-        ctx.lineTo(gx, h - 14);
-        ctx.stroke();
-      }
-
-      // Radiological R / L side markers
-      ctx.font = '700 10px "IBM Plex Mono", monospace';
-      ctx.fillStyle = pal.subLabel;
-      ctx.textBaseline = 'middle';
-      ctx.textAlign = 'left';
-      ctx.fillText('R', 5, h * 0.5);
-      ctx.textAlign = 'right';
-      ctx.fillText('L', w - 5, h * 0.5);
-
-      if (viewMode === 'overlay') {
-        // OVERLAY MODE: Single large jaw comparing Body (blue-white) + Clinic (translucent amber)
-        ctx.font = '600 9.5px "IBM Plex Mono", monospace';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillStyle = '#bae6fd';
-        ctx.fillText('НАЛОЖЕНИЕ: ТЕЛО (СИНИЙ) + КАРТА САФОНОВА (ЯНТАРЬ)', 14, 7);
-
-        var gumY = h * 0.55;
-        var toothH = Math.min(h * 0.44, 118);
-
-        // Jawbone arch contour
-        ctx.fillStyle = pal.bone;
-        ctx.fillRect(padX, gumY - toothH * 0.62, innerW, toothH * 0.66);
-
-        for (k = 0; k < teeth.length; k++) {
-          var th = teeth[k];
-          var cx = padX + cellW * (k + 0.5);
-
-          // Highlight hover / found / error
-          if (hoverIndex === k && !finished) {
-            ctx.fillStyle = 'rgba(245, 158, 11, 0.09)';
-            ctx.fillRect(padX + k * cellW + 1, h * 0.19, cellW - 2, h * 0.66);
-          }
-
-          // 1. Draw Body X-ray tooth
-          drawToothXray(ctx, cx, gumY, cellW, toothH, th.shape, th.bodyType, pal.tooth, true);
-
-          // 2. Overlay Clinic Chart tooth with slider opacity
-          if (overlayAlpha > 0.01) {
-            ctx.save();
-            ctx.globalAlpha = overlayAlpha;
-            drawToothXray(ctx, cx, gumY, cellW, toothH, th.shape, th.clinicType, pal.overlayClinic, true);
-            ctx.restore();
-          }
-
-          // Tooth FDI number
-          ctx.font = '600 10px "IBM Plex Mono", monospace';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'top';
-          ctx.fillStyle = th.found ? '#f87171' : '#93c5fd';
-          ctx.fillText(th.num, cx, gumY + toothH * 0.48);
-
-          if (th.found) {
-            ctx.strokeStyle = '#ef4444';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(padX + k * cellW + 2, h * 0.21, cellW - 4, h * 0.62);
-          } else if (th.errFlash > 0.02) {
-            ctx.fillStyle = 'rgba(220, 38, 38, ' + (th.errFlash * 0.35).toFixed(2) + ')';
-            ctx.fillRect(padX + k * cellW + 2, h * 0.21, cellW - 4, h * 0.62);
-          }
-        }
-      } else {
-        // SPLIT MODE (СВЕТ / НЕГАТИВ): Top = Clinic Chart, Bottom = Body X-ray
-        var midY = h * 0.50;
-
-        // Horizontal divider
-        ctx.strokeStyle = isNeg ? 'rgba(15, 23, 42, 0.42)' : 'rgba(125, 211, 252, 0.35)';
-        ctx.lineWidth = 1.4;
-        ctx.beginPath();
-        ctx.moveTo(10, midY);
-        ctx.lineTo(w - 10, midY);
-        ctx.stroke();
-
-        // Top section header: Clinic Chart
-        ctx.font = '600 9.5px "IBM Plex Mono", monospace';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillStyle = pal.label;
-        ctx.fillText('КАРТА О. САФОНОВА (КЛИНИКА, 2019)', 14, 6);
-
-        // Bottom section header: Body X-Ray
-        ctx.fillStyle = isNeg ? '#991b1b' : '#f59e0b';
-        ctx.fillText('СНИМОК ТЕЛА ИЗ ДОМА (#418-Т) — НАЖМИТЕ НА НЕСОВПАДЕНИЯ', 14, midY + 5);
-
-        var topGumY = h * 0.31;
-        var botGumY = h * 0.77;
-        var splitToothH = Math.min(h * 0.26, 68);
-
-        // Subtle alveolar jawbone strips
-        ctx.fillStyle = pal.bone;
-        ctx.fillRect(padX, topGumY - splitToothH * 0.58, innerW, splitToothH * 0.60);
-        ctx.fillRect(padX, botGumY - splitToothH * 0.58, innerW, splitToothH * 0.60);
-
-        for (k = 0; k < teeth.length; k++) {
-          var tooth = teeth[k];
-          var tcx = padX + cellW * (k + 0.5);
-
-          // Column highlight on hover
-          if (hoverIndex === k && !finished) {
-            ctx.fillStyle = isNeg ? 'rgba(15, 23, 42, 0.10)' : 'rgba(245, 158, 11, 0.10)';
-            ctx.fillRect(padX + k * cellW + 1, 22, cellW - 2, h - 30);
-          }
-
-          // Top: Safonov Clinic Chart tooth
-          drawToothXray(ctx, tcx, topGumY, cellW, splitToothH, tooth.shape, tooth.clinicType, pal.tooth, true);
-
-          // Center FDI number between charts
-          ctx.font = '600 9px "IBM Plex Mono", monospace';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillStyle = tooth.found ? '#ef4444' : pal.subLabel;
-          ctx.fillText(tooth.num, tcx, midY - 7);
-
-          // Bottom: Body from the burned house tooth
-          drawToothXray(ctx, tcx, botGumY, cellW, splitToothH, tooth.shape, tooth.bodyType, pal.tooth, true);
-
-          // Found mismatch marker box on lower body X-ray
-          if (tooth.found) {
-            ctx.strokeStyle = '#ef4444';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(padX + k * cellW + 2, midY + 19, cellW - 4, h - midY - 26);
-          } else if (tooth.errFlash > 0.02) {
-            ctx.fillStyle = 'rgba(220, 38, 38, ' + (tooth.errFlash * 0.35).toFixed(2) + ')';
-            ctx.fillRect(padX + k * cellW + 2, midY + 19, cellW - 4, h - midY - 26);
-          }
-        }
-      }
-
-      // Red mismatch error edge flash
-      if (globalErrFlash > 0.01) {
-        ctx.fillStyle = 'rgba(220, 38, 38, ' + (globalErrFlash * 0.28).toFixed(3) + ')';
-        ctx.fillRect(0, 0, w, h);
-      }
-
-      // Final forensic red stamp when all 3 discrepancies are confirmed
-      if (finished) {
-        ctx.fillStyle = 'rgba(9, 11, 16, 0.62)';
-        ctx.fillRect(0, 0, w, h);
+      if (phase === 'scan') {
+        var metrics = canvasMgr.getMetrics();
+        var w = metrics.width, h = metrics.height, dpr = metrics.dpr;
+        var ctx = canvas.getContext('2d');
+        var isNeg = viewMode === 'negative';
+        var pal = getPalettes(isNeg);
 
         ctx.save();
-        ctx.translate(w / 2, h / 2);
-        ctx.rotate(-0.09);
-        var stW = Math.min(w - 28, 316);
-        var stH = 54;
-        ctx.fillStyle = 'rgba(69, 10, 10, 0.92)';
-        ctx.fillRect(-stW / 2, -stH / 2, stW, stH);
-        ctx.strokeStyle = '#ef4444';
-        ctx.lineWidth = 2.6;
-        ctx.strokeRect(-stW / 2, -stH / 2, stW, stH);
-        ctx.strokeStyle = 'rgba(248, 113, 113, 0.5)';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(-stW / 2 + 4, -stH / 2 + 4, stW - 8, stH - 8);
+        ctx.scale(dpr, dpr);
 
-        ctx.fillStyle = '#fca5a5';
-        ctx.font = '700 13px "Oswald", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('ЛИЧНОСТЬ НЕ ПОДТВЕРЖДЕНА:', 0, -9);
-        ctx.fillStyle = '#fef2f2';
-        ctx.font = '700 15px "Oswald", sans-serif';
-        ctx.fillText('ЭТО НЕ САФОНОВ', 0, 11);
+        var bgGrad = ctx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, Math.max(w, h) * 0.72);
+        bgGrad.addColorStop(0, pal.bgBot); bgGrad.addColorStop(1, pal.bgTop);
+        ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, w, h);
+
+        var padX = 14, innerW = w - padX * 2, cellW = innerW / teeth.length;
+        ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+        for (var k = 0; k <= teeth.length; k++) {
+          var gx = padX + k * cellW;
+          ctx.beginPath(); ctx.moveTo(gx, 22); ctx.lineTo(gx, h - 12); ctx.stroke();
+        }
+
+        if (viewMode === 'overlay') {
+          ctx.font = '600 9.5px "IBM Plex Mono", monospace';
+          ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = '#bae6fd';
+          ctx.fillText('НАЛОЖЕНИЕ: ТЕЛО (СИНИЙ) + КАРТА (ЯНТАРЬ)', 14, 7);
+
+          var gumY = h * 0.55, toothH = Math.min(h * 0.44, 118);
+          ctx.fillStyle = pal.bone;
+          ctx.fillRect(padX, gumY - toothH * 0.62, innerW, toothH * 0.66);
+
+          for (k = 0; k < teeth.length; k++) {
+            var th = teeth[k], cx = padX + cellW * (k + 0.5);
+            if (selectedIdx === k) {
+              ctx.fillStyle = 'rgba(245, 158, 11, 0.14)';
+              ctx.fillRect(padX + k * cellW + 1, h * 0.19, cellW - 2, h * 0.66);
+            }
+            drawToothXray(ctx, cx, gumY, cellW, toothH, th.shape, th.bodyType, pal.tooth, true);
+            ctx.save();
+            ctx.globalAlpha = overlayAlpha;
+            drawToothXray(ctx, cx + filmShiftPx, gumY, cellW, toothH, th.shape, th.clinicType, pal.overlayClinic, true);
+            ctx.restore();
+
+            ctx.font = '600 10px "IBM Plex Mono", monospace';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.fillStyle = th.found ? '#f87171' : selectedIdx === k ? '#fde68a' : '#93c5fd';
+            ctx.fillText(th.num, cx, gumY + toothH * 0.48);
+
+            if (th.smudge > 0.02) {
+              ctx.fillStyle = 'rgba(12, 10, 10, ' + (th.smudge * 0.85).toFixed(2) + ')';
+              ctx.beginPath(); ctx.ellipse(cx, gumY - 12, cellW * 0.52, toothH * 0.42, 0, 0, Math.PI * 2); ctx.fill();
+            }
+            if (th.found) {
+              ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2;
+              ctx.strokeRect(padX + k * cellW + 2, h * 0.21, cellW - 4, h * 0.62);
+            } else if (selectedIdx === k) {
+              ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 1.6;
+              ctx.strokeRect(padX + k * cellW + 2, h * 0.21, cellW - 4, h * 0.62);
+            }
+          }
+        } else {
+          var midY = h * 0.50;
+          ctx.strokeStyle = isNeg ? 'rgba(15, 23, 42, 0.42)' : 'rgba(125, 211, 252, 0.35)';
+          ctx.lineWidth = 1.4;
+          ctx.beginPath(); ctx.moveTo(10, midY); ctx.lineTo(w - 10, midY); ctx.stroke();
+
+          ctx.font = '600 9.5px "IBM Plex Mono", monospace';
+          ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = pal.label;
+          ctx.fillText(scenario.clinicHeader, 14, 6);
+          ctx.fillStyle = isNeg ? '#991b1b' : '#f59e0b';
+          ctx.fillText(scenario.bodyHeader + ' — ВЫБЕРИТЕ ЗУБ', 14, midY + 5);
+
+          var topGumY = h * 0.31, botGumY = h * 0.77, splitToothH = Math.min(h * 0.26, 68);
+          ctx.fillStyle = pal.bone;
+          ctx.fillRect(padX, topGumY - splitToothH * 0.58, innerW, splitToothH * 0.60);
+          ctx.fillRect(padX, botGumY - splitToothH * 0.58, innerW, splitToothH * 0.60);
+
+          for (k = 0; k < teeth.length; k++) {
+            var tooth = teeth[k], tcx = padX + cellW * (k + 0.5);
+            if (selectedIdx === k) {
+              ctx.fillStyle = isNeg ? 'rgba(15, 23, 42, 0.12)' : 'rgba(245, 158, 11, 0.12)';
+              ctx.fillRect(padX + k * cellW + 1, 22, cellW - 2, h - 30);
+            }
+            drawToothXray(ctx, tcx, topGumY, cellW, splitToothH, tooth.shape, tooth.clinicType, pal.tooth, true);
+            ctx.font = '600 9px "IBM Plex Mono", monospace';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillStyle = tooth.found ? '#ef4444' : selectedIdx === k ? '#f59e0b' : pal.subLabel;
+            ctx.fillText(tooth.num, tcx, midY - 7);
+            drawToothXray(ctx, tcx, botGumY, cellW, splitToothH, tooth.shape, tooth.bodyType, pal.tooth, true);
+
+            if (tooth.smudge > 0.02) {
+              ctx.save();
+              ctx.globalAlpha = clamp(tooth.smudge, 0.18, 0.92);
+              ctx.fillStyle = '#181412';
+              ctx.beginPath(); ctx.ellipse(tcx, botGumY - 6, cellW * 0.54, splitToothH * 0.58, 0.1, 0, Math.PI * 2); ctx.fill();
+              ctx.strokeStyle = 'rgba(245, 158, 11, 0.7)'; ctx.lineWidth = 1; ctx.setLineDash([2, 2]); ctx.stroke(); ctx.setLineDash([]);
+              ctx.restore();
+            }
+
+            if (tooth.found) {
+              ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2;
+              ctx.strokeRect(padX + k * cellW + 2, midY + 19, cellW - 4, h - midY - 26);
+            } else if (selectedIdx === k) {
+              ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 1.5;
+              ctx.strokeRect(padX + k * cellW + 2, midY + 19, cellW - 4, h - midY - 26);
+            } else if (tooth.errFlash > 0.02) {
+              ctx.fillStyle = 'rgba(220, 38, 38, ' + (tooth.errFlash * 0.35).toFixed(2) + ')';
+              ctx.fillRect(padX + k * cellW + 2, midY + 19, cellW - 4, h - midY - 26);
+            }
+          }
+        }
+
+        // Flying smudge wipe particles
+        for (var p = smudgeParticles.length - 1; p >= 0; p--) {
+          var sp = smudgeParticles[p];
+          sp.x += sp.vx * dt; sp.y += sp.vy * dt; sp.alpha -= dt * 1.9;
+          if (sp.alpha <= 0) { smudgeParticles.splice(p, 1); continue; }
+          ctx.fillStyle = 'rgba(42, 36, 32, ' + sp.alpha.toFixed(2) + ')';
+          ctx.beginPath(); ctx.arc(sp.x, sp.y, sp.r, 0, Math.PI * 2); ctx.fill();
+        }
+
+        if (globalErrFlash > 0.01) {
+          ctx.fillStyle = 'rgba(220, 38, 38, ' + (globalErrFlash * 0.28).toFixed(3) + ')';
+          ctx.fillRect(0, 0, w, h);
+        }
         ctx.restore();
       }
-
-      ctx.restore();
       timers.raf(render);
     }
 
     timers.raf(render);
-
     return function cleanup() {
       timers.clearAll();
       listeners.clearAll();
@@ -1527,6 +1724,7 @@
       containerEl.innerHTML = '';
     };
   }
+
   // ============================================================================
   // MINIGAME 2: doc_forgery (Лупа 2.2x и УФ-лампа — режимы 'doc' | 'lock')
   // ============================================================================
