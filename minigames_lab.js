@@ -429,8 +429,33 @@
   }
 
   /* ==========================================================================
-     MINIGAME 1: 'fingerprint' (Дактилоскопия: опыление + сверка по минуциям)
+     MINIGAME 1: 'fingerprint' (Multi-scenario case409 + case412 + 3-phase)
      ========================================================================== */
+
+  var FP_EXTRA_STYLE_ID = 'minigames-lab-fp-extra';
+
+  var FP_EXTRA_CSS =
+    '.mgl-fp-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }' +
+    '.mgl-fp-err { font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 600; color: #9ba0ab; }' +
+    '.mgl-fp-err.is-warn { color: #f87171; }' +
+    '.mgl-fp-deduce { width: 100%; max-width: 350px; background: #14171f; border: 1px solid #353b4a; border-top: 3px solid var(--case-accent, #c98a2e); border-radius: 7px; padding: 12px; display: flex; flex-direction: column; gap: 8px; text-align: left; }' +
+    '.mgl-fp-dkicker { font-family: "IBM Plex Mono", monospace; font-size: 9.8px; font-weight: 700; color: var(--case-accent, #c98a2e); text-transform: uppercase; }' +
+    '.mgl-fp-dfacts { padding: 7px 8px; background: #0d1016; border: 1px solid #262b36; border-radius: 5px; font-family: "IBM Plex Mono", monospace; font-size: 9.8px; line-height: 1.4; color: #c2cad8; display: flex; flex-direction: column; gap: 3px; }' +
+    '.mgl-fp-dq { font-size: 12.4px; line-height: 1.38; color: #f3efe6; font-weight: 500; }' +
+    '.mgl-fp-dopts { display: flex; flex-direction: column; gap: 6px; }' +
+    '.mgl-fp-dopt { width: 100%; text-align: left; padding: 8px 9px; background: #1b202b; border: 1px solid #353d4e; border-radius: 5px; color: #e4e0d8; font-size: 11.6px; line-height: 1.34; cursor: pointer; }' +
+    '.mgl-fp-dopt.is-wrong { border-color: #ef4444; background: rgba(153, 27, 27, 0.25); color: #fecaca; }' +
+    '.mgl-fp-dopt.is-correct { border-color: #22c55e; background: rgba(34, 197, 94, 0.2); color: #bbf7d0; }' +
+    '.mgl-fp-dfb { font-family: "IBM Plex Mono", monospace; font-size: 10.2px; line-height: 1.35; min-height: 15px; color: #fca5a5; }' +
+    '.mgl-fp-dfb.is-ok { color: #86efac; }';
+
+  function injectFpExtraStyles() {
+    if (document.getElementById(FP_EXTRA_STYLE_ID)) return;
+    var el = document.createElement('style');
+    el.id = FP_EXTRA_STYLE_ID;
+    el.textContent = FP_EXTRA_CSS;
+    document.head.appendChild(el);
+  }
 
   var MINUTIAE_POINTS = [
     { id: 0, nx: -0.44, ny: -0.46, type: 'bifurcation' },
@@ -438,6 +463,157 @@
     { id: 2, nx: -0.14, ny: 0.08, type: 'bifurcation' },
     { id: 3, nx: 0.32, ny: 0.44, type: 'ending' }
   ];
+
+  var NOISE_DECOY_POINTS = [
+    { id: 100, nx: -0.52, ny: 0.36, reason: 'ЛОЖНАЯ ТОЧКА (+1 ОШИБКА): это микроцарапина/пылинка на поверхности, а не папиллярная минуция!' },
+    { id: 101, nx: 0.50, ny: -0.02, reason: 'ЛОЖНАЯ ТОЧКА (+1 ОШИБКА): случайный разрыв порошка на поре — на эталоне этой точки нет!' }
+  ];
+
+  function resolveFpScenario(config) {
+    var cfg = config || {};
+    var caseId = String(window.ACTIVE_CASE_ID || '').toLowerCase();
+    var nodeId = '';
+    try {
+      if (window.GameEngine && typeof window.GameEngine.getState === 'function') {
+        var st = window.GameEngine.getState();
+        if (st && st.nodeId) nodeId = String(st.nodeId);
+      }
+    } catch (e) {}
+    var storyNode = null;
+    try {
+      if (window.GameStory && window.GameStory.nodes && nodeId) {
+        storyNode = window.GameStory.nodes[nodeId] || null;
+      }
+    } catch (e) {}
+
+    var hint = String(cfg.title || (storyNode && storyNode.title) || '');
+    if (cfg.preset === 'case412' || caseId === 'case412' || nodeId === 'act4_mg_fingerprint' || /карабин|колодц/i.test(hint)) {
+      return {
+        id: 'case412_act4_fp',
+        title: cfg.title || 'ДАКТИЛОСКОПИЯ КАРАБИНА // №412',
+        surfaceStyle: 'brass',
+        hasScar: true,
+        surface1Label: 'ОБЪЕКТ: ЛАТУННЫЙ КАРАБИН РЮКЗАКА (ИЗ КОЛОДЦА)',
+        surface2Label: 'ЗАПАСНОЙ УЧАСТОК: БОКОВАЯ ПЛАСТИНА ПРЯЖКИ (#2)',
+        backupBtnText: 'ПЕРЕЙТИ НА ЗАПАСНУЮ ПЛАСТИНУ ПРЯЖКИ',
+        phase1Tag1: 'ФАЗА 1: ОПЫЛЕНИЕ (ЛАТУННЫЙ КАРАБИН)',
+        phase1Tag2: 'ФАЗА 1: ЗАПАСНАЯ ПЛАСТИНА ПРЯЖКИ',
+        rightPanelTitle: 'ЭТАЛОН (КРАВЦОВ)',
+        scanTitle: 'СВЕРКА С ФОТО РУКИ КРАВЦОВА...',
+        scanSub: 'Сопоставление 4 минуций и глубокого косого шрама от стамески на правом большом пальце...',
+        resultStamp: 'СОВПАДЕНИЕ: КРАВЦОВ В.И.',
+        resultStat: 'ОСОБАЯ ПРИМЕТА: СТАРЫЙ КОСОЙ ШРАМ ОТ СТАМЕСКИ',
+        resultAlert: 'УСТАНОВЛЕНО СОВПАДЕНИЕ: ПРАВЫЙ БОЛЬШОЙ ПАЛЕЦ КРАВЦОВА В.И. НА ЛАТУННОЙ ЗАСТЁЖКЕ РЮКЗАКА АЛИНЫ!',
+        facts: [
+          '• Носитель: латунный карабин рюкзака Алины, поднятый из колодца',
+          '• Узор: большой палец правой руки + глубокий старый косой рубец от стамески',
+          '• Сличение: 4/4 минуций и траектория шрама полностью совпали с рукой Кравцова'
+        ],
+        conclusion: {
+          question: 'На латунной застёжке рюкзака Алины из заброшенного колодца проявлен чёткий палец с косым шрамом от стамески. Вывод:',
+          options: [
+            {
+              id: 'artem_fp',
+              text: 'Рюкзак в колодец бросил Артём (Рыжий), порезавшись о край пряжки.',
+              isCorrect: false,
+              reason: 'Противоречие: это старый белый рубец от стамески, идентичный шраму на правой руке Кравцова.'
+            },
+            {
+              id: 'kravtsov_glove',
+              text: 'У колодца в 4 утра Кравцов В.И. на секунду снял перчатку, чтобы оторвать заклинившую пряжку — и оставил собственную подпись.',
+              isCorrect: true,
+              reason: 'Верно: старый шрам от стамески и 4 минуции напрямую связывают Кравцова с вещами Алины.'
+            },
+            {
+              id: 'accident_drop',
+              text: 'Алина сама уронила рюкзак в колодец, а отпечаток принадлежит случайному прохожему.',
+              isCorrect: false,
+              reason: 'Противоречие: совпадение 4 минуций и уникального рубца исключает случайного человека.'
+            }
+          ]
+        }
+      };
+    }
+
+    if (cfg.preset === 'case409' || caseId === 'case409' || nodeId === 'act2_fp_game') {
+      return {
+        id: 'case409_act2_fp',
+        title: cfg.title || 'ДАКТИЛОСКОПИЯ // ДЕЛО №409',
+        surfaceStyle: 'glass',
+        hasScar: false,
+        surface1Label: 'ОБЪЕКТ: СТЕКЛЯННЫЙ ФЛАКОН АНТИСЕПТИКА (#1)',
+        surface2Label: 'ЗАПАСНОЙ УЧАСТОК: РУКОЯТЬ НОЖА (#2)',
+        backupBtnText: 'ПЕРЕЙТИ НА ЗАПАСНОЙ УЧАСТОК (РУКОЯТЬ НОЖА)',
+        phase1Tag1: 'ФАЗА 1: ОПЫЛЕНИЕ (ФЛАКОН)',
+        phase1Tag2: 'ФАЗА 1: ЗАПАСНОЙ УЧАСТОК (НОЖ)',
+        rightPanelTitle: 'ЭТАЛОН БД',
+        scanTitle: 'ПРОБИВ ПО АДИС "ПАПИЛОН"...',
+        scanSub: 'Сравнение 4 опорных минуций с массивом Громова В.И. и ведомственными картотеками...',
+        resultStamp: 'ДОПУСК УРОВНЯ "С"',
+        resultStat: 'СОВПАДЕНИЕ С ГРОМОВЫМ В.И.: 0%',
+        resultAlert: 'ВНИМАНИЕ: НАЙДЕНО СОВПАДЕНИЕ В ЗАКРЫТОМ РЕЕСТРЕ МВД — ДОПУСК УРОВНЯ "С" (СОТРУДНИКИ)',
+        facts: [
+          '• Снятый след: 4/4 опорных минуций ульнарной петли подтверждены без шумов',
+          '• Сверка с подозреваемым Громовым В.И.: 0% совпадения',
+          '• АДИС «Папилон»: сработала блокировка закрытого реестра МВД (допуск «С»)'
+        ],
+        conclusion: {
+          question: 'АДИС «Папилон» показал 0% совпадения с Громовым, но заблокировал карточку в закрытом реестре МВД (допуск «С»). Вывод:',
+          options: [
+            {
+              id: 'gromov_smudge',
+              text: 'След принадлежит Громову В.И., просто база дала сбой из-за дождя.',
+              isCorrect: false,
+              reason: 'Противоречие: все 4 минуции чётко совпали, но не с Громовым (0%), а с закрытым реестром.'
+            },
+            {
+              id: 'mvd_insider',
+              text: 'Флакон антисептика на месте убийства держал не Громов, а действующий сотрудник МВД с допуском уровня «С».',
+              isCorrect: true,
+              reason: 'Верно: блокировка реестра допуска «С» доказывает причастность своего сотрудника.'
+            },
+            {
+              id: 'victim_fp',
+              text: 'Это отпечаток самой потерпевшей Алины, случайно попавший в базу МВД.',
+              isCorrect: false,
+              reason: 'Противоречие: потерпевшая не является сотрудником МВД с допуском уровня «С».'
+            }
+          ]
+        }
+      };
+    }
+
+    return {
+      id: 'generic_fp',
+      title: cfg.title || 'ДАКТИЛОСКОПИЯ',
+      surfaceStyle: 'glass',
+      hasScar: false,
+      surface1Label: 'ОБЪЕКТ: ПОВЕРХНОСТЬ ВЕЩДОКА (#1)',
+      surface2Label: 'ЗАПАСНОЙ УЧАСТОК ВЕЩДОКА (#2)',
+      backupBtnText: 'ПЕРЕЙТИ НА ЗАПАСНОЙ УЧАСТОК (#2)',
+      phase1Tag1: 'ФАЗА 1: МАГНИТНОЕ ОПЫЛЕНИЕ',
+      phase1Tag2: 'ФАЗА 1: ЗАПАСНОЙ УЧАСТОК',
+      rightPanelTitle: 'ЭТАЛОН БД',
+      scanTitle: 'ПОИСК ПО БАЗЕ АДИС...',
+      scanSub: 'Сопоставление 4 опорных минуций с базой данных...',
+      resultStamp: 'СЛЕД ИДЕНТИФИЦИРОВАН',
+      resultStat: 'СОВПАДЕНИЕ ПО 4 ОПОРНЫМ МИНУЦИЯМ: 100%',
+      resultAlert: 'ИДЕНТИФИКАЦИЯ ПОДТВЕРЖДЕНА: ПРОТОКОЛ ГОТОВ К ПРИОБЩЕНИЮ.',
+      facts: [
+        '• Потожировой след проявлен магнитной кистью без смазывания',
+        '• Отсеяны ложные шумовые точки, подтверждены 4/4 минуций',
+        '• АДИС подтвердила совпадение с контрольной карточкой'
+      ],
+      conclusion: cfg.conclusion || {
+        question: 'Проявленный след совпал с эталоном по 4 характерным минуциям. Вывод:',
+        options: [
+          { id: 'noise', text: 'Отпечаток непригоден из-за шумов.', isCorrect: false, reason: 'Противоречие: шумовые дефекты отсеяны, все 4 минуции подтверждены.' },
+          { id: 'ok', text: 'Идентичность потожирового следа на вещдоке и эталона доказана.', isCorrect: true, reason: 'Верно: протокол дактилоскопии подтверждён.' },
+          { id: 'miss', text: 'Совпадения нет.', isCorrect: false, reason: 'Противоречие: все 4 парные минуции совпали.' }
+        ]
+      }
+    };
+  }
 
   function drawFingerprintPattern(ctx, cx, cy, rx, ry, options) {
     var opts = options || {};
@@ -449,7 +625,6 @@
     ctx.translate(cx, cy);
     ctx.rotate(tilt);
 
-    // Clip to organic fingertip oval
     ctx.beginPath();
     ctx.moveTo(0, -ry);
     ctx.bezierCurveTo(rx * 0.82, -ry * 0.98, rx * 1.04, -ry * 0.3, rx * 0.96, ry * 0.35);
@@ -468,58 +643,29 @@
     var coreY = -ry * 0.08;
     var ridgeCount = 15;
 
-    // Concentric ulnar loop ridges wrapping around core
     for (var i = 1; i <= ridgeCount; i++) {
       var t = i / ridgeCount;
       var lRx = rx * (0.09 + t * 0.96);
       var lRy = ry * (0.14 + t * 0.92);
-
-      // Slight intentional ridge gaps near ending minutiae
       var segments = 46;
       var drawing = false;
       ctx.beginPath();
-
       for (var s = 0; s <= segments; s++) {
         var frac = s / segments;
         var ang = -Math.PI * 1.18 + frac * Math.PI * 1.72;
         var wave = Math.sin(ang * 3 + i * 0.7) * (rx * 0.015);
         var px = coreX + Math.cos(ang) * (lRx + wave);
         var py = coreY + Math.sin(ang) * (lRy + wave);
-
-        // Pull lower-right sweep out like a natural ulnar loop
-        if (ang > 0.1) {
-          px += (ang - 0.1) * rx * 0.18;
-          py += (ang - 0.1) * ry * 0.14;
-        }
-        if (ang < -Math.PI * 0.85) {
-          px -= (-Math.PI * 0.85 - ang) * rx * 0.16;
-          py += (-Math.PI * 0.85 - ang) * ry * 0.22;
-        }
-
-        // Introduce subtle breaks for realistic ridge interruptions
-        var nearBreak1 =
-          Math.hypot(px - MINUTIAE_POINTS[1].nx * rx, py - MINUTIAE_POINTS[1].ny * ry) < rx * 0.085 &&
-          i % 3 === 1;
-        var nearBreak3 =
-          Math.hypot(px - MINUTIAE_POINTS[3].nx * rx, py - MINUTIAE_POINTS[3].ny * ry) < rx * 0.085 &&
-          i % 2 === 0;
-
-        if (nearBreak1 || nearBreak3) {
-          drawing = false;
-          continue;
-        }
-
-        if (!drawing) {
-          ctx.moveTo(px, py);
-          drawing = true;
-        } else {
-          ctx.lineTo(px, py);
-        }
+        if (ang > 0.1) { px += (ang - 0.1) * rx * 0.18; py += (ang - 0.1) * ry * 0.14; }
+        if (ang < -Math.PI * 0.85) { px -= (-Math.PI * 0.85 - ang) * rx * 0.16; py += (-Math.PI * 0.85 - ang) * ry * 0.22; }
+        var nearBreak1 = Math.hypot(px - MINUTIAE_POINTS[1].nx * rx, py - MINUTIAE_POINTS[1].ny * ry) < rx * 0.085 && i % 3 === 1;
+        var nearBreak3 = Math.hypot(px - MINUTIAE_POINTS[3].nx * rx, py - MINUTIAE_POINTS[3].ny * ry) < rx * 0.085 && i % 2 === 0;
+        if (nearBreak1 || nearBreak3) { drawing = false; continue; }
+        if (!drawing) { ctx.moveTo(px, py); drawing = true; } else { ctx.lineTo(px, py); }
       }
       ctx.stroke();
     }
 
-    // Sweeping basal arch ridges at the bottom of the fingerprint
     for (var b = 0; b < 5; b++) {
       var by = ry * (0.58 + b * 0.11);
       ctx.beginPath();
@@ -528,24 +674,16 @@
       ctx.stroke();
     }
 
-    // Explicit characteristic minutiae geometry (forks / endings) at the 4 landmarks
     ctx.lineWidth = lineWidth * 1.1;
     for (var m = 0; m < MINUTIAE_POINTS.length; m++) {
       var pt = MINUTIAE_POINTS[m];
-      var mx = pt.nx * rx;
-      var my = pt.ny * ry;
-
+      var mx = pt.nx * rx, my = pt.ny * ry;
       if (pt.type === 'bifurcation') {
-        // Distinct Y-fork ridge split
         ctx.beginPath();
-        ctx.moveTo(mx - rx * 0.1, my + ry * 0.05);
-        ctx.lineTo(mx, my);
-        ctx.lineTo(mx + rx * 0.1, my - ry * 0.06);
-        ctx.moveTo(mx, my);
-        ctx.lineTo(mx + rx * 0.11, my + ry * 0.04);
+        ctx.moveTo(mx - rx * 0.1, my + ry * 0.05); ctx.lineTo(mx, my); ctx.lineTo(mx + rx * 0.1, my - ry * 0.06);
+        ctx.moveTo(mx, my); ctx.lineTo(mx + rx * 0.11, my + ry * 0.04);
         ctx.stroke();
       } else {
-        // Crisp abrupt ridge termination
         ctx.beginPath();
         ctx.moveTo(mx - rx * 0.12, my - ry * 0.04);
         ctx.quadraticCurveTo(mx - rx * 0.04, my - ry * 0.01, mx, my);
@@ -553,194 +691,132 @@
       }
     }
 
-    // Subtle pore texture breaks
+    // Diagonal white chisel scar for case412 (Kravtsov's thumb!)
+    if (opts.hasScar) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(10, 12, 16, 0.92)';
+      ctx.lineWidth = 6.2;
+      ctx.beginPath();
+      ctx.moveTo(-rx * 0.78, ry * 0.44);
+      ctx.quadraticCurveTo(-rx * 0.12, ry * 0.08, rx * 0.68, -ry * 0.42);
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(248, 250, 252, 0.85)';
+      ctx.lineWidth = 2.0;
+      ctx.beginPath();
+      ctx.moveTo(-rx * 0.76, ry * 0.44);
+      ctx.quadraticCurveTo(-rx * 0.12, ry * 0.08, rx * 0.66, -ry * 0.42);
+      ctx.stroke();
+      ctx.restore();
+    }
+
     if (opts.noisy) {
       var rand = createPrng(904);
       ctx.fillStyle = opts.poreColor || 'rgba(12, 14, 18, 0.35)';
-      for (var p = 0; p < 80; p++) {
-        var gx = (rand() - 0.5) * rx * 1.9;
-        var gy = (rand() - 0.5) * ry * 1.9;
+      for (var p = 0; p < 75; p++) {
         ctx.beginPath();
-        ctx.arc(gx, gy, 0.7 + rand() * 0.9, 0, Math.PI * 2);
+        ctx.arc((rand() - 0.5) * rx * 1.9, (rand() - 0.5) * ry * 1.9, 0.7 + rand() * 0.9, 0, Math.PI * 2);
         ctx.fill();
       }
     }
-
     ctx.restore();
   }
 
   function getMinutiaCanvasPos(cx, cy, rx, ry, tilt, pt) {
-    var lx = pt.nx * rx;
-    var ly = pt.ny * ry;
-    var cos = Math.cos(tilt);
-    var sin = Math.sin(tilt);
-    return {
-      x: cx + lx * cos - ly * sin,
-      y: cy + lx * sin + ly * cos
-    };
+    var lx = pt.nx * rx, ly = pt.ny * ry;
+    var cos = Math.cos(tilt), sin = Math.sin(tilt);
+    return { x: cx + lx * cos - ly * sin, y: cy + lx * sin + ly * cos };
   }
 
-  function drawSurfaceBackground(bCtx, w, h, surfaceIndex) {
+  function drawSurfaceBackground(bCtx, w, h, surfaceIndex, scenario) {
     var rand = createPrng(surfaceIndex === 0 ? 4091 : 4092);
-
-    // Dark lab examination table
     var bg = bCtx.createRadialGradient(w * 0.5, h * 0.45, 20, w * 0.5, h * 0.5, Math.max(w, h) * 0.75);
-    bg.addColorStop(0, '#161920');
-    bg.addColorStop(1, '#08090c');
-    bCtx.fillStyle = bg;
-    bCtx.fillRect(0, 0, w, h);
+    bg.addColorStop(0, '#161920'); bg.addColorStop(1, '#08090c');
+    bCtx.fillStyle = bg; bCtx.fillRect(0, 0, w, h);
 
-    // Subtle millimeter lab mat grid
-    bCtx.strokeStyle = 'rgba(212, 202, 180, 0.035)';
-    bCtx.lineWidth = 1;
-    for (var gx = 0; gx < w; gx += 20) {
-      bCtx.beginPath();
-      bCtx.moveTo(gx, 0);
-      bCtx.lineTo(gx, h);
-      bCtx.stroke();
-    }
-    for (var gy = 0; gy < h; gy += 20) {
-      bCtx.beginPath();
-      bCtx.moveTo(0, gy);
-      bCtx.lineTo(w, gy);
-      bCtx.stroke();
-    }
+    bCtx.strokeStyle = 'rgba(212, 202, 180, 0.035)'; bCtx.lineWidth = 1;
+    for (var gx = 0; gx < w; gx += 20) { bCtx.beginPath(); bCtx.moveTo(gx, 0); bCtx.lineTo(gx, h); bCtx.stroke(); }
+    for (var gy = 0; gy < h; gy += 20) { bCtx.beginPath(); bCtx.moveTo(0, gy); bCtx.lineTo(w, gy); bCtx.stroke(); }
 
-    if (surfaceIndex === 0) {
-      // Curved dark glass antiseptic vial body
-      var vialW = Math.min(w * 0.74, 240);
-      var vialH = Math.min(h * 0.76, 330);
-      var vx = (w - vialW) * 0.5;
-      var vy = (h - vialH) * 0.54;
+    var isBrass = scenario && scenario.surfaceStyle === 'brass';
+    var objW = Math.min(w * 0.68, 224);
+    var objH = Math.min(h * 0.74, 326);
+    var ox = (w - objW) * 0.5;
+    var oy = (h - objH) * 0.54;
 
-      // Neck & cap hint at top
-      var neckW = vialW * 0.44;
-      var neckGrad = bCtx.createLinearGradient(w * 0.5 - neckW * 0.5, 0, w * 0.5 + neckW * 0.5, 0);
-      neckGrad.addColorStop(0, '#0e1116');
-      neckGrad.addColorStop(0.28, '#2b333e');
-      neckGrad.addColorStop(0.55, '#151920');
-      neckGrad.addColorStop(1, '#090b0e');
-      bCtx.fillStyle = neckGrad;
-      bCtx.fillRect(w * 0.5 - neckW * 0.5, Math.max(8, vy - 26), neckW, 30);
+    if (isBrass) {
+      // Brass backpack buckle/carabiner plate from the well (case412)
+      var ringR = objW * 0.24;
+      bCtx.strokeStyle = '#9d742c'; bCtx.lineWidth = 10;
+      bCtx.beginPath(); bCtx.arc(w * 0.5, Math.max(24, oy - 4), ringR, Math.PI, 0); bCtx.stroke();
 
-      // Curved glass cylinder body
-      bCtx.save();
-      bCtx.beginPath();
-      bCtx.moveTo(vx + 22, vy);
-      bCtx.lineTo(vx + vialW - 22, vy);
-      bCtx.quadraticCurveTo(vx + vialW, vy, vx + vialW, vy + 24);
-      bCtx.lineTo(vx + vialW, vy + vialH - 18);
-      bCtx.quadraticCurveTo(vx + vialW, vy + vialH, vx + vialW - 18, vy + vialH);
-      bCtx.lineTo(vx + 18, vy + vialH);
-      bCtx.quadraticCurveTo(vx, vy + vialH, vx, vy + vialH - 18);
-      bCtx.lineTo(vx, vy + 24);
-      bCtx.quadraticCurveTo(vx, vy, vx + 22, vy);
-      bCtx.closePath();
+      var brassGrad = bCtx.createLinearGradient(ox, oy, ox + objW, oy + objH);
+      if (surfaceIndex === 0) {
+        brassGrad.addColorStop(0, '#4d3610'); brassGrad.addColorStop(0.28, '#b58734');
+        brassGrad.addColorStop(0.55, '#8a621c'); brassGrad.addColorStop(0.85, '#c79b44'); brassGrad.addColorStop(1, '#3d2a0b');
+      } else {
+        brassGrad.addColorStop(0, '#3a2b14'); brassGrad.addColorStop(0.45, '#7e5d28'); brassGrad.addColorStop(1, '#2a1e0d');
+      }
+      bCtx.fillStyle = brassGrad;
+      bCtx.fillRect(ox, oy, objW, objH);
+      bCtx.strokeStyle = 'rgba(253, 224, 152, 0.38)'; bCtx.lineWidth = 2;
+      bCtx.strokeRect(ox, oy, objW, objH);
 
-      var glassGrad = bCtx.createLinearGradient(vx, 0, vx + vialW, 0);
-      glassGrad.addColorStop(0, '#0d1115');
-      glassGrad.addColorStop(0.14, '#242f3a');
-      glassGrad.addColorStop(0.24, '#364552');
-      glassGrad.addColorStop(0.38, '#171f26');
-      glassGrad.addColorStop(0.76, '#12181f');
-      glassGrad.addColorStop(0.9, '#242e38');
-      glassGrad.addColorStop(1, '#0a0d10');
+      // Rivets on brass clasp
+      var rivets = [[ox + 22, oy + 24], [ox + objW - 22, oy + 24], [ox + 22, oy + objH - 24], [ox + objW - 22, oy + objH - 24]];
+      for (var rv = 0; rv < rivets.length; rv++) {
+        bCtx.fillStyle = '#473210'; bCtx.beginPath(); bCtx.arc(rivets[rv][0], rivets[rv][1], 7, 0, Math.PI * 2); bCtx.fill();
+        bCtx.strokeStyle = 'rgba(253, 224, 152, 0.45)'; bCtx.lineWidth = 1.2; bCtx.stroke();
+      }
+    } else if (surfaceIndex === 0) {
+      // Glass antiseptic vial (case409)
+      var neckW = objW * 0.44;
+      bCtx.fillStyle = '#202630';
+      bCtx.fillRect(w * 0.5 - neckW * 0.5, Math.max(8, oy - 24), neckW, 28);
+      var glassGrad = bCtx.createLinearGradient(ox, 0, ox + objW, 0);
+      glassGrad.addColorStop(0, '#0d1115'); glassGrad.addColorStop(0.18, '#2b3744');
+      glassGrad.addColorStop(0.38, '#171f26'); glassGrad.addColorStop(0.82, '#1c252f'); glassGrad.addColorStop(1, '#0a0d10');
       bCtx.fillStyle = glassGrad;
-      bCtx.fill();
-
-      bCtx.strokeStyle = 'rgba(130, 165, 195, 0.25)';
-      bCtx.lineWidth = 1.4;
-      bCtx.stroke();
-
-      // Long vertical curved specular reflection
-      var specGrad = bCtx.createLinearGradient(vx + vialW * 0.16, 0, vx + vialW * 0.27, 0);
-      specGrad.addColorStop(0, 'rgba(210, 232, 255, 0)');
-      specGrad.addColorStop(0.5, 'rgba(210, 232, 255, 0.13)');
-      specGrad.addColorStop(1, 'rgba(210, 232, 255, 0)');
-      bCtx.fillStyle = specGrad;
-      bCtx.fillRect(vx + vialW * 0.15, vy + 10, vialW * 0.13, vialH - 20);
-      bCtx.restore();
-
-      // Subtle surface label at bottom
-      bCtx.fillStyle = 'rgba(212, 202, 180, 0.35)';
-      bCtx.font = '600 10px "IBM Plex Mono", monospace';
-      bCtx.textAlign = 'center';
-      bCtx.fillText('ОБЪЕКТ: СТЕКЛЯННЫЙ ФЛАКОН (УЧАСТОК #1)', w * 0.5, h - 10);
+      bCtx.fillRect(ox, oy, objW, objH);
+      bCtx.strokeStyle = 'rgba(130, 165, 195, 0.28)'; bCtx.lineWidth = 1.5;
+      bCtx.strokeRect(ox, oy, objW, objH);
     } else {
-      // Backup surface: dark textured knife handle
-      var hw = Math.min(w * 0.58, 196);
-      var hh = Math.min(h * 0.78, 340);
-      var hx = (w - hw) * 0.5;
-      var hy = (h - hh) * 0.54;
-
-      // Metallic guard/bolster at top
-      var bolsterGrad = bCtx.createLinearGradient(hx - 14, 0, hx + hw + 14, 0);
-      bolsterGrad.addColorStop(0, '#1e2128');
-      bolsterGrad.addColorStop(0.35, '#5b6370');
-      bolsterGrad.addColorStop(0.7, '#2d323b');
-      bolsterGrad.addColorStop(1, '#15181e');
-      bCtx.fillStyle = bolsterGrad;
-      bCtx.fillRect(hx - 14, Math.max(8, hy - 14), hw + 28, 16);
-
-      // Curved ergonomic handle body
-      bCtx.save();
-      bCtx.beginPath();
-      bCtx.moveTo(hx + 8, hy);
-      bCtx.lineTo(hx + hw - 8, hy);
-      bCtx.bezierCurveTo(hx + hw + 8, hy + hh * 0.36, hx + hw + 4, hy + hh * 0.72, hx + hw - 10, hy + hh);
-      bCtx.lineTo(hx + 10, hy + hh);
-      bCtx.bezierCurveTo(hx - 4, hy + hh * 0.72, hx - 8, hy + hh * 0.36, hx + 8, hy);
-      bCtx.closePath();
-
+      // Backup knife handle (case409)
+      var hw = Math.min(w * 0.56, 192), hx = (w - hw) * 0.5;
+      bCtx.fillStyle = '#4a5260';
+      bCtx.fillRect(hx - 14, Math.max(8, oy - 14), hw + 28, 16);
       var gripGrad = bCtx.createLinearGradient(hx, 0, hx + hw, 0);
-      gripGrad.addColorStop(0, '#101215');
-      gripGrad.addColorStop(0.25, '#252830');
-      gripGrad.addColorStop(0.55, '#1d2026');
-      gripGrad.addColorStop(0.85, '#272a32');
-      gripGrad.addColorStop(1, '#0e1013');
-      bCtx.fillStyle = gripGrad;
-      bCtx.fill();
-
-      bCtx.strokeStyle = 'rgba(170, 178, 192, 0.24)';
-      bCtx.lineWidth = 1.5;
-      bCtx.stroke();
-
-      // Subtle polymer grain & steel rivets
-      bCtx.clip();
-      for (var d = 0; d < 280; d++) {
-        bCtx.fillStyle = rand() > 0.5 ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.18)';
-        bCtx.fillRect(hx + rand() * hw, hy + rand() * hh, 2, 2);
+      gripGrad.addColorStop(0, '#101215'); gripGrad.addColorStop(0.5, '#252830'); gripGrad.addColorStop(1, '#0e1013');
+      bCtx.fillStyle = gripGrad; bCtx.fillRect(hx, oy, hw, objH);
+      bCtx.strokeStyle = 'rgba(170, 178, 192, 0.25)'; bCtx.lineWidth = 1.5; bCtx.strokeRect(hx, oy, hw, objH);
+      for (var d = 0; d < 180; d++) {
+        bCtx.fillStyle = rand() > 0.5 ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.16)';
+        bCtx.fillRect(hx + rand() * hw, oy + rand() * objH, 2, 2);
       }
-
-      var rivetY = [hy + 26, hy + hh - 26];
-      for (var r = 0; r < rivetY.length; r++) {
-        bCtx.beginPath();
-        bCtx.arc(w * 0.5, rivetY[r], 7, 0, Math.PI * 2);
-        bCtx.fillStyle = '#3d434f';
-        bCtx.fill();
-        bCtx.strokeStyle = '#121418';
-        bCtx.lineWidth = 1.5;
-        bCtx.stroke();
-      }
-      bCtx.restore();
-
-      bCtx.fillStyle = 'rgba(201, 138, 46, 0.58)';
-      bCtx.font = '600 10px "IBM Plex Mono", monospace';
-      bCtx.textAlign = 'center';
-      bCtx.fillText('ЗАПАСНОЙ УЧАСТОК: РУКОЯТЬ НОЖА (ПОПЫТКА #2)', w * 0.5, h - 10);
     }
+
+    bCtx.fillStyle = 'rgba(212, 202, 180, 0.45)';
+    bCtx.font = '600 9.5px "IBM Plex Mono", monospace';
+    bCtx.textAlign = 'center';
+    var lbl = surfaceIndex === 0 ? (scenario ? scenario.surface1Label : '') : (scenario ? scenario.surface2Label : '');
+    bCtx.fillText(lbl, w * 0.5, h - 10);
   }
+
 
   window.GameMinigames.register('fingerprint', function (containerEl, config, callbacks) {
     injectLabStyles();
+    injectFpExtraStyles();
 
-    var phase = 'dusting'; // 'dusting' | 'smudged' | 'matching' | 'scanning' | 'result'
+    var cfg = config || {};
+    var scenario = resolveFpScenario(cfg);
+    var maxErrors = typeof cfg.maxErrors === 'number' && cfg.maxErrors > 0 ? cfg.maxErrors : 4;
+
+    var phase = 'dusting'; // 'dusting' | 'smudged' | 'transition' | 'matching' | 'scanning' | 'deduce' | 'result' | 'fail'
     var surfaceIndex = 0;
     var integrity = 100;
     var revealPct = 0;
+    var errorsCount = 0;
     var destroyed = false;
 
-    // Build DOM shell
     var wrap = document.createElement('div');
     wrap.className = 'mg-wrap';
 
@@ -752,14 +828,23 @@
 
     var titleEl = document.createElement('div');
     titleEl.className = 'mg-header-title';
-    titleEl.textContent = config.title || 'ДАКТИЛОСКОПИЯ';
+    titleEl.textContent = scenario.title;
 
-    var counterEl = document.createElement('div');
+    var metaRow = document.createElement('div');
+    metaRow.className = 'mgl-fp-meta';
+
+    var counterEl = document.createElement('span');
     counterEl.className = 'mg-counter';
-    counterEl.textContent = 'ФАЗА 1: МАГНИТНОЕ ОПЫЛЕНИЕ';
+    counterEl.textContent = scenario.phase1Tag1;
 
+    var errEl = document.createElement('span');
+    errEl.className = 'mgl-fp-err';
+    errEl.textContent = 'ОШИБКИ: 0 / ' + maxErrors;
+
+    metaRow.appendChild(counterEl);
+    metaRow.appendChild(errEl);
     headInfo.appendChild(titleEl);
-    headInfo.appendChild(counterEl);
+    headInfo.appendChild(metaRow);
 
     var btnBack = document.createElement('button');
     btnBack.type = 'button';
@@ -781,7 +866,6 @@
     canvas.className = 'mg-canvas';
     body.appendChild(canvas);
 
-    // Phase 1 HUD bars
     var hudBar = document.createElement('div');
     hudBar.className = 'mgl-hud-bar';
 
@@ -818,7 +902,7 @@
 
     var footerNote = document.createElement('div');
     footerNote.className = 'mgl-footer-note';
-    footerNote.textContent = 'Плавно водите магнитной кистью по стеклу. Резкие рывки смазывают порошок.';
+    footerNote.textContent = 'Плавно водите магнитной кистью. Резкие рывки смазывают порошок.';
     footer.appendChild(footerNote);
 
     wrap.appendChild(header);
@@ -826,7 +910,6 @@
     wrap.appendChild(footer);
     containerEl.appendChild(wrap);
 
-    // Canvas & offscreen buffers
     var ctx = canvas.getContext('2d');
     var bgCanvas = document.createElement('canvas');
     var bgCtx = bgCanvas.getContext('2d');
@@ -839,61 +922,40 @@
     var compCanvas = document.createElement('canvas');
     var compCtx = compCanvas.getContext('2d');
 
-    var cssW = 320;
-    var cssH = 420;
-    var dpr = 1;
+    var cssW = 320, cssH = 420, dpr = 1;
+    var fpCx = 160, fpCy = 220, fpRx = 62, fpRy = 94;
 
-    // Fingerprint oval geometry (Phase 1)
-    var fpCx = 160;
-    var fpCy = 220;
-    var fpRx = 62;
-    var fpRy = 94;
+    var GRID_COLS = 12, GRID_ROWS = 16;
+    var gridCells = [], totalActiveCells = 0;
 
-    // Coverage grid for Phase 1
-    var GRID_COLS = 12;
-    var GRID_ROWS = 16;
-    var gridCells = [];
-    var totalActiveCells = 0;
-
-    // Brush & powder particle state
-    var pointerDown = false;
-    var activePointerId = null;
-    var brushX = 0;
-    var brushY = 0;
-    var lastX = 0;
-    var lastY = 0;
-    var lastMoveTime = 0;
-    var smoothSpeed = 0;
-    var lastErrorHaptic = 0;
+    var pointerDown = false, activePointerId = null;
+    var brushX = 0, brushY = 0, lastX = 0, lastY = 0, lastMoveTime = 0;
+    var smoothSpeed = 0, lastErrorHaptic = 0;
     var particles = [];
 
-    // Phase 2 matching state
     var matchedPairs = [false, false, false, false];
     var matchedCount = 0;
-    var selectedSide = null; // 'left' | 'right' | null
+    var selectedSide = null;
     var selectedId = -1;
     var wrongFlash = { active: false, side: null, id: -1, until: 0 };
 
-    // Timers & RAF
-    var rafId = null;
-    var warnTimer = null;
-    var phaseTimer = null;
-    var scanTimer = null;
-    var resizeObserver = null;
+    var rafId = null, warnTimer = null, phaseTimer = null, scanTimer = null, resizeObserver = null;
     var lastFrameTime = performance.now();
 
+    function syncErrHeader() {
+      errEl.textContent = 'ОШИБКИ: ' + errorsCount + ' / ' + maxErrors;
+      errEl.classList.toggle('is-warn', errorsCount >= maxErrors - 1);
+    }
+
     function showBanner(msg, isOk, durationMs) {
-      if (warnTimer !== null) {
-        window.clearTimeout(warnTimer);
-        warnTimer = null;
-      }
+      if (warnTimer !== null) { window.clearTimeout(warnTimer); warnTimer = null; }
       warnFlashEl.textContent = msg;
       warnFlashEl.classList.toggle('is-ok', Boolean(isOk));
       warnFlashEl.classList.add('is-visible');
       warnTimer = window.setTimeout(function () {
         warnTimer = null;
         warnFlashEl.classList.remove('is-visible');
-      }, durationMs || 950);
+      }, durationMs || 1100);
     }
 
     function updateDustMeters() {
@@ -903,15 +965,8 @@
       revealBarEl.style.width = rPct + '%';
       intValEl.textContent = iPct + '%';
       intBarEl.style.width = iPct + '%';
-
       intBarEl.classList.remove('is-integrity', 'is-warn', 'is-crit');
-      if (iPct <= 35) {
-        intBarEl.classList.add('is-crit');
-      } else if (iPct <= 65) {
-        intBarEl.classList.add('is-warn');
-      } else {
-        intBarEl.classList.add('is-integrity');
-      }
+      intBarEl.classList.add(iPct <= 35 ? 'is-crit' : iPct <= 65 ? 'is-warn' : 'is-integrity');
     }
 
     function initCoverageGrid() {
@@ -922,15 +977,8 @@
           var nx = ((c + 0.5) / GRID_COLS) * 2 - 1;
           var ny = ((r + 0.5) / GRID_ROWS) * 2 - 1;
           var inside = nx * nx + ny * ny <= 0.88;
-          if (inside) {
-            totalActiveCells += 1;
-          }
-          gridCells.push({
-            nx: nx,
-            ny: ny,
-            active: inside,
-            val: 0
-          });
+          if (inside) totalActiveCells += 1;
+          gridCells.push({ nx: nx, ny: ny, active: inside, val: 0 });
         }
       }
     }
@@ -943,15 +991,16 @@
 
       bgCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
       bgCtx.clearRect(0, 0, cssW, cssH);
-      drawSurfaceBackground(bgCtx, cssW, cssH, surfaceIndex);
+      drawSurfaceBackground(bgCtx, cssW, cssH, surfaceIndex, scenario);
 
       printCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
       printCtx.clearRect(0, 0, cssW, cssH);
       drawFingerprintPattern(printCtx, fpCx, fpCy, fpRx, fpRy, {
-        strokeColor: 'rgba(218, 226, 236, 0.92)',
+        strokeColor: scenario.surfaceStyle === 'brass' ? 'rgba(235, 240, 248, 0.94)' : 'rgba(218, 226, 236, 0.92)',
         lineWidth: 1.7,
         tilt: -0.08,
-        noisy: true
+        noisy: true,
+        hasScar: scenario.hasScar
       });
     }
 
@@ -973,152 +1022,61 @@
       rebuildDustCanvases();
       updateDustMeters();
       hudBar.style.display = 'grid';
-      counterEl.textContent =
-        surfaceIndex === 0
-          ? 'ФАЗА 1: ОПЫЛЕНИЕ (ФЛАКОН)'
-          : 'ФАЗА 1: ЗАПАСНОЙ УЧАСТОК (НОЖ)';
+      counterEl.textContent = surfaceIndex === 0 ? scenario.phase1Tag1 : scenario.phase1Tag2;
       footerNote.textContent = 'Плавно водите магнитной кистью. Слишком быстрые движения смажут след.';
     }
 
     function resizeCanvas() {
-      if (destroyed) {
-        return;
-      }
+      if (destroyed) return;
       var rect = body.getBoundingClientRect();
       var nextW = Math.max(180, Math.floor(rect.width));
       var nextH = Math.max(220, Math.floor(rect.height));
-
       dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-      cssW = nextW;
-      cssH = nextH;
-
-      var physW = Math.floor(cssW * dpr);
-      var physH = Math.floor(cssH * dpr);
-
+      cssW = nextW; cssH = nextH;
+      var physW = Math.floor(cssW * dpr), physH = Math.floor(cssH * dpr);
       if (canvas.width !== physW || canvas.height !== physH) {
-        canvas.width = physW;
-        canvas.height = physH;
-        bgCanvas.width = physW;
-        bgCanvas.height = physH;
-        printCanvas.width = physW;
-        printCanvas.height = physH;
-        revealCanvas.width = physW;
-        revealCanvas.height = physH;
-        smudgeCanvas.width = physW;
-        smudgeCanvas.height = physH;
-        compCanvas.width = physW;
-        compCanvas.height = physH;
-
+        canvas.width = physW; canvas.height = physH;
+        bgCanvas.width = physW; bgCanvas.height = physH;
+        printCanvas.width = physW; printCanvas.height = physH;
+        revealCanvas.width = physW; revealCanvas.height = physH;
+        smudgeCanvas.width = physW; smudgeCanvas.height = physH;
+        compCanvas.width = physW; compCanvas.height = physH;
         rebuildDustCanvases();
-        // Restore revealed grid visually on resize during Phase 1
-        if (phase === 'dusting') {
-          revealCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-          for (var i = 0; i < gridCells.length; i++) {
-            var cell = gridCells[i];
-            if (cell.active && cell.val > 0.05) {
-              var gx = fpCx + cell.nx * fpRx;
-              var gy = fpCy + cell.ny * fpRy;
-              var gr = revealCtx.createRadialGradient(gx, gy, 2, gx, gy, 22);
-              gr.addColorStop(0, 'rgba(255,255,255,' + Math.min(1, cell.val).toFixed(2) + ')');
-              gr.addColorStop(1, 'rgba(255,255,255,0)');
-              revealCtx.fillStyle = gr;
-              revealCtx.beginPath();
-              revealCtx.arc(gx, gy, 22, 0, Math.PI * 2);
-              revealCtx.fill();
-            }
-          }
-        }
       }
     }
 
     function getPhase2Layout() {
-      var padTop = 34;
-      var padBot = 14;
-      var halfW = cssW * 0.5;
-      var availH = cssH - padTop - padBot;
-      var rx = Math.min(halfW * 0.36, 58);
-      var ry = Math.min(availH * 0.36, 94);
-      var cy = padTop + availH * 0.52;
+      var padTop = 34, padBot = 14, halfW = cssW * 0.5, availH = cssH - padTop - padBot;
       return {
-        padTop: padTop,
-        halfW: halfW,
-        leftCx: halfW * 0.5,
-        rightCx: halfW * 1.5,
-        cy: cy,
-        rx: rx,
-        ry: ry,
-        leftTilt: -0.07,
-        rightTilt: 0.0
+        padTop: padTop, halfW: halfW, leftCx: halfW * 0.5, rightCx: halfW * 1.5,
+        cy: padTop + availH * 0.52, rx: Math.min(halfW * 0.36, 58), ry: Math.min(availH * 0.36, 94),
+        leftTilt: -0.07, rightTilt: 0.0
       };
     }
 
-    function spawnPowderParticles(x, y, count, fast) {
-      for (var i = 0; i < count; i++) {
-        if (particles.length > 75) {
-          particles.shift();
-        }
-        particles.push({
-          x: x + (Math.random() - 0.5) * 18,
-          y: y + (Math.random() - 0.5) * 14,
-          vx: (Math.random() - 0.5) * (fast ? 95 : 32),
-          vy: (Math.random() - 0.2) * (fast ? 55 : 22) + 14,
-          size: 1.1 + Math.random() * 1.9,
-          alpha: fast ? 0.8 : 0.65,
-          dark: fast && Math.random() > 0.35
-        });
-      }
-    }
-
-    function paintBrushStep(x1, y1, x2, y2, isSmudging) {
-      var dist = Math.hypot(x2 - x1, y2 - y1);
-      var steps = Math.max(1, Math.ceil(dist / 6));
-      var brushR = 23;
-
-      for (var s = 1; s <= steps; s++) {
-        var frac = s / steps;
-        var px = x1 + (x2 - x1) * frac;
-        var py = y1 + (y2 - y1) * frac;
-
-        if (isSmudging) {
-          smudgeCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-          var sg = smudgeCtx.createRadialGradient(px, py, 3, px, py, brushR * 1.15);
-          sg.addColorStop(0, 'rgba(34, 37, 44, 0.32)');
-          sg.addColorStop(0.6, 'rgba(54, 58, 68, 0.2)');
-          sg.addColorStop(1, 'rgba(34, 37, 44, 0)');
-          smudgeCtx.fillStyle = sg;
-          smudgeCtx.beginPath();
-          smudgeCtx.arc(px, py, brushR * 1.15, 0, Math.PI * 2);
-          smudgeCtx.fill();
-        } else {
-          revealCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-          var rg = revealCtx.createRadialGradient(px, py, 2, px, py, brushR);
-          rg.addColorStop(0, 'rgba(255, 255, 255, 0.26)');
-          rg.addColorStop(0.65, 'rgba(255, 255, 255, 0.12)');
-          rg.addColorStop(1, 'rgba(255, 255, 255, 0)');
-          revealCtx.fillStyle = rg;
-          revealCtx.beginPath();
-          revealCtx.arc(px, py, brushR, 0, Math.PI * 2);
-          revealCtx.fill();
-
-          // Update coverage grid cells inside oval
-          var hitSum = 0;
-          for (var c = 0; c < gridCells.length; c++) {
-            var cell = gridCells[c];
-            if (!cell.active) {
-              continue;
-            }
-            var cx = fpCx + cell.nx * fpRx;
-            var cy = fpCy + cell.ny * fpRy;
-            var d = Math.hypot(px - cx, py - cy);
-            if (d < brushR) {
-              var boost = (1 - d / brushR) * 0.28;
-              cell.val = Math.min(1, cell.val + boost);
-            }
-            hitSum += cell.val;
-          }
-          revealPct = totalActiveCells > 0 ? (hitSum / totalActiveCells) * 100 : 0;
-        }
-      }
+    function showFailOverlay(reason, titleText, descText) {
+      phase = 'fail';
+      pointerDown = false;
+      hudBar.style.display = 'none';
+      overlaySlot.innerHTML = '';
+      var panel = document.createElement('div');
+      panel.className = 'mgl-overlay-panel';
+      var card = document.createElement('div');
+      card.className = 'mgl-overlay-card is-alert';
+      var st = document.createElement('div');
+      st.className = 'mgl-stamp';
+      st.textContent = titleText || 'СВЕРКА ПРОВАЛЕНА';
+      var txt = document.createElement('div');
+      txt.className = 'mgl-card-text';
+      txt.textContent = descText || 'Превышен лимит ошибок дактилоскопической экспертизы.';
+      card.appendChild(st);
+      card.appendChild(txt);
+      panel.appendChild(card);
+      overlaySlot.appendChild(panel);
+      phaseTimer = window.setTimeout(function () {
+        phaseTimer = null;
+        callbacks.onFail({ reason: reason, errors: errorsCount, scenarioId: scenario.id });
+      }, 950);
     }
 
     function triggerSmudgeFailure() {
@@ -1132,61 +1090,31 @@
         overlaySlot.innerHTML = '';
         var panel = document.createElement('div');
         panel.className = 'mgl-overlay-panel';
-
         var card = document.createElement('div');
         card.className = 'mgl-overlay-card is-alert';
-
         var stamp = document.createElement('div');
         stamp.className = 'mgl-stamp';
         stamp.textContent = 'СЛЕД СМАЗАН';
-
         var text = document.createElement('div');
         text.className = 'mgl-card-text';
-        text.textContent =
-          'Резкие движения кисти превратили порошок в нечитаемые разводы. Поверхность флакона испорчена — остался последний пригодный участок.';
-
+        text.textContent = 'Резкие движения кисти смазали порошок. Остался последний пригодный участок вещдока.';
         var btnBackup = document.createElement('button');
         btnBackup.type = 'button';
         btnBackup.className = 'mg-btn mg-btn-primary';
-        btnBackup.textContent = 'ПЕРЕЙТИ НА ЗАПАСНОЙ УЧАСТОК (РУКОЯТЬ НОЖА)';
+        btnBackup.textContent = scenario.backupBtnText;
         btnBackup.addEventListener('click', function () {
-          sfx('sfxClick');
-          haptic('medium');
+          sfx('sfxClick'); haptic('medium');
           surfaceIndex = 1;
           phase = 'dusting';
           resetDustingAttempt();
         });
-
         card.appendChild(stamp);
         card.appendChild(text);
         card.appendChild(btnBackup);
         panel.appendChild(card);
         overlaySlot.appendChild(panel);
       } else {
-        overlaySlot.innerHTML = '';
-        var failPanel = document.createElement('div');
-        failPanel.className = 'mgl-overlay-panel';
-
-        var failCard = document.createElement('div');
-        failCard.className = 'mgl-overlay-card is-alert';
-
-        var failStamp = document.createElement('div');
-        failStamp.className = 'mgl-stamp';
-        failStamp.textContent = 'СЛЕД УНИЧТОЖЕН';
-
-        var failText = document.createElement('div');
-        failText.className = 'mgl-card-text';
-        failText.textContent = 'Запасной участок на рукояти ножа также смазан. Дактилоскопия провалена.';
-
-        failCard.appendChild(failStamp);
-        failCard.appendChild(failText);
-        failPanel.appendChild(failCard);
-        overlaySlot.appendChild(failPanel);
-
-        phaseTimer = window.setTimeout(function () {
-          phaseTimer = null;
-          callbacks.onFail({ reason: 'smudged' });
-        }, 950);
+        showFailOverlay('smudged', 'СЛЕД УНИЧТОЖЕН', 'Запасной участок также смазан. Дактилоскопия провалена.');
       }
     }
 
@@ -1200,91 +1128,32 @@
       matchedCount = 0;
       selectedSide = null;
       selectedId = -1;
-
-      counterEl.textContent = 'ФАЗА 2: СВЕРКА МИНУЦИЙ (0 / 4)';
-      footerNote.textContent =
-        'Найдите 4 парные характерные точки: тапните микромаркер на снятом следе и его пару на эталоне БД.';
+      counterEl.textContent = 'ФАЗА 2: МИНУЦИИ (0 / 4)';
+      footerNote.textContent = 'Соедините 4 парные минуции слева и справа. Остерегайтесь 2 ложных дефектов поверхности слева!';
     }
 
-    function runPapilonScan() {
-      phase = 'scanning';
-      sfx('sfxRadio');
-      haptic('medium');
-      counterEl.textContent = 'АДИС «ПАПИЛОН» // ПОИСК';
-      footerNote.textContent = 'Выполняется сверка по федеральной дактилоскопической базе...';
-
-      overlaySlot.innerHTML = '';
-      var panel = document.createElement('div');
-      panel.className = 'mgl-overlay-panel';
-
-      var card = document.createElement('div');
-      card.className = 'mgl-overlay-card';
-
-      var title = document.createElement('div');
-      title.className = 'mgl-card-title';
-      title.textContent = 'ПРОБИВ ПО АДИС "ПАПИЛОН"...';
-
-      var sub = document.createElement('div');
-      sub.className = 'mgl-card-text';
-      sub.textContent = 'Сравнение 4 опорных минуций с массивом Громова В.И. и ведомственными картотеками...';
-
-      var bar = document.createElement('div');
-      bar.className = 'mgl-scan-bar';
-      var fill = document.createElement('div');
-      fill.className = 'mgl-scan-fill';
-      bar.appendChild(fill);
-
-      card.appendChild(title);
-      card.appendChild(sub);
-      card.appendChild(bar);
-      panel.appendChild(card);
-      overlaySlot.appendChild(panel);
-
-      var scanStart = performance.now();
-      var scanDuration = 1200;
-
-      function animateScan() {
-        if (destroyed || phase !== 'scanning') {
-          return;
-        }
-        var p = Math.min(1, (performance.now() - scanStart) / scanDuration);
-        fill.style.width = Math.round(p * 100) + '%';
-        if (p < 1) {
-          scanTimer = window.setTimeout(animateScan, 40);
-        } else {
-          scanTimer = null;
-          showPapilonResult();
-        }
-      }
-      animateScan();
-    }
-
-    function showPapilonResult() {
+    function showFinalResultCard(deducedId) {
       phase = 'result';
-      sfx('sfxAlert');
+      sfx('sfxStamp');
       haptic('heavy');
-      counterEl.textContent = 'ТРЕВОГА ДОПУСКА // РЕЕСТР "С"';
-      footerNote.textContent = 'Результат проверки зафиксирован протоколом АДИС.';
-
       overlaySlot.innerHTML = '';
+
       var panel = document.createElement('div');
       panel.className = 'mgl-overlay-panel';
-
       var card = document.createElement('div');
       card.className = 'mgl-overlay-card is-alert';
 
       var stamp = document.createElement('div');
       stamp.className = 'mgl-stamp';
-      stamp.textContent = 'ДОПУСК УРОВНЯ "С"';
+      stamp.textContent = scenario.resultStamp;
 
       var statLine = document.createElement('div');
       statLine.className = 'mgl-alert-stat';
-      statLine.textContent = 'СОВПАДЕНИЕ С ГРОМОВЫМ В.И.: 0%';
+      statLine.textContent = scenario.resultStat;
 
       var alertBox = document.createElement('div');
       alertBox.className = 'mgl-alert-box';
-      alertBox.textContent =
-        'ВНИМАНИЕ: НАЙДЕНО СОВПАДЕНИЕ В ЗАКРЫТОМ РЕЕСТРЕ МВД — ДОПУСК УРОВНЯ "С" (СОТРУДНИКИ)';
+      alertBox.textContent = scenario.resultAlert;
 
       var btnAttach = document.createElement('button');
       btnAttach.type = 'button';
@@ -1293,7 +1162,12 @@
       btnAttach.addEventListener('click', function () {
         sfx('sfxStamp');
         haptic('success');
-        callbacks.onSuccess({ registryAlert: true });
+        callbacks.onSuccess({
+          registryAlert: scenario.id === 'case409_act2_fp',
+          scenarioId: scenario.id,
+          errors: errorsCount,
+          deduced: deducedId
+        });
       });
 
       card.appendChild(stamp);
@@ -1304,212 +1178,300 @@
       overlaySlot.appendChild(panel);
     }
 
+    function openPhase3Deduction() {
+      phase = 'deduce';
+      counterEl.textContent = 'ФАЗА 3 // ВЫВОД';
+      footerNote.textContent = 'Сделайте криминалистический вывод по итогам дактилоскопии.';
+      overlaySlot.innerHTML = '';
+
+      var panel = document.createElement('div');
+      panel.className = 'mgl-overlay-panel';
+      var card = document.createElement('div');
+      card.className = 'mgl-fp-deduce';
+
+      var kicker = document.createElement('div');
+      kicker.className = 'mgl-fp-dkicker';
+      kicker.textContent = 'ФАЗА 3 // ДАКТИЛОСКОПИЧЕСКИЙ ВЫВОД';
+      card.appendChild(kicker);
+
+      var facts = document.createElement('div');
+      facts.className = 'mgl-fp-dfacts';
+      for (var fi = 0; fi < scenario.facts.length; fi++) {
+        var r = document.createElement('div');
+        r.textContent = scenario.facts[fi];
+        facts.appendChild(r);
+      }
+      card.appendChild(facts);
+
+      var q = document.createElement('div');
+      q.className = 'mgl-fp-dq';
+      q.textContent = scenario.conclusion.question;
+      card.appendChild(q);
+
+      var optsEl = document.createElement('div');
+      optsEl.className = 'mgl-fp-dopts';
+      var fb = document.createElement('div');
+      fb.className = 'mgl-fp-dfb';
+
+      var settled = false;
+      var opts = scenario.conclusion.options || [];
+      for (var oi = 0; oi < opts.length; oi++) {
+        (function (opt) {
+          var ob = document.createElement('button');
+          ob.type = 'button';
+          ob.className = 'mgl-fp-dopt';
+          ob.textContent = opt.text;
+          ob.addEventListener('click', function () {
+            if (settled || destroyed) return;
+            if (opt.isCorrect) {
+              settled = true;
+              ob.classList.add('is-correct');
+              fb.className = 'mgl-fp-dfb is-ok';
+              fb.textContent = opt.reason;
+              sfx('sfxSuccess');
+              haptic('success');
+              phaseTimer = window.setTimeout(function () {
+                phaseTimer = null;
+                showFinalResultCard(opt.id);
+              }, 600);
+            } else {
+              errorsCount += 1;
+              syncErrHeader();
+              ob.classList.add('is-wrong');
+              fb.className = 'mgl-fp-dfb';
+              fb.textContent = opt.reason;
+              sfx('sfxAlert');
+              haptic('error');
+              if (errorsCount >= maxErrors) {
+                settled = true;
+                phaseTimer = window.setTimeout(function () {
+                  phaseTimer = null;
+                  showFailOverlay('wrong_deduction', 'ВЫВОД ОТКЛОНЁН', 'Превышен лимит ошибок дактилоскопии.');
+                }, 680);
+              }
+            }
+          });
+          optsEl.appendChild(ob);
+        })(opts[oi]);
+      }
+
+      card.appendChild(optsEl);
+      card.appendChild(fb);
+      panel.appendChild(card);
+      overlaySlot.appendChild(panel);
+    }
+
+    function runDbScan() {
+      phase = 'scanning';
+      sfx('sfxRadio');
+      haptic('medium');
+      counterEl.textContent = 'СВЕРКА С КАРТОТЕКОЙ...';
+      footerNote.textContent = 'Выполняется автоматическое сличение опорных точек...';
+
+      overlaySlot.innerHTML = '';
+      var panel = document.createElement('div');
+      panel.className = 'mgl-overlay-panel';
+      var card = document.createElement('div');
+      card.className = 'mgl-overlay-card';
+      var title = document.createElement('div');
+      title.className = 'mgl-card-title';
+      title.textContent = scenario.scanTitle;
+      var sub = document.createElement('div');
+      sub.className = 'mgl-card-text';
+      sub.textContent = scenario.scanSub;
+      var bar = document.createElement('div');
+      bar.className = 'mgl-scan-bar';
+      var fill = document.createElement('div');
+      fill.className = 'mgl-scan-fill';
+      bar.appendChild(fill);
+      card.appendChild(title);
+      card.appendChild(sub);
+      card.appendChild(bar);
+      panel.appendChild(card);
+      overlaySlot.appendChild(panel);
+
+      var scanStart = performance.now();
+      function animateScan() {
+        if (destroyed || phase !== 'scanning') return;
+        var p = Math.min(1, (performance.now() - scanStart) / 1100);
+        fill.style.width = Math.round(p * 100) + '%';
+        if (p < 1) {
+          scanTimer = window.setTimeout(animateScan, 40);
+        } else {
+          scanTimer = null;
+          openPhase3Deduction();
+        }
+      }
+      animateScan();
+    }
+
+    function registerMatchError(msg) {
+      errorsCount += 1;
+      syncErrHeader();
+      sfx('sfxAlert');
+      haptic('error');
+      showBanner(msg, false, 1300);
+      if (errorsCount >= maxErrors) {
+        phaseTimer = window.setTimeout(function () {
+          phaseTimer = null;
+          showFailOverlay('too_many_errors', 'СВЕРКА ПРОВАЛЕНА', msg);
+        }, 560);
+      }
+    }
+
     function handleMatchingTap(x, y) {
       var layout = getPhase2Layout();
       var hitRadius = 26;
-      var tappedSide = null;
-      var tappedId = -1;
-      var bestDist = hitRadius;
 
+      // Check decoy surface noise specks on left lifted print first!
+      for (var d = 0; d < NOISE_DECOY_POINTS.length; d++) {
+        var dp = getMinutiaCanvasPos(layout.leftCx, layout.cy, layout.rx, layout.ry, layout.leftTilt, NOISE_DECOY_POINTS[d]);
+        if (Math.hypot(x - dp.x, y - dp.y) < 20) {
+          wrongFlash = { active: true, side: 'left', id: NOISE_DECOY_POINTS[d].id, until: performance.now() + 500 };
+          selectedSide = null; selectedId = -1;
+          registerMatchError(NOISE_DECOY_POINTS[d].reason);
+          return;
+        }
+      }
+
+      var tappedSide = null, tappedId = -1, bestDist = hitRadius;
       for (var i = 0; i < MINUTIAE_POINTS.length; i++) {
-        if (matchedPairs[i]) {
-          continue;
-        }
-        var lp = getMinutiaCanvasPos(
-          layout.leftCx,
-          layout.cy,
-          layout.rx,
-          layout.ry,
-          layout.leftTilt,
-          MINUTIAE_POINTS[i]
-        );
+        if (matchedPairs[i]) continue;
+        var lp = getMinutiaCanvasPos(layout.leftCx, layout.cy, layout.rx, layout.ry, layout.leftTilt, MINUTIAE_POINTS[i]);
         var ld = Math.hypot(x - lp.x, y - lp.y);
-        if (ld < bestDist) {
-          bestDist = ld;
-          tappedSide = 'left';
-          tappedId = i;
-        }
+        if (ld < bestDist) { bestDist = ld; tappedSide = 'left'; tappedId = i; }
 
-        var rp = getMinutiaCanvasPos(
-          layout.rightCx,
-          layout.cy,
-          layout.rx,
-          layout.ry,
-          layout.rightTilt,
-          MINUTIAE_POINTS[i]
-        );
+        var rp = getMinutiaCanvasPos(layout.rightCx, layout.cy, layout.rx, layout.ry, layout.rightTilt, MINUTIAE_POINTS[i]);
         var rd = Math.hypot(x - rp.x, y - rp.y);
-        if (rd < bestDist) {
-          bestDist = rd;
-          tappedSide = 'right';
-          tappedId = i;
-        }
+        if (rd < bestDist) { bestDist = rd; tappedSide = 'right'; tappedId = i; }
       }
 
-      if (tappedId === -1) {
-        return;
-      }
+      if (tappedId === -1) return;
 
       if (selectedSide === null || selectedSide === tappedSide) {
         selectedSide = tappedSide;
         selectedId = tappedId;
-        sfx('sfxClick');
-        haptic('light');
+        sfx('sfxClick'); haptic('light');
         return;
       }
 
       if (tappedId === selectedId) {
         matchedPairs[tappedId] = true;
         matchedCount += 1;
-        selectedSide = null;
-        selectedId = -1;
-        sfx('sfxClick');
-        haptic('light');
-        counterEl.textContent = 'ФАЗА 2: СВЕРКА МИНУЦИЙ (' + matchedCount + ' / 4)';
-
+        selectedSide = null; selectedId = -1;
+        sfx('sfxClick'); haptic('light');
+        counterEl.textContent = 'ФАЗА 2: МИНУЦИИ (' + matchedCount + ' / 4)';
         if (matchedCount >= MINUTIAE_POINTS.length) {
-          sfx('sfxSuccess');
-          haptic('success');
-          phaseTimer = window.setTimeout(function () {
-            phaseTimer = null;
-            runPapilonScan();
-          }, 420);
+          sfx('sfxSuccess'); haptic('success');
+          phaseTimer = window.setTimeout(function () { phaseTimer = null; runDbScan(); }, 420);
         }
       } else {
-        wrongFlash = {
-          active: true,
-          side: tappedSide,
-          id: tappedId,
-          until: performance.now() + 450
-        };
-        selectedSide = null;
-        selectedId = -1;
-        haptic('error');
-        showBanner('ТОЧКИ НЕ СОВПАДАЮТ — СВЕРЬТЕ РАСПОЛОЖЕНИЕ МИНУЦИИ', false, 800);
+        wrongFlash = { active: true, side: tappedSide, id: tappedId, until: performance.now() + 480 };
+        selectedSide = null; selectedId = -1;
+        registerMatchError('ТОЧКИ НЕ ПАРНЫЕ (+1 ОШИБКА) — сверьте геометрию минуций!');
+      }
+    }
+
+    function spawnPowderParticles(x, y, count, fast) {
+      for (var i = 0; i < count; i++) {
+        if (particles.length > 70) particles.shift();
+        particles.push({
+          x: x + (Math.random() - 0.5) * 18, y: y + (Math.random() - 0.5) * 14,
+          vx: (Math.random() - 0.5) * (fast ? 92 : 30), vy: (Math.random() - 0.2) * (fast ? 52 : 20) + 14,
+          size: 1.1 + Math.random() * 1.8, alpha: fast ? 0.8 : 0.65, dark: fast && Math.random() > 0.35
+        });
+      }
+    }
+
+    function paintBrushStep(x1, y1, x2, y2, isSmudging) {
+      var dist = Math.hypot(x2 - x1, y2 - y1);
+      var steps = Math.max(1, Math.ceil(dist / 6));
+      var brushR = 23;
+      for (var s = 1; s <= steps; s++) {
+        var frac = s / steps;
+        var px = x1 + (x2 - x1) * frac, py = y1 + (y2 - y1) * frac;
+        if (isSmudging) {
+          smudgeCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          var sg = smudgeCtx.createRadialGradient(px, py, 3, px, py, brushR * 1.15);
+          sg.addColorStop(0, 'rgba(34, 37, 44, 0.32)'); sg.addColorStop(1, 'rgba(34, 37, 44, 0)');
+          smudgeCtx.fillStyle = sg;
+          smudgeCtx.beginPath(); smudgeCtx.arc(px, py, brushR * 1.15, 0, Math.PI * 2); smudgeCtx.fill();
+        } else {
+          revealCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          var rg = revealCtx.createRadialGradient(px, py, 2, px, py, brushR);
+          rg.addColorStop(0, 'rgba(255, 255, 255, 0.26)'); rg.addColorStop(1, 'rgba(255, 255, 255, 0)');
+          revealCtx.fillStyle = rg;
+          revealCtx.beginPath(); revealCtx.arc(px, py, brushR, 0, Math.PI * 2); revealCtx.fill();
+          var hitSum = 0;
+          for (var c = 0; c < gridCells.length; c++) {
+            var cell = gridCells[c];
+            if (!cell.active) continue;
+            var d = Math.hypot(px - (fpCx + cell.nx * fpRx), py - (fpCy + cell.ny * fpRy));
+            if (d < brushR) cell.val = Math.min(1, cell.val + (1 - d / brushR) * 0.28);
+            hitSum += cell.val;
+          }
+          revealPct = totalActiveCells > 0 ? (hitSum / totalActiveCells) * 100 : 0;
+        }
       }
     }
 
     function getCanvasPoint(e) {
       var rect = canvas.getBoundingClientRect();
-      return {
-        x: Math.max(0, Math.min(cssW, e.clientX - rect.left)),
-        y: Math.max(0, Math.min(cssH, e.clientY - rect.top))
-      };
+      return { x: Math.max(0, Math.min(cssW, e.clientX - rect.left)), y: Math.max(0, Math.min(cssH, e.clientY - rect.top)) };
     }
 
     function onPointerDown(e) {
-      if (destroyed) {
-        return;
-      }
+      if (destroyed) return;
       e.preventDefault();
       var pt = getCanvasPoint(e);
-
-      if (phase === 'matching') {
-        handleMatchingTap(pt.x, pt.y);
-        return;
-      }
-
-      if (phase !== 'dusting') {
-        return;
-      }
-      if (activePointerId !== null && activePointerId !== e.pointerId) {
-        return;
-      }
-
-      activePointerId = e.pointerId;
-      pointerDown = true;
-      brushX = pt.x;
-      brushY = pt.y;
-      lastX = pt.x;
-      lastY = pt.y;
-      lastMoveTime = performance.now();
-      smoothSpeed = 0;
-
-      try {
-        canvas.setPointerCapture(e.pointerId);
-      } catch (err) {
-        // Ignore capture errors
-      }
+      if (phase === 'matching') { handleMatchingTap(pt.x, pt.y); return; }
+      if (phase !== 'dusting') return;
+      if (activePointerId !== null && activePointerId !== e.pointerId) return;
+      activePointerId = e.pointerId; pointerDown = true;
+      brushX = lastX = pt.x; brushY = lastY = pt.y;
+      lastMoveTime = performance.now(); smoothSpeed = 0;
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
     }
 
     function onPointerMove(e) {
-      if (destroyed || phase !== 'dusting' || !pointerDown || e.pointerId !== activePointerId) {
-        return;
-      }
+      if (destroyed || phase !== 'dusting' || !pointerDown || e.pointerId !== activePointerId) return;
       e.preventDefault();
       var pt = getCanvasPoint(e);
       var now = performance.now();
       var dtMs = Math.max(4, now - lastMoveTime);
       var dist = Math.hypot(pt.x - lastX, pt.y - lastY);
+      if (dist < 1.2) return;
+      smoothSpeed = smoothSpeed * 0.52 + (dist / dtMs) * 0.48;
+      var inPrintZone = Math.hypot((pt.x - fpCx) / (fpRx * 1.25), (pt.y - fpCy) / (fpRy * 1.25)) <= 1.15;
 
-      if (dist < 1.2) {
-        return;
-      }
-
-      var instantSpeed = dist / dtMs; // px/ms
-      smoothSpeed = smoothSpeed * 0.52 + instantSpeed * 0.48;
-
-      var SPEED_LIMIT = 0.92;
-      var inPrintZone =
-        Math.hypot((pt.x - fpCx) / (fpRx * 1.25), (pt.y - fpCy) / (fpRy * 1.25)) <= 1.15;
-
-      if (smoothSpeed > SPEED_LIMIT && inPrintZone) {
-        var excess = smoothSpeed - SPEED_LIMIT;
-        var penalty = Math.min(11, 2.6 + excess * 7.2);
-        integrity = Math.max(0, integrity - penalty);
+      if (smoothSpeed > 0.92 && inPrintZone) {
+        integrity = Math.max(0, integrity - Math.min(11, 2.6 + (smoothSpeed - 0.92) * 7.2));
         paintBrushStep(lastX, lastY, pt.x, pt.y, true);
         spawnPowderParticles(pt.x, pt.y, 4, true);
-
-        if (now - lastErrorHaptic > 260) {
-          lastErrorHaptic = now;
-          haptic('error');
-        }
+        if (now - lastErrorHaptic > 260) { lastErrorHaptic = now; haptic('error'); }
         showBanner('СЛИШКОМ РЕЗКО — СЛЕД СМАЗЫВАЕТСЯ!', false, 700);
         updateDustMeters();
-
-        if (integrity <= 0) {
-          triggerSmudgeFailure();
-          return;
-        }
+        if (integrity <= 0) { triggerSmudgeFailure(); return; }
       } else {
         paintBrushStep(lastX, lastY, pt.x, pt.y, false);
         spawnPowderParticles(pt.x, pt.y, 2, false);
         updateDustMeters();
-
         if (revealPct >= 85) {
-          phase = 'transition';
-          pointerDown = false;
-          activePointerId = null;
-          sfx('sfxSuccess');
-          haptic('success');
+          phase = 'transition'; pointerDown = false; activePointerId = null;
+          sfx('sfxSuccess'); haptic('success');
           showBanner('СЛЕД ПРОЯВЛЕН — ПЕРЕХОД К СВЕРКЕ', true, 750);
-          phaseTimer = window.setTimeout(function () {
-            phaseTimer = null;
-            enterPhase2Matching();
-          }, 680);
+          phaseTimer = window.setTimeout(function () { phaseTimer = null; enterPhase2Matching(); }, 680);
           return;
         }
       }
-
-      brushX = pt.x;
-      brushY = pt.y;
-      lastX = pt.x;
-      lastY = pt.y;
-      lastMoveTime = now;
+      brushX = lastX = pt.x; brushY = lastY = pt.y; lastMoveTime = now;
     }
 
     function onPointerUp(e) {
-      if (activePointerId !== null && e.pointerId !== activePointerId) {
-        return;
-      }
-      pointerDown = false;
-      activePointerId = null;
-      smoothSpeed = 0;
+      if (activePointerId !== null && e.pointerId !== activePointerId) return;
+      pointerDown = false; activePointerId = null; smoothSpeed = 0;
     }
-
-    function onContextMenu(e) {
-      e.preventDefault();
-    }
+    function onContextMenu(e) { e.preventDefault(); }
 
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointermove', onPointerMove);
@@ -1519,9 +1481,7 @@
     canvas.addEventListener('contextmenu', onContextMenu);
 
     if (typeof window.ResizeObserver === 'function') {
-      resizeObserver = new window.ResizeObserver(function () {
-        resizeCanvas();
-      });
+      resizeObserver = new window.ResizeObserver(resizeCanvas);
       resizeObserver.observe(body);
     }
     window.addEventListener('resize', resizeCanvas);
@@ -1529,18 +1489,13 @@
     initCoverageGrid();
     resizeCanvas();
     resetDustingAttempt();
+    syncErrHeader();
 
     function renderDustingFrame(dt) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.drawImage(bgCanvas, 0, 0, cssW, cssH);
+      ctx.save(); ctx.globalAlpha = 0.055; ctx.drawImage(printCanvas, 0, 0, cssW, cssH); ctx.restore();
 
-      // Barely visible latent grease sheen before powder
-      ctx.save();
-      ctx.globalAlpha = 0.055;
-      ctx.drawImage(printCanvas, 0, 0, cssW, cssH);
-      ctx.restore();
-
-      // Compose revealed powder fingerprint: printCanvas masked by revealCanvas
       compCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
       compCtx.globalCompositeOperation = 'source-over';
       compCtx.clearRect(0, 0, cssW, cssH);
@@ -1550,249 +1505,107 @@
       compCtx.globalCompositeOperation = 'source-over';
 
       ctx.drawImage(compCanvas, 0, 0, cssW, cssH);
-
-      // Draw smudges over the fingerprint
       ctx.drawImage(smudgeCanvas, 0, 0, cssW, cssH);
 
-      // Update & draw falling magnetic powder particles
       for (var i = particles.length - 1; i >= 0; i--) {
         var p = particles[i];
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        p.vy += 65 * dt;
-        p.alpha -= dt * 1.35;
-        if (p.alpha <= 0) {
-          particles.splice(i, 1);
-          continue;
-        }
-        ctx.fillStyle = p.dark
-          ? 'rgba(55, 58, 66, ' + p.alpha.toFixed(2) + ')'
-          : 'rgba(205, 214, 226, ' + p.alpha.toFixed(2) + ')';
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
+        p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 65 * dt; p.alpha -= dt * 1.35;
+        if (p.alpha <= 0) { particles.splice(i, 1); continue; }
+        ctx.fillStyle = p.dark ? ('rgba(55,58,66,' + p.alpha.toFixed(2) + ')') : ('rgba(215,222,232,' + p.alpha.toFixed(2) + ')');
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
       }
 
-      // Draw magnetic brush wand tip when active
       if (pointerDown && phase === 'dusting') {
-        ctx.save();
-        ctx.translate(brushX, brushY);
-
-        // Fluffy iron-powder halo tuft
+        ctx.save(); ctx.translate(brushX, brushY);
         var tuft = ctx.createRadialGradient(0, 0, 2, 0, 0, 22);
-        tuft.addColorStop(0, 'rgba(185, 194, 210, 0.45)');
-        tuft.addColorStop(0.55, 'rgba(92, 98, 112, 0.28)');
-        tuft.addColorStop(1, 'rgba(30, 34, 42, 0)');
-        ctx.fillStyle = tuft;
-        ctx.beginPath();
-        ctx.arc(0, 0, 22, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Metallic magnetic wand cylinder extending up-right
+        tuft.addColorStop(0, 'rgba(185, 194, 210, 0.45)'); tuft.addColorStop(1, 'rgba(30, 34, 42, 0)');
+        ctx.fillStyle = tuft; ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill();
         ctx.rotate(-0.68);
-        var wandGrad = ctx.createLinearGradient(0, -6, 0, 6);
-        wandGrad.addColorStop(0, '#788090');
-        wandGrad.addColorStop(0.5, '#d1d6e0');
-        wandGrad.addColorStop(1, '#3b404b');
-        ctx.fillStyle = wandGrad;
-        ctx.fillRect(6, -4.5, 44, 9);
-
-        // Dark magnetic tip cone
-        ctx.fillStyle = '#252932';
-        ctx.beginPath();
-        ctx.arc(4, 0, 5.5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = smoothSpeed > 0.92 ? '#ef4444' : '#c98a2e';
-        ctx.lineWidth = 1.4;
-        ctx.stroke();
-
+        ctx.fillStyle = '#9ba3b2'; ctx.fillRect(6, -4.5, 44, 9);
+        ctx.fillStyle = '#252932'; ctx.beginPath(); ctx.arc(4, 0, 5.5, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = smoothSpeed > 0.92 ? '#ef4444' : '#c98a2e'; ctx.lineWidth = 1.4; ctx.stroke();
         ctx.restore();
       }
     }
 
     function renderMatchingFrame(now) {
       var layout = getPhase2Layout();
-      var timeSec = now * 0.001;
+      var pulse = 0.65 + 0.35 * Math.sin(now * 0.0042);
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.fillStyle = '#0e1014'; ctx.fillRect(0, 0, layout.halfW, cssH);
+      ctx.fillStyle = '#111514'; ctx.fillRect(layout.halfW, 0, layout.halfW, cssH);
 
-      // Left panel: lifted print (dark forensic contrast)
-      ctx.fillStyle = '#0e1014';
-      ctx.fillRect(0, 0, layout.halfW, cssH);
-
-      // Right panel: DB template (muted dark-archival green/amber grid)
-      ctx.fillStyle = '#111514';
-      ctx.fillRect(layout.halfW, 0, layout.halfW, cssH);
-
-      // Subtle DB grid on right panel
-      ctx.strokeStyle = 'rgba(201, 138, 46, 0.06)';
-      ctx.lineWidth = 1;
-      for (var x = layout.halfW + 14; x < cssW; x += 16) {
-        ctx.beginPath();
-        ctx.moveTo(x, layout.padTop);
-        ctx.lineTo(x, cssH);
-        ctx.stroke();
-      }
-      for (var y = layout.padTop; y < cssH; y += 16) {
-        ctx.beginPath();
-        ctx.moveTo(layout.halfW, y);
-        ctx.lineTo(cssW, y);
-        ctx.stroke();
-      }
-
-      // Panel headers
-      ctx.fillStyle = '#15171c';
-      ctx.fillRect(0, 0, cssW, layout.padTop);
-      ctx.strokeStyle = '#2a2e38';
-      ctx.lineWidth = 1;
+      ctx.fillStyle = '#15171c'; ctx.fillRect(0, 0, cssW, layout.padTop);
+      ctx.strokeStyle = '#2a2e38'; ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(0, layout.padTop);
-      ctx.lineTo(cssW, layout.padTop);
-      ctx.moveTo(layout.halfW, 0);
-      ctx.lineTo(layout.halfW, cssH);
+      ctx.moveTo(0, layout.padTop); ctx.lineTo(cssW, layout.padTop);
+      ctx.moveTo(layout.halfW, 0); ctx.lineTo(layout.halfW, cssH);
       ctx.stroke();
 
-      ctx.font = '600 10.5px "IBM Plex Mono", monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#d4cab4';
-      ctx.fillText('СНЯТЫЙ СЛЕД', layout.leftCx, layout.padTop * 0.52);
-      ctx.fillStyle = '#c98a2e';
-      ctx.fillText('ЭТАЛОН БД', layout.rightCx, layout.padTop * 0.52);
+      ctx.font = '600 10px "IBM Plex Mono", monospace';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#d4cab4'; ctx.fillText('СНЯТЫЙ СЛЕД', layout.leftCx, layout.padTop * 0.52);
+      ctx.fillStyle = '#c98a2e'; ctx.fillText(scenario.rightPanelTitle, layout.rightCx, layout.padTop * 0.52);
 
-      // Draw fingerprints side by side
       drawFingerprintPattern(ctx, layout.leftCx, layout.cy, layout.rx, layout.ry, {
-        strokeColor: 'rgba(208, 216, 228, 0.72)',
-        lineWidth: 1.45,
-        tilt: layout.leftTilt,
-        noisy: true
+        strokeColor: 'rgba(208, 216, 228, 0.72)', lineWidth: 1.45, tilt: layout.leftTilt, noisy: true, hasScar: scenario.hasScar
       });
-
       drawFingerprintPattern(ctx, layout.rightCx, layout.cy, layout.rx, layout.ry, {
-        strokeColor: 'rgba(212, 202, 180, 0.72)',
-        lineWidth: 1.45,
-        tilt: layout.rightTilt,
-        noisy: false
+        strokeColor: 'rgba(212, 202, 180, 0.72)', lineWidth: 1.45, tilt: layout.rightTilt, noisy: false, hasScar: scenario.hasScar
       });
 
-      // Draw matched connecting lines across split
-      for (var m = 0; m < MINUTIAE_POINTS.length; m++) {
-        if (!matchedPairs[m]) {
-          continue;
-        }
-        var lpM = getMinutiaCanvasPos(
-          layout.leftCx,
-          layout.cy,
-          layout.rx,
-          layout.ry,
-          layout.leftTilt,
-          MINUTIAE_POINTS[m]
-        );
-        var rpM = getMinutiaCanvasPos(
-          layout.rightCx,
-          layout.cy,
-          layout.rx,
-          layout.ry,
-          layout.rightTilt,
-          MINUTIAE_POINTS[m]
-        );
-
-        ctx.save();
-        ctx.setLineDash([4, 4]);
-        ctx.strokeStyle = 'rgba(201, 138, 46, 0.42)';
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.moveTo(lpM.x, lpM.y);
-        ctx.lineTo(rpM.x, rpM.y);
-        ctx.stroke();
-        ctx.restore();
+      // Draw decoy noise specks on left side ONLY (no counterpart on right!)
+      for (var d = 0; d < NOISE_DECOY_POINTS.length; d++) {
+        var dp = getMinutiaCanvasPos(layout.leftCx, layout.cy, layout.rx, layout.ry, layout.leftTilt, NOISE_DECOY_POINTS[d]);
+        var isWrongD = wrongFlash.active && now < wrongFlash.until && wrongFlash.id === NOISE_DECOY_POINTS[d].id;
+        ctx.beginPath(); ctx.arc(dp.x, dp.y, isWrongD ? 11 : 5.2, 0, Math.PI * 2);
+        ctx.strokeStyle = isWrongD ? '#ef4444' : 'rgba(212, 202, 180, 0.34)';
+        ctx.lineWidth = isWrongD ? 2 : 1; ctx.stroke();
+        ctx.fillStyle = 'rgba(201, 138, 46, 0.45)';
+        ctx.beginPath(); ctx.arc(dp.x, dp.y, 1.5, 0, Math.PI * 2); ctx.fill();
       }
 
-      // Draw subtle minutiae micro-markers & active selection / matched tags
-      var pulse = 0.65 + 0.35 * Math.sin(timeSec * 4.2);
+      for (var m = 0; m < MINUTIAE_POINTS.length; m++) {
+        if (!matchedPairs[m]) continue;
+        var lpM = getMinutiaCanvasPos(layout.leftCx, layout.cy, layout.rx, layout.ry, layout.leftTilt, MINUTIAE_POINTS[m]);
+        var rpM = getMinutiaCanvasPos(layout.rightCx, layout.cy, layout.rx, layout.ry, layout.rightTilt, MINUTIAE_POINTS[m]);
+        ctx.save(); ctx.setLineDash([4, 4]); ctx.strokeStyle = 'rgba(201, 138, 46, 0.44)'; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(lpM.x, lpM.y); ctx.lineTo(rpM.x, rpM.y); ctx.stroke(); ctx.restore();
+      }
 
       for (var i = 0; i < MINUTIAE_POINTS.length; i++) {
         var sides = [
-          {
-            key: 'left',
-            pos: getMinutiaCanvasPos(
-              layout.leftCx,
-              layout.cy,
-              layout.rx,
-              layout.ry,
-              layout.leftTilt,
-              MINUTIAE_POINTS[i]
-            )
-          },
-          {
-            key: 'right',
-            pos: getMinutiaCanvasPos(
-              layout.rightCx,
-              layout.cy,
-              layout.rx,
-              layout.ry,
-              layout.rightTilt,
-              MINUTIAE_POINTS[i]
-            )
-          }
+          { key: 'left', pos: getMinutiaCanvasPos(layout.leftCx, layout.cy, layout.rx, layout.ry, layout.leftTilt, MINUTIAE_POINTS[i]) },
+          { key: 'right', pos: getMinutiaCanvasPos(layout.rightCx, layout.cy, layout.rx, layout.ry, layout.rightTilt, MINUTIAE_POINTS[i]) }
         ];
-
         for (var s = 0; s < sides.length; s++) {
-          var side = sides[s];
-          var px = side.pos.x;
-          var py = side.pos.y;
+          var side = sides[s], px = side.pos.x, py = side.pos.y;
           var isMatched = matchedPairs[i];
-          var isSelected = selectedSide === side.key && selectedId === i;
-          var isWrong =
-            wrongFlash.active &&
-            now < wrongFlash.until &&
-            wrongFlash.side === side.key &&
-            wrongFlash.id === i;
-
+          var isSel = selectedSide === side.key && selectedId === i;
+          var isWrong = wrongFlash.active && now < wrongFlash.until && wrongFlash.side === side.key && wrongFlash.id === i;
           ctx.save();
           if (isMatched) {
-            ctx.beginPath();
-            ctx.arc(px, py, 10, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(201, 138, 46, 0.26)';
-            ctx.fill();
-            ctx.strokeStyle = '#e5a443';
-            ctx.lineWidth = 1.8;
-            ctx.stroke();
-
-            ctx.fillStyle = '#f6dfa8';
-            ctx.font = '600 9.5px "IBM Plex Mono", monospace';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
+            ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(201, 138, 46, 0.26)'; ctx.fill();
+            ctx.strokeStyle = '#e5a443'; ctx.lineWidth = 1.8; ctx.stroke();
+            ctx.fillStyle = '#f6dfa8'; ctx.font = '600 9.5px "IBM Plex Mono", monospace';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText(String(i + 1), px, py + 0.5);
           } else if (isWrong) {
-            ctx.beginPath();
-            ctx.arc(px, py, 12, 0, Math.PI * 2);
-            ctx.strokeStyle = '#ef4444';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-          } else if (isSelected) {
-            ctx.beginPath();
-            ctx.arc(px, py, 12 + pulse * 2.5, 0, Math.PI * 2);
-            ctx.strokeStyle = '#e5a443';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(px, py, 3.5, 0, Math.PI * 2);
-            ctx.fillStyle = '#e5a443';
-            ctx.fill();
+            ctx.beginPath(); ctx.arc(px, py, 12, 0, Math.PI * 2);
+            ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2; ctx.stroke();
+          } else if (isSel) {
+            ctx.beginPath(); ctx.arc(px, py, 12 + pulse * 2.4, 0, Math.PI * 2);
+            ctx.strokeStyle = '#e5a443'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.beginPath(); ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+            ctx.fillStyle = '#e5a443'; ctx.fill();
           } else {
-            // Barely noticeable forensic micro-marker at actual ridge feature
-            ctx.beginPath();
-            ctx.arc(px, py, 5.5, 0, Math.PI * 2);
+            ctx.beginPath(); ctx.arc(px, py, 5.5, 0, Math.PI * 2);
             ctx.strokeStyle = 'rgba(212, 202, 180, ' + (0.28 + 0.14 * pulse).toFixed(2) + ')';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(px, py, 1.6, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(201, 138, 46, ' + (0.45 + 0.22 * pulse).toFixed(2) + ')';
-            ctx.fill();
+            ctx.lineWidth = 1; ctx.stroke();
+            ctx.beginPath(); ctx.arc(px, py, 1.6, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(201, 138, 46, ' + (0.45 + 0.22 * pulse).toFixed(2) + ')'; ctx.fill();
           }
           ctx.restore();
         }
@@ -1800,49 +1613,25 @@
     }
 
     function tick(now) {
-      if (destroyed) {
-        return;
-      }
+      if (destroyed) return;
       var dt = Math.min((now - lastFrameTime) / 1000, 0.1);
       lastFrameTime = now;
-
       if (phase === 'dusting' || phase === 'transition' || phase === 'smudged') {
         renderDustingFrame(dt);
       } else {
         renderMatchingFrame(now);
       }
-
       rafId = window.requestAnimationFrame(tick);
     }
-
     rafId = window.requestAnimationFrame(tick);
 
     return function cleanup() {
       destroyed = true;
-      if (rafId !== null) {
-        window.cancelAnimationFrame(rafId);
-        rafId = null;
-      }
-      if (warnTimer !== null) {
-        window.clearTimeout(warnTimer);
-        warnTimer = null;
-      }
-      if (phaseTimer !== null) {
-        window.clearTimeout(phaseTimer);
-        phaseTimer = null;
-      }
-      if (scanTimer !== null) {
-        window.clearTimeout(scanTimer);
-        scanTimer = null;
-      }
-      if (resizeObserver) {
-        try {
-          resizeObserver.disconnect();
-        } catch (e) {
-          // Ignore disconnect errors
-        }
-        resizeObserver = null;
-      }
+      if (rafId !== null) window.cancelAnimationFrame(rafId);
+      if (warnTimer !== null) window.clearTimeout(warnTimer);
+      if (phaseTimer !== null) window.clearTimeout(phaseTimer);
+      if (scanTimer !== null) window.clearTimeout(scanTimer);
+      if (resizeObserver) { try { resizeObserver.disconnect(); } catch (e) {} }
       window.removeEventListener('resize', resizeCanvas);
       canvas.removeEventListener('pointerdown', onPointerDown);
       canvas.removeEventListener('pointermove', onPointerMove);
@@ -1850,17 +1639,6 @@
       canvas.removeEventListener('pointercancel', onPointerUp);
       canvas.removeEventListener('lostpointercapture', onPointerUp);
       canvas.removeEventListener('contextmenu', onContextMenu);
-
-      bgCanvas.width = 0;
-      bgCanvas.height = 0;
-      printCanvas.width = 0;
-      printCanvas.height = 0;
-      revealCanvas.width = 0;
-      revealCanvas.height = 0;
-      smudgeCanvas.width = 0;
-      smudgeCanvas.height = 0;
-      compCanvas.width = 0;
-      compCanvas.height = 0;
     };
   });
 
