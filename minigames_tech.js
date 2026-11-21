@@ -1430,104 +1430,270 @@
   });
 
   /* ==========================================================================
-     MINIGAME 2: 'audio_clean' (Спектрограмма и очистка записи от шума товарняка)
+     MINIGAME 2: 'audio_clean' (Multi-scenario case409 + case412 + 3-phase)
      ========================================================================== */
+
+  var AU_EXTRA_STYLE_ID = 'minigames-tech-au-extra';
+
+  var AU_EXTRA_CSS =
+    '.mgt-au-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }' +
+    '.mgt-au-err { font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 600; color: #9ba0ab; }' +
+    '.mgt-au-err.is-warn { color: #f87171; }' +
+    '.mgt-ch-bar { flex-shrink: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }' +
+    '.mgt-ch-btn { padding: 6px 4px; background: #14171f; border: 1px solid #2b3140; border-radius: 5px; font-family: "IBM Plex Mono", monospace; font-size: 9.5px; font-weight: 600; color: #8f96a6; text-transform: uppercase; cursor: pointer; }' +
+    '.mgt-ch-btn.is-active { background: #1f2533; border-color: var(--case-accent, #c98a2e); color: #f3ece0; }' +
+    '.mgt-au-toast { font-family: "IBM Plex Mono", monospace; font-size: 10px; color: #fca5a5; min-height: 14px; line-height: 1.3; }' +
+    '.mgt-au-deduce { flex: 1; overflow-y: auto; background: #14171f; border: 1px solid #353b4a; border-top: 3px solid var(--case-accent, #c98a2e); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }' +
+    '.mgt-au-stamp { align-self: center; padding: 7px 14px; font-family: "Oswald", sans-serif; font-size: 17px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #4ade80; border: 3px double #22c55e; background: rgba(34,197,94,0.12); border-radius: 4px; transform: rotate(-5deg); text-align: center; }';
+
+  function injectAuExtraStyles() {
+    if (document.getElementById(AU_EXTRA_STYLE_ID)) return;
+    var el = document.createElement('style');
+    el.id = AU_EXTRA_STYLE_ID;
+    el.textContent = AU_EXTRA_CSS;
+    document.head.appendChild(el);
+  }
+
+  function resolveAudioScenario(config) {
+    var cfg = config || {};
+    var caseId = String(window.ACTIVE_CASE_ID || '').toLowerCase();
+    var nodeId = '';
+    try {
+      if (window.GameEngine && typeof window.GameEngine.getState === 'function') {
+        var st = window.GameEngine.getState();
+        if (st && st.nodeId) nodeId = String(st.nodeId);
+      }
+    } catch (e) {}
+    var storyNode = null;
+    try {
+      if (window.GameStory && window.GameStory.nodes && nodeId) {
+        storyNode = window.GameStory.nodes[nodeId] || null;
+      }
+    } catch (e) {}
+
+    var hint = String(cfg.title || (storyNode && storyNode.title) || '');
+
+    if (cfg.preset === 'case412' || caseId === 'case412' || nodeId === 'act3_mg_audio' || /люк|труб|насос|стук/i.test(hint)) {
+      return {
+        id: 'case412_act3_audio',
+        audioMode: 'pipe',
+        title: cfg.title || 'АУДИОФИЛЬТР // ВОДОПРОВОДНЫЙ ЛЮК',
+        fileTag: 'PIPE_HATCH.WAV // 00:18',
+        signalTag: '● СТУК ПО ТРУБЕ (3–ПАУЗА–3)',
+        scaleMid: '850Hz МЕТАЛЛ',
+        lowLabel: 'НЧ-ФИЛЬТР (Гул магистрального насоса)',
+        midLabel: 'СЧ-УСИЛЕНИЕ (Резонанс стальной трубы)',
+        highLabel: 'ВЧ-ШУМОДАВ (Шип ночного дождя)',
+        targets: { low: [68, 84], mid: [58, 74], high: [62, 78] },
+        stampWin: 'СИГНАЛ ПОДТВЕРЖДЁН: ОНА ЖИВА',
+        channels: [
+          {
+            id: 'ch_air', label: 'A: ПРОБКА', isTarget: false,
+            cleanText: '[КАНАЛ A] Ровные механические щелчки воздушной пробки строго раз в 2.00 сек — бытовая работа насоса.',
+            dirtyText: '*#... [ГУЛ НАСОСА] ...щёлк... [ДОЖДЬ] ...щёлк... ровно 2.00с...',
+            wrongMsg: 'ЛОЖНЫЙ КАНАЛ (+1): на канале A ровный механический такт воздушной пробки — найдите живой рваный перестук!'
+          },
+          {
+            id: 'ch_pipe', label: 'B: СТОЯК Ø100', isTarget: true,
+            cleanText: '[СТОЯК Ø100] «...ТУК-ТУК-ТУК... [пауза 1.2с] ...ТУК-ТУК-тук...» — интервалы рваные, удары металлом по трубе слабеют к концу!',
+            dirtyText: '*#... [ГУЛ НАСОСА 50Гц] ...ту*... [ШИП ДОЖДЯ] ...*к-ту*... [ПОМЕХИ]...',
+            wrongMsg: ''
+          },
+          {
+            id: 'ch_drain', label: 'C: ЛИВНЕВКА', isTarget: false,
+            cleanText: '[КАНАЛ C] Только монотонное журчание дождевой воды по пластиковому жёлобу канавы.',
+            dirtyText: '*#... [ДОЖДЬ] ...шум воды в канаве... [СТАТИКА]...',
+            wrongMsg: 'ЛОЖНЫЙ КАНАЛ (+1): на канале C обычный шум дождевой ливневки, ударов по металлу нет!'
+          }
+        ],
+        facts: [
+          '• Гул магистрального насоса (НЧ) и шип ночного дождя (ВЧ) полностью срезаны',
+          '• На стояке Ø100 выделен ритм: три быстрых удара по металлу, пауза, снова три удара',
+          '• Интервалы рваные и затухают по силе — физически невозможно для воздушной пробки'
+        ],
+        conclusion: {
+          question: 'В очищенной записи из люка слышен рваный слабеющий тройной перестук металлом по водопроводной магистрали. Вывод:',
+          options: [
+            { id: 'air_lock', text: 'Это обычная воздушная пробка в трубах после включения насоса.', isCorrect: false, reason: 'Противоречие: воздушная пробка бьёт равномерно, а здесь живой ритм «3–пауза–3» с разной силой.' },
+            { id: 'alina_alive', text: 'Алина жива и бьёт металлом по водопроводному стояку из подземного помещения, подключённого к этой магистрали!', isCorrect: true, reason: 'Верно: нужно срочно проверить схему врезок водопровода и счётчики на Садовой!' },
+            { id: 'rain_echo', text: 'Эхо капель дождя по железной крышке люка создало иллюзию стука.', isCorrect: false, reason: 'Противоречие: шум дождя отфильтрован на ВЧ, а резонанс идёт из глубины стальной трубы.' }
+          ]
+        }
+      };
+    }
+
+    if (cfg.preset === 'case409' || caseId === 'case409' || nodeId === 'act3_audio_game') {
+      return {
+        id: 'case409_act3_audio',
+        audioMode: 'radio',
+        title: cfg.title || 'АКУСТИЧЕСКАЯ ОЧИСТКА // ДЕЛО №409',
+        fileTag: 'AUDIO_2221.RAW // 00:12',
+        signalTag: '● СИГНАЛ РАЦИИ МВД',
+        scaleMid: '1.2kHz ГОЛОС',
+        lowLabel: 'НЧ-ФИЛЬТР (Грохот ветки)',
+        midLabel: 'СЧ-УСИЛЕНИЕ (Голосовой канал)',
+        highLabel: 'ВЧ-ШУМОДАВ (Ветер / статика)',
+        targets: {
+          low: (cfg.targets && cfg.targets.low) || [72, 88],
+          mid: (cfg.targets && cfg.targets.mid) || [56, 72],
+          high: (cfg.targets && cfg.targets.high) || [64, 80]
+        },
+        stampWin: 'ПОЗЫВНОЙ «БОРТ-4» ПОДТВЕРЖДЁН',
+        channels: [
+          {
+            id: 'ch_train', label: 'A: 22:14', isTarget: false,
+            cleanText: '[22:14] Глухое шуршание подкладки куртки и объявление остановки электрички. Посторонних голосов нет.',
+            dirtyText: '*#... [ШУРШАНИЕ КАРМАНА] ...остановка... [ПОМЕХИ]...',
+            wrongMsg: 'ЛОЖНЫЙ КАНАЛ (+1): это ранняя фоновая запись в 22:14 из электрички — ищите момент нападения в 22:21!'
+          },
+          {
+            id: 'ch_attack', label: 'B: 22:21', isTarget: true,
+            cleanText: cfg.transcript || '«...куда ты свернул? Переезд же в другую сторону... открой дверь, пусти!.. [РЕЗКИЙ ПИСК РАЦИИ МВД: "Борт-4, приём..."] — Заткнись. Всё тихо.»',
+            dirtyText: '*#... [ГРОХОТ ТОВАРНЯКА] ...куда т*... [ШУМ ВЕТРА] ...**... [ПОМЕХИ]...',
+            wrongMsg: ''
+          },
+          {
+            id: 'ch_freight', label: 'C: 22:26', isTarget: false,
+            cleanText: '[22:26] После разбития телефона микрофон уловил лишь удаляющийся грохот товарного состава №2104.',
+            dirtyText: '*#... [ТОВАРНЯК №2104] ...стук колёс... [ОБРЫВ]...',
+            wrongMsg: 'ЛОЖНЫЙ КАНАЛ (+1): в 22:26 телефон уже лежал разбитым в канаве — слышен только товарняк.'
+          }
+        ],
+        facts: [
+          '• Выделена запись 22:21 из кармана Алины; грохот товарняка и ветер отфильтрованы',
+          '• Отчётливо слышна мольба Алины открыть дверь машины на повороте к старой ветке',
+          '• В салоне сработала служебная рация МВД с вызовом «Борт-4, приём...»'
+        ],
+        conclusion: {
+          question: 'На очищенной записи 22:21 в момент нападения в салоне авто звучит служебная рация МВД («Борт-4, приём...»). Вывод:',
+          options: [
+            { id: 'passing_pps', text: 'Рация доносилась с улицы от проезжавшего мимо патруля, а в машине был Громов.', isCorrect: false, reason: 'Противоречие: писк рации записан вплотную внутри закрытого салона, и «Борт-4» — позывной координатора, а не ППС.' },
+            { id: 'krasnov_bort4', text: 'Убийца вёз Алину на своей машине с включённой ведомственной рацией позывного «Борт-4» (координатор Краснов).', isCorrect: true, reason: 'Верно: позывной «Борт-4» на записи 22:21 — прямая улика против координатора опергруппы.' },
+            { id: 'radio_music', text: 'Это реплика из детективного сериала по обычному FM-радио.', isCorrect: false, reason: 'Противоречие: зафиксирован характерный двухтоновый тональный писк цифровой служебной рации МВД.' }
+          ]
+        }
+      };
+    }
+
+    return {
+      id: 'generic_audio_clean',
+      audioMode: 'radio',
+      title: cfg.title || 'АКУСТИЧЕСКАЯ ОЧИСТКА ЗАПИСИ',
+      fileTag: 'AUDIO_REC.RAW',
+      signalTag: '● ЦЕЛЕВОЙ СИГНАЛ',
+      scaleMid: '1.2kHz ГОЛОС',
+      lowLabel: 'НЧ-ФИЛЬТР (Низкочастотный гул)',
+      midLabel: 'СЧ-УСИЛЕНИЕ (Целевой канал)',
+      highLabel: 'ВЧ-ШУМОДАВ (Высокочастотный шум)',
+      targets: { low: [70, 86], mid: [56, 72], high: [64, 80] },
+      stampWin: 'ЗАПИСЬ ОЧИЩЕНА И ПОДТВЕРЖДЕНА',
+      channels: [
+        { id: 'g_a', label: 'КАНАЛ A', isTarget: false, cleanText: '[КАНАЛ A] Фоновая запись без информативных сигналов.', dirtyText: '*#... [ФОН] ...*#...', wrongMsg: 'ЛОЖНЫЙ КАНАЛ (+1): на канале A только бытовой фон.' },
+        { id: 'g_b', label: 'КАНАЛ B', isTarget: true, cleanText: cfg.transcript || 'Целевой голосовой и сигнальный фрагмент успешно очищен от помех.', dirtyText: '*#... [ШУМ] ...фрагм*... [ПОМЕХИ]...', wrongMsg: '' },
+        { id: 'g_c', label: 'КАНАЛ C', isTarget: false, cleanText: '[КАНАЛ C] Пустой статический шум после обрыва записи.', dirtyText: '*#... [СТАТИКА] ...*#...', wrongMsg: 'ЛОЖНЫЙ КАНАЛ (+1): канал C содержит только статический шум.' }
+      ],
+      facts: ['• Целевой канал выделен среди фоновых записей', '• НЧ- и ВЧ-помехи подавлены (>92% чистоты)', '• Авторасшифровка подтверждена'],
+      conclusion: cfg.conclusion || {
+        question: 'Аудиозапись очищена до >92% чистоты. Подтвердите заключение:',
+        options: [
+          { id: 'noise', text: 'На записи только неразборчивый шум.', isCorrect: false, reason: 'Противоречие: сигнал очищен выше 92%.' },
+          { id: 'ok', text: 'Очищенная фонограмма пригодна для приобщения к материалам дела.', isCorrect: true, reason: 'Верно: фоноскопическая экспертиза завершена.' },
+          { id: 'wrong', text: 'Нужно приобщить пустой канал C.', isCorrect: false, reason: 'Противоречие: полезный сигнал находится на канале B.' }
+        ]
+      }
+    };
+  }
+
+  function createNoiseBuffer(audioCtx, seconds, pink) {
+    var sr = audioCtx.sampleRate || 44100;
+    var len = Math.floor(sr * seconds);
+    var buf = audioCtx.createBuffer(1, len, sr);
+    var data = buf.getChannelData(0);
+    if (!pink) {
+      for (var i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    } else {
+      var b0 = 0, b1 = 0, b2 = 0;
+      for (var j = 0; j < len; j++) {
+        var w = Math.random() * 2 - 1;
+        b0 = 0.997 * b0 + w * 0.029;
+        b1 = 0.985 * b1 + w * 0.032;
+        b2 = 0.950 * b2 + w * 0.048;
+        data[j] = (b0 + b1 + b2 + w * 0.08) * 1.6;
+      }
+    }
+    return buf;
+  }
+
 
   window.GameMinigames.register('audio_clean', function (containerEl, config, callbacks) {
     injectTechStyles();
+    injectAuExtraStyles();
 
-    var targetsCfg = config.targets || {};
-    var targetLow = Array.isArray(targetsCfg.low) && targetsCfg.low.length === 2 ? targetsCfg.low : [72, 88];
-    var targetMid = Array.isArray(targetsCfg.mid) && targetsCfg.mid.length === 2 ? targetsCfg.mid : [56, 72];
-    var targetHigh = Array.isArray(targetsCfg.high) && targetsCfg.high.length === 2 ? targetsCfg.high : [64, 80];
+    var cfg = config || {};
+    var scenario = resolveAudioScenario(cfg);
+    var targets = scenario.targets;
+    var targetLow = targets.low;
+    var targetMid = targets.mid;
+    var targetHigh = targets.high;
+    var maxErrors = typeof cfg.maxErrors === 'number' && cfg.maxErrors > 0 ? cfg.maxErrors : 4;
 
-    var transcript =
-      config.transcript ||
-      '«...куда ты свернул? Переезд же в другую сторону... открой дверь, пусти!.. [РЕЗКИЙ ПИСК РАЦИИ МВД: "Борт-4, приём..."] — Заткнись. Всё тихо.»';
-
-    var values = {
-      low: 18,
-      mid: 16,
-      high: 20
-    };
-
+    var channels = scenario.channels;
+    var activeChIdx = 0; // Starts on Channel A (decoy!) so player actively inspects & selects right track
+    var values = { low: 18, mid: 16, high: 20 };
     var clarityPct = 0;
     var isCleanLocked = false;
+    var errorsCount = 0;
+    var phase = 'clean'; // 'clean' | 'deduce' | 'fail'
     var destroyed = false;
-    var radioPulseAlpha = 0;
-    var lastRadioTime = performance.now() - 1200;
+    var signalPulseAlpha = 0;
+    var lastPulseTime = performance.now() - 1200;
+    var timers = [];
 
-    // Deterministic scramble thresholds per character
-    var rand = createPrng(40988);
-    var noiseChars = '*#~%^░▒/';
-    var charMeta = [];
-    for (var ci = 0; ci < transcript.length; ci++) {
-      var ch = transcript.charAt(ci);
-      var isSpaceOrPunct = /[\s.,!?:;«»"—\-()\[\]]/.test(ch);
-      var inRadioTag =
-        transcript.indexOf('[РЕЗКИЙ') !== -1 &&
-        ci >= transcript.indexOf('[РЕЗКИЙ') &&
-        ci <= transcript.indexOf('"]') + 1;
-      var thresh = isSpaceOrPunct
-        ? 0.0
-        : inRadioTag
-          ? 0.56 + rand() * 0.35
-          : 0.14 + rand() * 0.76;
-      charMeta.push({
-        ch: ch,
-        keep: ch === ' ' || ch === '\n',
-        thresh: thresh,
-        noise: noiseChars.charAt(Math.floor(rand() * noiseChars.length))
-      });
+    function addTimer(fn, delay) {
+      var id = window.setTimeout(function () {
+        var idx = timers.indexOf(id);
+        if (idx !== -1) timers.splice(idx, 1);
+        if (!destroyed) fn();
+      }, delay);
+      timers.push(id);
+      return id;
     }
 
-    // Procedural Web Audio engine (isolated & strictly closed on cleanup)
+    function clearTimers() {
+      for (var i = 0; i < timers.length; i++) window.clearTimeout(timers[i]);
+      timers = [];
+    }
+
+    // Precompute deterministic scramble tables for each channel
+    var noiseChars = '*#~%^░▒/';
+    var chCharMeta = channels.map(function (ch, idx) {
+      var r = createPrng(40988 + idx * 131);
+      var txt = String(ch.cleanText || '');
+      var list = [];
+      for (var ci = 0; ci < txt.length; ci++) {
+        var c = txt.charAt(ci);
+        var isPunct = /[\s.,!?:;«»"—\-()\[\]]/.test(c);
+        list.push({
+          ch: c,
+          keep: c === ' ' || c === '\n',
+          thresh: isPunct ? 0 : (0.16 + r() * 0.75),
+          noise: noiseChars.charAt(Math.floor(r() * noiseChars.length))
+        });
+      }
+      return list;
+    });
+
+    // Procedural Web Audio engine (supports both MVD radio chirp & metallic pipe 3-knock!)
     var audioEngine = {
-      ctx: null,
-      masterGain: null,
-      trainGain: null,
-      windGain: null,
-      voiceGain: null,
-      radioBus: null,
-      nodesToStop: [],
-      allNodes: [],
-      started: false,
-      closed: false
+      ctx: null, masterGain: null, lowGain: null, highGain: null, midGain: null, pulseBus: null,
+      nodesToStop: [], allNodes: [], started: false, closed: false
     };
 
-    function createNoiseBuffer(audioCtx, seconds, pink) {
-      var sr = audioCtx.sampleRate || 44100;
-      var len = Math.floor(sr * seconds);
-      var buf = audioCtx.createBuffer(1, len, sr);
-      var data = buf.getChannelData(0);
-      if (!pink) {
-        for (var i = 0; i < len; i++) {
-          data[i] = Math.random() * 2 - 1;
-        }
-      } else {
-        var b0 = 0;
-        var b1 = 0;
-        var b2 = 0;
-        for (var j = 0; j < len; j++) {
-          var w = Math.random() * 2 - 1;
-          b0 = 0.997 * b0 + w * 0.029;
-          b1 = 0.985 * b1 + w * 0.032;
-          b2 = 0.950 * b2 + w * 0.048;
-          data[j] = (b0 + b1 + b2 + w * 0.08) * 1.6;
-        }
-      }
-      return buf;
-    }
-
     function initLocalAudio() {
-      if (audioEngine.started || audioEngine.closed || destroyed) {
-        return;
-      }
+      if (audioEngine.started || audioEngine.closed || destroyed) return;
       try {
         var AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (!AudioCtx) {
-          return;
-        }
+        if (!AudioCtx) return;
         var aCtx = new AudioCtx();
         var now = aCtx.currentTime;
 
@@ -1536,302 +1702,151 @@
         comp.ratio.setValueAtTime(5, now);
 
         var masterGain = aCtx.createGain();
-        masterGain.gain.setValueAtTime(isGameAudioMuted() ? 0 : 0.72, now);
-
+        masterGain.gain.setValueAtTime(isGameAudioMuted() ? 0 : 0.7, now);
         comp.connect(masterGain);
         masterGain.connect(aCtx.destination);
 
         var whiteBuf = createNoiseBuffer(aCtx, 2.0, false);
         var pinkBuf = createNoiseBuffer(aCtx, 2.5, true);
 
-        // 1. Low freight train rumble + rhythmic wheel clatter
-        var trainGain = aCtx.createGain();
-        trainGain.gain.setValueAtTime(0.32, now);
+        // Low hum (train rumble OR water main pump hum)
+        var lowGain = aCtx.createGain();
+        lowGain.gain.setValueAtTime(0.30, now);
+        var lowLp = aCtx.createBiquadFilter();
+        lowLp.type = 'lowpass';
+        lowLp.frequency.setValueAtTime(scenario.audioMode === 'pipe' ? 145 : 195, now);
+        var lowOsc = aCtx.createOscillator();
+        lowOsc.type = scenario.audioMode === 'pipe' ? 'sine' : 'sawtooth';
+        lowOsc.frequency.setValueAtTime(scenario.audioMode === 'pipe' ? 50 : 54, now);
+        var lowNoise = aCtx.createBufferSource();
+        lowNoise.buffer = pinkBuf; lowNoise.loop = true;
 
-        var trainLp = aCtx.createBiquadFilter();
-        trainLp.type = 'lowpass';
-        trainLp.frequency.setValueAtTime(195, now);
-        trainLp.Q.setValueAtTime(1.5, now);
+        lowOsc.connect(lowLp); lowNoise.connect(lowLp);
+        lowLp.connect(lowGain); lowGain.connect(comp);
 
-        var trainOsc1 = aCtx.createOscillator();
-        trainOsc1.type = 'sawtooth';
-        trainOsc1.frequency.setValueAtTime(54, now);
+        // High hiss (wind OR night rain)
+        var highGain = aCtx.createGain();
+        highGain.gain.setValueAtTime(0.22, now);
+        var highNoise = aCtx.createBufferSource();
+        highNoise.buffer = whiteBuf; highNoise.loop = true;
+        var highBp = aCtx.createBiquadFilter();
+        highBp.type = 'bandpass';
+        highBp.frequency.setValueAtTime(scenario.audioMode === 'pipe' ? 3400 : 2750, now);
+        highBp.Q.setValueAtTime(2.0, now);
+        highNoise.connect(highBp); highBp.connect(highGain); highGain.connect(comp);
 
-        var trainOsc2 = aCtx.createOscillator();
-        trainOsc2.type = 'triangle';
-        trainOsc2.frequency.setValueAtTime(41.5, now);
+        // Mid band presence
+        var midGain = aCtx.createGain();
+        midGain.gain.setValueAtTime(0.02, now);
+        var midNoise = aCtx.createBufferSource();
+        midNoise.buffer = pinkBuf; midNoise.loop = true;
+        var midBp = aCtx.createBiquadFilter();
+        midBp.type = 'bandpass'; midBp.frequency.setValueAtTime(980, now); midBp.Q.setValueAtTime(3.0, now);
+        midNoise.connect(midBp); midBp.connect(midGain); midGain.connect(comp);
 
-        var trainNoise = aCtx.createBufferSource();
-        trainNoise.buffer = pinkBuf;
-        trainNoise.loop = true;
+        var pulseBus = aCtx.createGain();
+        pulseBus.gain.setValueAtTime(1.0, now);
+        pulseBus.connect(comp);
 
-        // Rhythmic wheel-joint clatter modulation
-        var clatterGain = aCtx.createGain();
-        clatterGain.gain.setValueAtTime(0.68, now);
-
-        var clatterLfo = aCtx.createOscillator();
-        clatterLfo.type = 'square';
-        clatterLfo.frequency.setValueAtTime(2.35, now);
-
-        var clatterLfoLp = aCtx.createBiquadFilter();
-        clatterLfoLp.type = 'lowpass';
-        clatterLfoLp.frequency.setValueAtTime(8, now);
-
-        var clatterDepth = aCtx.createGain();
-        clatterDepth.gain.setValueAtTime(0.32, now);
-
-        clatterLfo.connect(clatterLfoLp);
-        clatterLfoLp.connect(clatterDepth);
-        clatterDepth.connect(clatterGain.gain);
-
-        trainOsc1.connect(trainLp);
-        trainOsc2.connect(trainLp);
-        trainNoise.connect(trainLp);
-        trainLp.connect(clatterGain);
-        clatterGain.connect(trainGain);
-        trainGain.connect(comp);
-
-        // 2. High-frequency wind whistle & static hiss
-        var windGain = aCtx.createGain();
-        windGain.gain.setValueAtTime(0.24, now);
-
-        var windNoise = aCtx.createBufferSource();
-        windNoise.buffer = whiteBuf;
-        windNoise.loop = true;
-
-        var windBp = aCtx.createBiquadFilter();
-        windBp.type = 'bandpass';
-        windBp.frequency.setValueAtTime(2750, now);
-        windBp.Q.setValueAtTime(2.6, now);
-
-        var windLfo = aCtx.createOscillator();
-        windLfo.type = 'sine';
-        windLfo.frequency.setValueAtTime(0.28, now);
-
-        var windLfoGain = aCtx.createGain();
-        windLfoGain.gain.setValueAtTime(580, now);
-
-        windLfo.connect(windLfoGain);
-        windLfoGain.connect(windBp.frequency);
-
-        var staticHp = aCtx.createBiquadFilter();
-        staticHp.type = 'highpass';
-        staticHp.frequency.setValueAtTime(3800, now);
-
-        var staticTrim = aCtx.createGain();
-        staticTrim.gain.setValueAtTime(0.28, now);
-
-        windNoise.connect(windBp);
-        windBp.connect(windGain);
-        windNoise.connect(staticHp);
-        staticHp.connect(staticTrim);
-        staticTrim.connect(windGain);
-        windGain.connect(comp);
-
-        // 3. Subtle mid-band pocket voice channel presence
-        var voiceGain = aCtx.createGain();
-        voiceGain.gain.setValueAtTime(0.02, now);
-
-        var voiceNoise = aCtx.createBufferSource();
-        voiceNoise.buffer = pinkBuf;
-        voiceNoise.loop = true;
-
-        var voiceBp = aCtx.createBiquadFilter();
-        voiceBp.type = 'bandpass';
-        voiceBp.frequency.setValueAtTime(980, now);
-        voiceBp.Q.setValueAtTime(3.2, now);
-
-        voiceNoise.connect(voiceBp);
-        voiceBp.connect(voiceGain);
-        voiceGain.connect(comp);
-
-        // 4. Radio chirp bus
-        var radioBus = aCtx.createGain();
-        radioBus.gain.setValueAtTime(1.0, now);
-        radioBus.connect(comp);
-
-        trainOsc1.start(now);
-        trainOsc2.start(now);
-        trainNoise.start(now);
-        clatterLfo.start(now);
-        windNoise.start(now);
-        windLfo.start(now);
-        voiceNoise.start(now);
+        lowOsc.start(now); lowNoise.start(now); highNoise.start(now); midNoise.start(now);
 
         audioEngine.ctx = aCtx;
         audioEngine.masterGain = masterGain;
-        audioEngine.trainGain = trainGain;
-        audioEngine.windGain = windGain;
-        audioEngine.voiceGain = voiceGain;
-        audioEngine.radioBus = radioBus;
-        audioEngine.nodesToStop = [
-          trainOsc1,
-          trainOsc2,
-          trainNoise,
-          clatterLfo,
-          windNoise,
-          windLfo,
-          voiceNoise
-        ];
-        audioEngine.allNodes = [
-          trainOsc1,
-          trainOsc2,
-          trainNoise,
-          trainLp,
-          clatterLfo,
-          clatterLfoLp,
-          clatterDepth,
-          clatterGain,
-          trainGain,
-          windNoise,
-          windBp,
-          windLfo,
-          windLfoGain,
-          staticHp,
-          staticTrim,
-          windGain,
-          voiceNoise,
-          voiceBp,
-          voiceGain,
-          radioBus,
-          comp,
-          masterGain
-        ];
+        audioEngine.lowGain = lowGain;
+        audioEngine.highGain = highGain;
+        audioEngine.midGain = midGain;
+        audioEngine.pulseBus = pulseBus;
+        audioEngine.nodesToStop = [lowOsc, lowNoise, highNoise, midNoise];
+        audioEngine.allNodes = [lowOsc, lowNoise, lowLp, lowGain, highNoise, highBp, highGain, midNoise, midBp, midGain, pulseBus, comp, masterGain];
         audioEngine.started = true;
-
-        if (aCtx.state === 'suspended') {
-          var p = aCtx.resume();
-          if (p && typeof p.catch === 'function') {
-            p.catch(function () {});
-          }
-        }
-      } catch (e) {
-        // Safe fallback if audio blocked
-      }
+        if (aCtx.state === 'suspended') { var p = aCtx.resume(); if (p && p.catch) p.catch(function () {}); }
+      } catch (e) {}
     }
 
     function resumeLocalAudio() {
-      if (!audioEngine.started && !audioEngine.closed) {
-        initLocalAudio();
-      }
+      if (!audioEngine.started && !audioEngine.closed) initLocalAudio();
       try {
         if (audioEngine.ctx && audioEngine.ctx.state === 'suspended') {
-          var p = audioEngine.ctx.resume();
-          if (p && typeof p.catch === 'function') {
-            p.catch(function () {});
-          }
+          var p = audioEngine.ctx.resume(); if (p && p.catch) p.catch(function () {});
         }
-      } catch (e) {
-        // Ignore resume errors
-      }
+      } catch (e) {}
     }
 
-    function playEmbeddedRadioBeep(clarityNorm) {
-      if (destroyed || audioEngine.closed || isGameAudioMuted()) {
-        return;
-      }
-      if (!audioEngine.ctx || !audioEngine.radioBus || clarityNorm < 0.22) {
-        return;
-      }
+    function playTargetCue(clarityNorm) {
+      if (destroyed || audioEngine.closed || isGameAudioMuted()) return;
+      if (!audioEngine.ctx || !audioEngine.pulseBus || clarityNorm < 0.22) return;
+      if (!channels[activeChIdx] || !channels[activeChIdx].isTarget) return;
       try {
         var aCtx = audioEngine.ctx;
-        if (aCtx.state !== 'running') {
-          return;
-        }
+        if (aCtx.state !== 'running') return;
         var now = aCtx.currentTime;
         var vol = Math.min(0.24, clarityNorm * clarityNorm * 0.24);
 
-        var osc = aCtx.createOscillator();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(1340, now);
-        osc.frequency.setValueAtTime(985, now + 0.048);
-
-        var bp = aCtx.createBiquadFilter();
-        bp.type = 'bandpass';
-        bp.frequency.setValueAtTime(1320, now);
-        bp.Q.setValueAtTime(2.2, now);
-
-        var env = aCtx.createGain();
-        env.gain.setValueAtTime(0.0001, now);
-        env.gain.linearRampToValueAtTime(vol, now + 0.008);
-        env.gain.setValueAtTime(vol * 0.85, now + 0.088);
-        env.gain.exponentialRampToValueAtTime(0.0001, now + 0.11);
-
-        osc.connect(bp);
-        bp.connect(env);
-        env.connect(audioEngine.radioBus);
-
-        osc.start(now);
-        osc.stop(now + 0.12);
-      } catch (e) {
-        // Ignore chirp errors
-      }
+        if (scenario.audioMode === 'pipe') {
+          // 3 metallic pipe knocks (t=0, 0.19s, 0.40s — fading on 3rd strike)
+          var offsets = [0, 0.19, 0.41];
+          var gains = [1.0, 0.88, 0.62];
+          for (var k = 0; k < offsets.length; k++) {
+            var st = now + offsets[k];
+            var oscP = aCtx.createOscillator();
+            oscP.type = 'triangle';
+            oscP.frequency.setValueAtTime(760 - k * 25, st);
+            oscP.frequency.exponentialRampToValueAtTime(340, st + 0.085);
+            var envP = aCtx.createGain();
+            envP.gain.setValueAtTime(0.0001, st);
+            envP.gain.linearRampToValueAtTime(vol * gains[k], st + 0.006);
+            envP.gain.exponentialRampToValueAtTime(0.0001, st + 0.095);
+            oscP.connect(envP); envP.connect(audioEngine.pulseBus);
+            oscP.start(st); oscP.stop(st + 0.105);
+          }
+        } else {
+          // 2-tone MVD radio chirp
+          var osc = aCtx.createOscillator();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(1340, now);
+          osc.frequency.setValueAtTime(985, now + 0.048);
+          var bp = aCtx.createBiquadFilter();
+          bp.type = 'bandpass'; bp.frequency.setValueAtTime(1320, now); bp.Q.setValueAtTime(2.2, now);
+          var env = aCtx.createGain();
+          env.gain.setValueAtTime(0.0001, now);
+          env.gain.linearRampToValueAtTime(vol, now + 0.008);
+          env.gain.setValueAtTime(vol * 0.85, now + 0.088);
+          env.gain.exponentialRampToValueAtTime(0.0001, now + 0.11);
+          osc.connect(bp); bp.connect(env); env.connect(audioEngine.pulseBus);
+          osc.start(now); osc.stop(now + 0.12);
+        }
+      } catch (e) {}
     }
 
     function stopLocalAudio() {
-      if (audioEngine.closed) {
-        return;
-      }
+      if (audioEngine.closed) return;
       audioEngine.closed = true;
       try {
         if (audioEngine.ctx && audioEngine.masterGain) {
-          var now = audioEngine.ctx.currentTime;
-          audioEngine.masterGain.gain.cancelScheduledValues(now);
-          audioEngine.masterGain.gain.setValueAtTime(0, now);
+          audioEngine.masterGain.gain.setValueAtTime(0, audioEngine.ctx.currentTime);
         }
-      } catch (e) {
-        // Ignore gain mute error
-      }
-
-      for (var i = 0; i < audioEngine.nodesToStop.length; i++) {
-        try {
-          audioEngine.nodesToStop[i].stop();
-        } catch (e) {
-          // Already stopped
-        }
-      }
-      for (var j = 0; j < audioEngine.allNodes.length; j++) {
-        try {
-          audioEngine.allNodes[j].disconnect();
-        } catch (e) {
-          // Already disconnected
-        }
-      }
-
+      } catch (e) {}
+      for (var i = 0; i < audioEngine.nodesToStop.length; i++) { try { audioEngine.nodesToStop[i].stop(); } catch (e) {} }
+      for (var j = 0; j < audioEngine.allNodes.length; j++) { try { audioEngine.allNodes[j].disconnect(); } catch (e) {} }
       if (audioEngine.ctx && typeof audioEngine.ctx.close === 'function') {
-        try {
-          var closeP = audioEngine.ctx.close();
-          if (closeP && typeof closeP.catch === 'function') {
-            closeP.catch(function () {});
-          }
-        } catch (e) {
-          // Ignore close error
-        }
+        try { var cp = audioEngine.ctx.close(); if (cp && cp.catch) cp.catch(function () {}); } catch (e) {}
       }
-
-      audioEngine.ctx = null;
-      audioEngine.nodesToStop = [];
-      audioEngine.allNodes = [];
+      audioEngine.ctx = null; audioEngine.nodesToStop = []; audioEngine.allNodes = [];
     }
 
     function calcBandAccuracy(val, range) {
-      var min = range[0];
-      var max = range[1];
-      if (val >= min && val <= max) {
-        return 1.0;
-      }
-      var dist = val < min ? min - val : val - max;
+      if (val >= range[0] && val <= range[1]) return 1.0;
+      var dist = val < range[0] ? range[0] - val : val - range[1];
       return Math.max(0, 1 - dist / 58);
     }
 
     function calcCenterPrecision(val, range) {
       var mid = (range[0] + range[1]) * 0.5;
       var half = Math.max(1, (range[1] - range[0]) * 0.5);
-      var normDist = Math.min(1, Math.abs(val - mid) / half);
-      return 1 - normDist;
+      return 1 - Math.min(1, Math.abs(val - mid) / half);
     }
 
-    // Build DOM
+    // Build Shell DOM
     var wrap = document.createElement('div');
     wrap.className = 'mg-wrap';
 
@@ -1843,14 +1858,18 @@
 
     var titleEl = document.createElement('div');
     titleEl.className = 'mg-header-title';
-    titleEl.textContent = config.title || 'АКУСТИЧЕСКАЯ ОЧИСТКА ЗАПИСИ';
+    titleEl.textContent = scenario.title;
 
-    var counterEl = document.createElement('div');
+    var metaRow = document.createElement('div');
+    metaRow.className = 'mgt-au-meta';
+    var counterEl = document.createElement('span');
     counterEl.className = 'mg-counter';
-    counterEl.textContent = 'ЧИСТОТА СИГНАЛА: 0%';
-
+    var errEl = document.createElement('span');
+    errEl.className = 'mgt-au-err';
+    metaRow.appendChild(counterEl);
+    metaRow.appendChild(errEl);
     headInfo.appendChild(titleEl);
-    headInfo.appendChild(counterEl);
+    headInfo.appendChild(metaRow);
 
     var btnBack = document.createElement('button');
     btnBack.type = 'button';
@@ -1858,8 +1877,7 @@
     btnBack.textContent = 'НАЗАД';
     btnBack.addEventListener('click', function () {
       stopLocalAudio();
-      sfx('sfxClick');
-      haptic('light');
+      sfx('sfxClick'); haptic('light');
       callbacks.onCancel();
     });
 
@@ -1872,130 +1890,115 @@
     var layout = document.createElement('div');
     layout.className = 'mgt-audio-layout';
 
+    // Channel selector bar (3 tracks: 2 decoys + 1 target)
+    var chBar = document.createElement('div');
+    chBar.className = 'mgt-ch-bar';
+    var chBtns = [];
+    for (var ci = 0; ci < channels.length; ci++) {
+      (function (idx, chObj) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'mgt-ch-btn' + (idx === activeChIdx ? ' is-active' : '');
+        b.textContent = chObj.label;
+        b.addEventListener('click', function () {
+          if (phase !== 'clean' || activeChIdx === idx) return;
+          resumeLocalAudio();
+          activeChIdx = idx;
+          for (var j = 0; j < chBtns.length; j++) chBtns[j].classList.toggle('is-active', j === activeChIdx);
+          toastEl.textContent = '';
+          sfx('sfxClick'); haptic('light');
+          evaluateFilters();
+        });
+        chBar.appendChild(b);
+        chBtns.push(b);
+      })(ci, channels[ci]);
+    }
+
     var specBox = document.createElement('div');
     specBox.className = 'mgt-spec-box';
-
     var canvas = document.createElement('canvas');
     canvas.className = 'mg-canvas';
     specBox.appendChild(canvas);
 
-    // 3 Mixer Sliders
     var mixer = document.createElement('div');
     mixer.className = 'mgt-mixer';
-
     var sliderConfigs = [
-      { key: 'low', label: 'НЧ-ФИЛЬТР (Грохот ветки)', target: targetLow },
-      { key: 'mid', label: 'СЧ-УСИЛЕНИЕ (Голосовой канал)', target: targetMid },
-      { key: 'high', label: 'ВЧ-ШУМОДАВ (Ветер / статика)', target: targetHigh }
+      { key: 'low', label: scenario.lowLabel, target: targetLow },
+      { key: 'mid', label: scenario.midLabel, target: targetMid },
+      { key: 'high', label: scenario.highLabel, target: targetHigh }
     ];
-
     var sliderRefs = {};
 
     for (var si = 0; si < sliderConfigs.length; si++) {
       (function (sc) {
         var row = document.createElement('div');
         row.className = 'mgt-slider-row';
-
         var head = document.createElement('div');
         head.className = 'mgt-slider-head';
-
-        var label = document.createElement('span');
-        label.textContent = sc.label;
-
+        var lbl = document.createElement('span');
+        lbl.textContent = sc.label;
         var right = document.createElement('span');
         right.className = 'mgt-slider-right';
-
         var led = document.createElement('span');
         led.className = 'mgt-led';
-
         var valEl = document.createElement('span');
         valEl.className = 'mgt-slider-val';
         valEl.textContent = String(values[sc.key]);
-
-        right.appendChild(led);
-        right.appendChild(valEl);
-        head.appendChild(label);
-        head.appendChild(right);
+        right.appendChild(led); right.appendChild(valEl);
+        head.appendChild(lbl); head.appendChild(right);
 
         var range = document.createElement('input');
-        range.type = 'range';
-        range.className = 'mgt-range';
-        range.min = '0';
-        range.max = '100';
-        range.step = '1';
+        range.type = 'range'; range.className = 'mgt-range';
+        range.min = '0'; range.max = '100'; range.step = '1';
         range.value = String(values[sc.key]);
-
-        range.addEventListener('pointerdown', function () {
-          resumeLocalAudio();
-        });
-
+        range.addEventListener('pointerdown', resumeLocalAudio);
         range.addEventListener('input', function () {
+          if (phase !== 'clean') return;
           resumeLocalAudio();
           values[sc.key] = Number(range.value) || 0;
           valEl.textContent = String(values[sc.key]);
+          toastEl.textContent = '';
           evaluateFilters();
         });
 
-        row.appendChild(head);
-        row.appendChild(range);
+        row.appendChild(head); row.appendChild(range);
         mixer.appendChild(row);
-
-        sliderRefs[sc.key] = {
-          led: led,
-          valEl: valEl,
-          range: range,
-          target: sc.target
-        };
+        sliderRefs[sc.key] = { led: led, valEl: valEl, range: range };
       })(sliderConfigs[si]);
     }
 
-    // Auto-transcript card
     var transcriptCard = document.createElement('div');
     transcriptCard.className = 'mgt-transcript-card';
-
     var clarityHead = document.createElement('div');
     clarityHead.className = 'mgt-clarity-head';
-
     var transLabel = document.createElement('span');
-    transLabel.textContent = 'АВТОРАСШИФРОВКА';
-
+    transLabel.textContent = 'АВТОРАСШИФРОВКА ДОРОЖКИ';
     var clarityValEl = document.createElement('span');
     clarityValEl.className = 'mgt-clarity-val';
-    clarityValEl.textContent = 'ЧИСТОТА СИГНАЛА: 0%';
-
-    clarityHead.appendChild(transLabel);
-    clarityHead.appendChild(clarityValEl);
+    clarityHead.appendChild(transLabel); clarityHead.appendChild(clarityValEl);
 
     var transcriptTextEl = document.createElement('div');
     transcriptTextEl.className = 'mgt-transcript-text';
+    var toastEl = document.createElement('div');
+    toastEl.className = 'mgt-au-toast';
 
     transcriptCard.appendChild(clarityHead);
     transcriptCard.appendChild(transcriptTextEl);
+    transcriptCard.appendChild(toastEl);
 
+    layout.appendChild(chBar);
     layout.appendChild(specBox);
     layout.appendChild(mixer);
     layout.appendChild(transcriptCard);
     body.appendChild(layout);
 
-    // Footer confirm button
     var footer = document.createElement('div');
     footer.className = 'mg-footer';
-
     var btnConfirm = document.createElement('button');
     btnConfirm.type = 'button';
     btnConfirm.className = 'mg-btn mg-btn-primary mgt-confirm-btn';
-    btnConfirm.textContent = 'ЗАФИКСИРОВАТЬ ОЧИЩЕННУЮ ЗАПИСЬ';
+    btnConfirm.textContent = 'ЗАФИКСИРОВАТЬ ВЫБРАННУЮ ЗАПИСЬ';
     btnConfirm.disabled = true;
-    btnConfirm.addEventListener('click', function () {
-      if (!isCleanLocked || destroyed) {
-        return;
-      }
-      stopLocalAudio();
-      sfx('sfxStamp');
-      haptic('success');
-      callbacks.onSuccess({ cleaned: true });
-    });
-
     footer.appendChild(btnConfirm);
 
     wrap.appendChild(header);
@@ -2003,27 +2006,167 @@
     wrap.appendChild(footer);
     containerEl.appendChild(wrap);
 
-    // Filter state metrics for audio + visuals
     var bandAcc = { low: 0, mid: 0, high: 0 };
 
-    function buildScrambledTranscript(pct) {
-      if (pct >= 92) {
-        return transcript;
+    function syncErrHeader() {
+      errEl.textContent = 'ОШИБКИ: ' + errorsCount + ' / ' + maxErrors;
+      errEl.classList.toggle('is-warn', errorsCount >= maxErrors - 1);
+    }
+
+    function showFailOverlay(reason, msg) {
+      phase = 'fail';
+      stopLocalAudio();
+      footer.classList.add('hidden');
+      layout.innerHTML = '';
+      var ov = document.createElement('div');
+      ov.className = 'mgt-fail-overlay';
+      ov.innerHTML = '<div class="mgt-fail-card"><div class="mgt-fail-title">ЭКСПЕРТИЗА ПРОВАЛЕНА</div><div class="mgt-fail-desc"></div></div>';
+      ov.querySelector('.mgt-fail-desc').textContent = msg || 'Превышен лимит ошибок фоноскопического анализа.';
+      layout.appendChild(ov);
+      addTimer(function () {
+        callbacks.onFail({ reason: reason, errors: errorsCount, scenarioId: scenario.id });
+      }, 950);
+    }
+
+    function openPhase3Deduction() {
+      phase = 'deduce';
+      stopLocalAudio();
+      counterEl.textContent = 'ФАЗА 3 // ФОНОСКОПИЯ';
+      footer.classList.add('hidden');
+      layout.innerHTML = '';
+
+      var card = document.createElement('div');
+      card.className = 'mgt-au-deduce';
+
+      var kicker = document.createElement('div');
+      kicker.className = 'mgt-dkicker';
+      kicker.textContent = 'ФАЗА 3 // ФОНОСКОПИЧЕСКИЙ ВЫВОД';
+      card.appendChild(kicker);
+
+      var facts = document.createElement('div');
+      facts.className = 'mgt-dfacts';
+      for (var fi = 0; fi < scenario.facts.length; fi++) {
+        var r = document.createElement('div');
+        r.textContent = scenario.facts[fi];
+        facts.appendChild(r);
       }
-      if (pct < 20) {
-        return '*#... [ГРОХОТ ТОВАРНЯКА] ...куда т*... [ШУМ ВЕТРА] ...**... [ПОМЕХИ] ...*#...';
+      card.appendChild(facts);
+
+      var q = document.createElement('div');
+      q.className = 'mgt-dq';
+      q.textContent = scenario.conclusion.question;
+      card.appendChild(q);
+
+      var optsEl = document.createElement('div');
+      optsEl.className = 'mgt-dopts';
+      var fb = document.createElement('div');
+      fb.className = 'mgt-dfb';
+
+      var settled = false;
+      var opts = scenario.conclusion.options || [];
+      for (var oi = 0; oi < opts.length; oi++) {
+        (function (opt) {
+          var ob = document.createElement('button');
+          ob.type = 'button';
+          ob.className = 'mgt-dopt';
+          ob.textContent = opt.text;
+          ob.addEventListener('click', function () {
+            if (settled || destroyed) return;
+            if (opt.isCorrect) {
+              settled = true;
+              ob.classList.add('is-correct');
+              fb.className = 'mgt-dfb is-ok';
+              fb.textContent = opt.reason;
+              sfx('sfxStamp'); haptic('success');
+              addTimer(function () {
+                card.innerHTML = '';
+                var st = document.createElement('div');
+                st.className = 'mgt-au-stamp';
+                st.textContent = scenario.stampWin;
+                var btnDone = document.createElement('button');
+                btnDone.type = 'button';
+                btnDone.className = 'mg-btn mg-btn-primary';
+                btnDone.style.width = '100%';
+                btnDone.textContent = 'ПРИОБЩИТЬ ФОНОГРАММУ К ДЕЛУ';
+                btnDone.addEventListener('click', function () {
+                  sfx('sfxSuccess'); haptic('success');
+                  callbacks.onSuccess({
+                    cleaned: true,
+                    scenarioId: scenario.id,
+                    errors: errorsCount,
+                    deduced: opt.id
+                  });
+                });
+                card.style.justifyContent = 'center';
+                card.style.gap = '16px';
+                card.appendChild(st);
+                card.appendChild(btnDone);
+              }, 550);
+            } else {
+              errorsCount += 1;
+              syncErrHeader();
+              ob.classList.add('is-wrong');
+              fb.className = 'mgt-dfb';
+              fb.textContent = opt.reason;
+              sfx('sfxAlert'); haptic('error');
+              if (errorsCount >= maxErrors) {
+                settled = true;
+                addTimer(function () {
+                  showFailOverlay('wrong_deduction', 'Превышен лимит ошибок — фоноскопический вывод отклонён.');
+                }, 680);
+              }
+            }
+          });
+          optsEl.appendChild(ob);
+        })(opts[oi]);
       }
-      var norm = pct / 100;
-      var out = '';
-      for (var i = 0; i < charMeta.length; i++) {
-        var m = charMeta[i];
-        if (m.keep || norm >= m.thresh) {
-          out += m.ch;
-        } else {
-          out += m.noise;
+
+      card.appendChild(optsEl);
+      card.appendChild(fb);
+      layout.appendChild(card);
+    }
+
+    btnConfirm.addEventListener('click', function () {
+      if (phase !== 'clean' || !isCleanLocked || destroyed) return;
+      var ch = channels[activeChIdx];
+      if (!ch.isTarget) {
+        errorsCount += 1;
+        syncErrHeader();
+        sfx('sfxAlert'); haptic('error');
+        toastEl.textContent = ch.wrongMsg || 'ЛОЖНЫЙ КАНАЛ (+1 ОШИБКА): проверьте другую звуковую дорожку!';
+        if (errorsCount >= maxErrors) {
+          addTimer(function () {
+            showFailOverlay('wrong_channel', toastEl.textContent);
+          }, 620);
         }
+        return;
+      }
+
+      sfx('sfxSuccess'); haptic('success');
+      openPhase3Deduction();
+    });
+
+    function buildScrambledTranscript(pct) {
+      var ch = channels[activeChIdx];
+      if (pct >= 92) return ch.cleanText;
+      if (pct < 20) return ch.dirtyText;
+      var meta = chCharMeta[activeChIdx] || [];
+      var norm = pct / 100, out = '';
+      for (var i = 0; i < meta.length; i++) {
+        out += (meta[i].keep || norm >= meta[i].thresh) ? meta[i].ch : meta[i].noise;
       }
       return out;
+    }
+
+    function syncLocalAudioGains() {
+      if (!audioEngine.started || audioEngine.closed || !audioEngine.ctx) return;
+      try {
+        var now = audioEngine.ctx.currentTime;
+        audioEngine.masterGain.gain.setTargetAtTime(isGameAudioMuted() ? 0 : 0.7, now, 0.04);
+        audioEngine.lowGain.gain.setTargetAtTime(0.014 + Math.pow(1 - bandAcc.low, 1.45) * 0.34, now, 0.05);
+        audioEngine.highGain.gain.setTargetAtTime(0.008 + Math.pow(1 - bandAcc.high, 1.45) * 0.24, now, 0.05);
+        audioEngine.midGain.gain.setTargetAtTime(0.01 + bandAcc.mid * 0.08, now, 0.05);
+      } catch (e) {}
     }
 
     function evaluateFilters() {
@@ -2033,300 +2176,147 @@
 
       var keys = ['low', 'mid', 'high'];
       for (var i = 0; i < keys.length; i++) {
-        var k = keys[i];
-        var acc = bandAcc[k];
-        var led = sliderRefs[k].led;
+        var acc = bandAcc[keys[i]];
+        var led = sliderRefs[keys[i]].led;
         led.classList.remove('is-near', 'is-lock');
-        if (acc >= 1) {
-          led.classList.add('is-lock');
-        } else if (acc >= 0.72) {
-          led.classList.add('is-near');
-        }
+        if (acc >= 1) led.classList.add('is-lock');
+        else if (acc >= 0.72) led.classList.add('is-near');
       }
 
       var allLocked = bandAcc.low >= 1 && bandAcc.mid >= 1 && bandAcc.high >= 1;
       if (allLocked) {
-        var prec =
-          (calcCenterPrecision(values.low, targetLow) +
-            calcCenterPrecision(values.mid, targetMid) +
-            calcCenterPrecision(values.high, targetHigh)) /
-          3;
+        var prec = (calcCenterPrecision(values.low, targetLow) + calcCenterPrecision(values.mid, targetMid) + calcCenterPrecision(values.high, targetHigh)) / 3;
         clarityPct = Math.min(100, Math.round(93 + prec * 7));
       } else {
-        var avg = (bandAcc.low + bandAcc.mid + bandAcc.high) / 3;
-        clarityPct = Math.min(89, Math.round(avg * 90));
+        clarityPct = Math.min(89, Math.round(((bandAcc.low + bandAcc.mid + bandAcc.high) / 3) * 90));
       }
 
       var wasClean = isCleanLocked;
       isCleanLocked = clarityPct >= 92 && allLocked;
 
-      counterEl.textContent = 'ЧИСТОТА СИГНАЛА: ' + clarityPct + '%';
+      counterEl.textContent = 'ЧИСТОТА: ' + clarityPct + '%';
       counterEl.style.color = isCleanLocked ? '#6ec4a0' : '#c98a2e';
-
-      clarityValEl.textContent = 'ЧИСТОТА СИГНАЛА: ' + clarityPct + '%';
+      clarityValEl.textContent = 'ЧИСТОТА: ' + clarityPct + '%';
       clarityValEl.classList.toggle('is-clean', isCleanLocked);
       transcriptCard.classList.toggle('is-clean', isCleanLocked);
       transcriptTextEl.textContent = buildScrambledTranscript(clarityPct);
       btnConfirm.disabled = !isCleanLocked;
 
-      if (isCleanLocked && !wasClean) {
-        haptic('success');
-        sfx('sfxSuccess');
-      }
-
+      if (isCleanLocked && !wasClean) { haptic('success'); sfx('sfxSuccess'); }
       syncLocalAudioGains();
     }
 
-    function syncLocalAudioGains() {
-      if (!audioEngine.started || audioEngine.closed || !audioEngine.ctx) {
-        return;
-      }
-      try {
-        var now = audioEngine.ctx.currentTime;
-        var muted = isGameAudioMuted();
-        audioEngine.masterGain.gain.setTargetAtTime(muted ? 0 : 0.72, now, 0.04);
-
-        var trainLevel = 0.014 + Math.pow(1 - bandAcc.low, 1.45) * 0.36;
-        var windLevel = 0.008 + Math.pow(1 - bandAcc.high, 1.45) * 0.25;
-        var voiceLevel = 0.01 + bandAcc.mid * 0.085;
-
-        audioEngine.trainGain.gain.setTargetAtTime(trainLevel, now, 0.05);
-        audioEngine.windGain.gain.setTargetAtTime(windLevel, now, 0.05);
-        audioEngine.voiceGain.gain.setTargetAtTime(voiceLevel, now, 0.05);
-      } catch (e) {
-        // Ignore audio param errors
-      }
-    }
-
-    // Canvas spectrogram & oscilloscope rendering
+    // Canvas Spectrogram & Oscillogram
     var ctx = canvas.getContext('2d');
-    var cssW = 320;
-    var cssH = 116;
-    var dpr = 1;
-    var rafId = null;
-    var resizeObserver = null;
-    var barLevels = [];
-    var BAR_COUNT = 28;
-    for (var b = 0; b < BAR_COUNT; b++) {
-      barLevels.push(0.15);
-    }
+    var cssW = 320, cssH = 112, dpr = 1, rafId = null, resizeObserver = null;
+    var BAR_COUNT = 28, barLevels = [];
+    for (var b = 0; b < BAR_COUNT; b++) barLevels.push(0.15);
 
     function resizeCanvas() {
-      if (destroyed) {
-        return;
-      }
+      if (destroyed) return;
       var rect = specBox.getBoundingClientRect();
-      var nextW = Math.max(160, Math.floor(rect.width));
-      var nextH = Math.max(88, Math.floor(rect.height));
-
+      cssW = Math.max(160, Math.floor(rect.width));
+      cssH = Math.max(84, Math.floor(rect.height));
       dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-      cssW = nextW;
-      cssH = nextH;
-
-      var physW = Math.floor(cssW * dpr);
-      var physH = Math.floor(cssH * dpr);
-      if (canvas.width !== physW || canvas.height !== physH) {
-        canvas.width = physW;
-        canvas.height = physH;
-      }
+      var pw = Math.floor(cssW * dpr), ph = Math.floor(cssH * dpr);
+      if (canvas.width !== pw || canvas.height !== ph) { canvas.width = pw; canvas.height = ph; }
     }
 
     if (typeof window.ResizeObserver === 'function') {
-      resizeObserver = new window.ResizeObserver(function () {
-        resizeCanvas();
-      });
+      resizeObserver = new window.ResizeObserver(resizeCanvas);
       resizeObserver.observe(specBox);
     }
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
+    syncErrHeader();
     initLocalAudio();
     evaluateFilters();
 
     function renderSpectrogram(now) {
-      if (destroyed) {
-        return;
-      }
+      if (destroyed) return;
+      if (phase === 'clean') {
+        var t = now * 0.001;
+        var clarityNorm = clarityPct / 100;
+        var onTargetTrack = Boolean(channels[activeChIdx] && channels[activeChIdx].isTarget);
 
-      var t = now * 0.001;
-      var clarityNorm = clarityPct / 100;
-
-      // Sync mute status continuously & fire periodic MVD radio chirp (~2.5s)
-      syncLocalAudioGains();
-      if (now - lastRadioTime >= 2500) {
-        lastRadioTime = now;
-        if (clarityNorm >= 0.25) {
-          radioPulseAlpha = Math.min(1, 0.3 + clarityNorm * 0.7);
-          playEmbeddedRadioBeep(clarityNorm);
-        }
-      }
-      radioPulseAlpha = Math.max(0, radioPulseAlpha - 0.032);
-
-      var lowNoise = 1 - bandAcc.low;
-      var midPower = bandAcc.mid;
-      var highNoise = 1 - bandAcc.high;
-
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-      // CRT forensic background
-      ctx.fillStyle = '#080a0d';
-      ctx.fillRect(0, 0, cssW, cssH);
-
-      var splitY = Math.floor(cssH * 0.48);
-
-      // Subtle oscilloscope grid
-      ctx.strokeStyle = 'rgba(63, 106, 88, 0.16)';
-      ctx.lineWidth = 1;
-      for (var gx = 0; gx < cssW; gx += 28) {
-        ctx.beginPath();
-        ctx.moveTo(gx, 0);
-        ctx.lineTo(gx, cssH);
-        ctx.stroke();
-      }
-      ctx.beginPath();
-      ctx.moveTo(0, splitY * 0.5);
-      ctx.lineTo(cssW, splitY * 0.5);
-      ctx.moveTo(0, splitY);
-      ctx.lineTo(cssW, splitY);
-      ctx.stroke();
-
-      // 1. Live Oscillogram (top half)
-      var waveMidY = splitY * 0.5;
-      var maxAmp = splitY * 0.42;
-
-      ctx.save();
-      ctx.beginPath();
-      var samples = 96;
-      for (var s = 0; s <= samples; s++) {
-        var frac = s / samples;
-        var x = frac * cssW;
-
-        var trainWave =
-          (Math.sin(frac * 14 + t * 13) * 0.65 + Math.sin(frac * 7 - t * 9.5) * 0.35) *
-          lowNoise *
-          0.72;
-        var windWave =
-          (Math.sin(frac * 85 + t * 44) * Math.cos(frac * 49 - t * 31)) *
-          highNoise *
-          0.48;
-        var voiceEnv = Math.sin(frac * Math.PI);
-        var voiceWave =
-          (Math.sin(frac * 28 + t * 18) * 0.5 + Math.sin(frac * 44 - t * 23) * 0.3) *
-          voiceEnv *
-          (0.18 + midPower * 0.45);
-        var radioBurst =
-          radioPulseAlpha > 0.05
-            ? Math.sin(frac * 110 + t * 70) * radioPulseAlpha * 0.55 * voiceEnv
-            : 0;
-
-        var y = waveMidY + Math.max(-1, Math.min(1, trainWave + windWave + voiceWave + radioBurst)) * maxAmp;
-        if (s === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-      }
-      ctx.strokeStyle = isCleanLocked
-        ? '#6ec4a0'
-        : radioPulseAlpha > 0.3
-          ? '#eab354'
-          : '#c98a2e';
-      ctx.lineWidth = 1.65;
-      ctx.stroke();
-      ctx.restore();
-
-      // 2. Spectrum Analyzer Bars (bottom half)
-      var specTop = splitY + 4;
-      var specH = cssH - specTop - 13;
-      var barGap = 2;
-      var barW = (cssW - 12 - (BAR_COUNT - 1) * barGap) / BAR_COUNT;
-
-      for (var i = 0; i < BAR_COUNT; i++) {
-        var bandPos = i / (BAR_COUNT - 1);
-        var targetLevel = 0.08;
-
-        if (bandPos < 0.33) {
-          // Low frequency train rumble band
-          var clatterPulse = 0.7 + 0.3 * Math.sin(t * 14.8 + i * 0.5);
-          targetLevel = 0.08 + lowNoise * 0.85 * clatterPulse * (1 - bandPos * 1.2);
-        } else if (bandPos < 0.67) {
-          // Mid voice + radio chirp band
-          var centerBell = 1 - Math.abs(bandPos - 0.5) * 4.8;
-          var voiceFlicker = 0.62 + 0.38 * Math.sin(t * 11 + i * 1.4);
-          targetLevel = 0.1 + Math.max(0.15, centerBell) * (0.2 + midPower * 0.64) * voiceFlicker;
-          if (radioPulseAlpha > 0.05 && Math.abs(bandPos - 0.56) < 0.09) {
-            targetLevel = Math.min(1, targetLevel + radioPulseAlpha * 0.72);
+        syncLocalAudioGains();
+        if (now - lastPulseTime >= 2400) {
+          lastPulseTime = now;
+          if (clarityNorm >= 0.25 && onTargetTrack) {
+            signalPulseAlpha = Math.min(1, 0.35 + clarityNorm * 0.65);
+            playTargetCue(clarityNorm);
           }
-        } else {
-          // High frequency wind / static band
-          var staticJitter = 0.55 + 0.45 * Math.abs(Math.sin(t * 29 + i * 2.7));
-          targetLevel = 0.06 + highNoise * 0.84 * staticJitter;
+        }
+        signalPulseAlpha = Math.max(0, signalPulseAlpha - 0.032);
+
+        var lowNoise = 1 - bandAcc.low, midPower = bandAcc.mid, highNoise = 1 - bandAcc.high;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.fillStyle = '#080a0d'; ctx.fillRect(0, 0, cssW, cssH);
+
+        var splitY = Math.floor(cssH * 0.48);
+        ctx.strokeStyle = 'rgba(63, 106, 88, 0.16)'; ctx.lineWidth = 1;
+        for (var gx = 0; gx < cssW; gx += 28) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, cssH); ctx.stroke(); }
+        ctx.beginPath(); ctx.moveTo(0, splitY); ctx.lineTo(cssW, splitY); ctx.stroke();
+
+        // Oscillogram
+        var waveMidY = splitY * 0.5, maxAmp = splitY * 0.42;
+        ctx.beginPath();
+        for (var s = 0; s <= 96; s++) {
+          var frac = s / 96, x = frac * cssW;
+          var wLow = Math.sin(frac * 14 + t * 13) * lowNoise * 0.72;
+          var wHigh = Math.sin(frac * 85 + t * 44) * Math.cos(frac * 49 - t * 31) * highNoise * 0.48;
+          var env = Math.sin(frac * Math.PI);
+          var wMid = Math.sin(frac * 28 + t * 18) * env * (0.16 + midPower * 0.44);
+          var burst = signalPulseAlpha > 0.05 ? Math.sin(frac * 110 + t * 70) * signalPulseAlpha * 0.58 * env : 0;
+          var y = waveMidY + Math.max(-1, Math.min(1, wLow + wHigh + wMid + burst)) * maxAmp;
+          if (s === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = isCleanLocked ? '#6ec4a0' : signalPulseAlpha > 0.3 ? '#eab354' : '#c98a2e';
+        ctx.lineWidth = 1.65; ctx.stroke();
+
+        // Spectrum bars
+        var specTop = splitY + 4, specH = cssH - specTop - 13, barGap = 2;
+        var barW = (cssW - 12 - (BAR_COUNT - 1) * barGap) / BAR_COUNT;
+        for (var i = 0; i < BAR_COUNT; i++) {
+          var bp = i / (BAR_COUNT - 1), tgt = 0.08;
+          if (bp < 0.33) tgt = 0.08 + lowNoise * 0.85 * (0.7 + 0.3 * Math.sin(t * 14 + i * 0.5));
+          else if (bp < 0.67) {
+            tgt = 0.1 + (0.2 + midPower * 0.62) * (0.62 + 0.38 * Math.sin(t * 11 + i * 1.4));
+            if (signalPulseAlpha > 0.05 && Math.abs(bp - 0.54) < 0.1) tgt = Math.min(1, tgt + signalPulseAlpha * 0.72);
+          } else tgt = 0.06 + highNoise * 0.84 * (0.55 + 0.45 * Math.abs(Math.sin(t * 29 + i * 2.7)));
+          barLevels[i] += (Math.min(1, tgt) - barLevels[i]) * 0.24;
+          var bh = Math.max(2, barLevels[i] * specH);
+          ctx.fillStyle = bp < 0.33 ? (lowNoise > 0.25 ? '#b91c1c' : '#5ea385')
+            : bp < 0.67 ? (signalPulseAlpha > 0.25 && Math.abs(bp - 0.54) < 0.1 ? '#ef4444' : midPower >= 1 ? '#5ea385' : '#c98a2e')
+            : (highNoise > 0.25 ? '#c98a2e' : '#5ea385');
+          ctx.fillRect(6 + i * (barW + barGap), specTop + specH - bh, barW, bh);
         }
 
-        barLevels[i] += (Math.min(1, targetLevel) - barLevels[i]) * 0.24;
+        ctx.font = '600 8.5px "IBM Plex Mono", monospace';
+        ctx.textBaseline = 'bottom'; ctx.fillStyle = '#6f7685';
+        ctx.textAlign = 'left'; ctx.fillText('60Hz НЧ', 6, cssH - 2);
+        ctx.textAlign = 'center'; ctx.fillText(scenario.scaleMid, cssW * 0.5, cssH - 2);
+        ctx.textAlign = 'right'; ctx.fillText('6kHz ВЧ', cssW - 6, cssH - 2);
 
-        var bh = Math.max(2, barLevels[i] * specH);
-        var bx = 6 + i * (barW + barGap);
-        var by = specTop + specH - bh;
-
-        if (bandPos < 0.33) {
-          ctx.fillStyle = lowNoise > 0.25 ? '#b91c1c' : '#5ea385';
-        } else if (bandPos < 0.67) {
-          ctx.fillStyle =
-            radioPulseAlpha > 0.25 && Math.abs(bandPos - 0.56) < 0.09
-              ? '#ef4444'
-              : midPower >= 1
-                ? '#5ea385'
-                : '#c98a2e';
+        ctx.textBaseline = 'top';
+        if (signalPulseAlpha > 0.2 && onTargetTrack) {
+          ctx.fillStyle = 'rgba(239, 68, 68, ' + signalPulseAlpha.toFixed(2) + ')';
+          ctx.textAlign = 'right'; ctx.fillText(scenario.signalTag, cssW - 7, 5);
         } else {
-          ctx.fillStyle = highNoise > 0.25 ? '#c98a2e' : '#5ea385';
+          ctx.fillStyle = 'rgba(201, 138, 46, 0.7)';
+          ctx.textAlign = 'left'; ctx.fillText(scenario.fileTag + ' [' + channels[activeChIdx].label + ']', 7, 5);
         }
-
-        ctx.fillRect(bx, by, barW, bh);
       }
-
-      // Frequency scale & radio chirp HUD markers
-      ctx.font = '600 8.5px "IBM Plex Mono", monospace';
-      ctx.textBaseline = 'bottom';
-      ctx.fillStyle = '#6f7685';
-      ctx.textAlign = 'left';
-      ctx.fillText('60Hz НЧ', 6, cssH - 2);
-      ctx.textAlign = 'center';
-      ctx.fillText('1.2kHz ГОЛОС', cssW * 0.5, cssH - 2);
-      ctx.textAlign = 'right';
-      ctx.fillText('6kHz ВЧ', cssW - 6, cssH - 2);
-
-      if (radioPulseAlpha > 0.2) {
-        ctx.fillStyle = 'rgba(239, 68, 68, ' + radioPulseAlpha.toFixed(2) + ')';
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'top';
-        ctx.fillText('● СИГНАЛ РАЦИИ МВД', cssW - 7, 5);
-      } else {
-        ctx.fillStyle = 'rgba(201, 138, 46, 0.65)';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText('AUDIO_2221.RAW // 00:12', 7, 5);
-      }
-
       rafId = window.requestAnimationFrame(renderSpectrogram);
     }
-
     rafId = window.requestAnimationFrame(renderSpectrogram);
 
     return function cleanup() {
       destroyed = true;
-      if (rafId !== null) {
-        window.cancelAnimationFrame(rafId);
-        rafId = null;
-      }
-      if (resizeObserver) {
-        try {
-          resizeObserver.disconnect();
-        } catch (e) {
-          // Ignore disconnect error
-        }
-        resizeObserver = null;
-      }
+      clearTimers();
+      if (rafId !== null) window.cancelAnimationFrame(rafId);
+      if (resizeObserver) { try { resizeObserver.disconnect(); } catch (e) {} }
       window.removeEventListener('resize', resizeCanvas);
       stopLocalAudio();
     };
