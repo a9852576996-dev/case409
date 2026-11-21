@@ -725,489 +725,903 @@
   }
 
   // ============================================================================
-  // MINIGAME 1: crime_camera
+  // MINIGAME 1: crime_camera (Multi-scenario 3-phase forensic camera & CCTV)
   // ============================================================================
 
-  var DEFAULT_CAMERA_POINTS = [
-    {
-      id: 'panel',
-      label: 'Щиток (обгорел снаружи)',
-      shortLabel: 'ЩИТОК',
-      x: 0.16,
-      y: 0.38,
-      focusTarget: 26,
-      kind: 'panel'
-    },
-    {
-      id: 'door',
-      label: 'След лома на двери',
-      shortLabel: 'ДВЕРЬ',
-      x: 0.43,
-      y: 0.47,
-      focusTarget: 64,
-      kind: 'door'
-    },
-    {
-      id: 'floor',
-      label: 'Три очага прогара',
-      shortLabel: 'ПРОГАР',
-      x: 0.54,
-      y: 0.80,
-      focusTarget: 46,
-      kind: 'floor'
-    },
-    {
-      id: 'beam',
-      label: 'Пуля в обугленной балке',
-      shortLabel: 'ПУЛЯ',
-      x: 0.72,
-      y: 0.21,
-      focusTarget: 84,
-      kind: 'beam'
-    },
-    {
-      id: 'canister',
-      label: 'Канистра в кустах',
-      shortLabel: 'КАНИСТРА',
-      x: 0.86,
-      y: 0.74,
-      focusTarget: 18,
-      kind: 'canister'
-    }
-  ];
+  var CAM_EXTRA_STYLE_ID = 'minigames-forensics-cam-extra';
 
-  function drawProceduralAshScene(offCanvas, points) {
+  var CAM_EXTRA_CSS = [
+    '.mg-cam-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 3px; }',
+    '.mg-cam-stat { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; font-weight: 600; color: var(--case-accent, #c98a2e); }',
+    '.mg-cam-err { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; font-weight: 600; color: #9ca3af; }',
+    '.mg-cam-err.is-warn { color: #f87171; }',
+    '.mg-cam-views { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }',
+    '.mg-cam-vbtn {',
+    '  display: flex; align-items: center; justify-content: center; gap: 6px;',
+    '  padding: 7px 6px; border-radius: 6px; background: #14171f; border: 1px solid #2b3140;',
+    '  font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 600;',
+    '  color: #8f98a8; text-transform: uppercase; cursor: pointer;',
+    '}',
+    '.mg-cam-vbtn.is-active { background: #1f2532; border-color: var(--case-accent, #c98a2e); color: #f3ece0; }',
+    '.mg-cam-vdot { width: 6px; height: 6px; border-radius: 50%; background: var(--case-accent, #c98a2e); flex-shrink: 0; }',
+    '.mg-cam-vbtn.is-done .mg-cam-vdot { background: #22c55e; box-shadow: 0 0 6px rgba(34, 197, 94, 0.65); }',
+    '.mg-cam-modes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }',
+    '.mg-cam-mbtn {',
+    '  padding: 8px 6px; border-radius: 6px; background: #161a23; border: 1px solid #2f3646;',
+    '  font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 700;',
+    '  color: #9ca3af; text-transform: uppercase; cursor: pointer;',
+    '}',
+    '.mg-cam-mbtn.is-norm { background: rgba(212, 202, 180, 0.14); border-color: #d4cab4; color: #f5efe2; }',
+    '.mg-cam-mbtn.is-spec { background: rgba(201, 138, 46, 0.24); border-color: var(--case-accent, #f59e0b); color: #fde68a; box-shadow: 0 0 10px rgba(245, 158, 11, 0.24); }',
+    '.mg-cam-deduce { display: flex; flex-direction: column; gap: 9px; padding: 12px; background: #14171f; border: 1px solid #353b4a; border-top: 3px solid var(--case-accent, #c98a2e); border-radius: 8px; }',
+    '.mg-cam-dkicker { font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 700; color: var(--case-accent, #c98a2e); text-transform: uppercase; }',
+    '.mg-cam-dfacts { padding: 8px 9px; background: #0d1016; border: 1px solid #262b36; border-radius: 6px; font-family: "IBM Plex Mono", monospace; font-size: 10px; line-height: 1.4; color: #c2cad8; display: flex; flex-direction: column; gap: 3px; }',
+    '.mg-cam-dq { font-size: 12.8px; line-height: 1.4; color: #f3efe6; font-weight: 500; }',
+    '.mg-cam-dopts { display: flex; flex-direction: column; gap: 6px; }',
+    '.mg-cam-dopt { width: 100%; text-align: left; padding: 9px 10px; background: #1b202b; border: 1px solid #353d4e; border-radius: 6px; color: #e4e0d8; font-size: 12px; line-height: 1.36; cursor: pointer; }',
+    '.mg-cam-dopt.is-wrong { border-color: #ef4444; background: rgba(153, 27, 27, 0.25); color: #fecaca; }',
+    '.mg-cam-dopt.is-correct { border-color: #22c55e; background: rgba(34, 197, 94, 0.2); color: #bbf7d0; }',
+    '.mg-cam-dfb { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; line-height: 1.38; min-height: 16px; color: #fca5a5; }',
+    '.mg-cam-dfb.is-ok { color: #86efac; }',
+    '.mg-cam-stamp-box { padding: 24px 14px; background: #0d1016; border: 1px solid #2a2e38; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }',
+    '.mg-cam-stamp { padding: 8px 16px; font-family: "Oswald", sans-serif; font-size: 19px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #ef4444; border: 3px double #ef4444; border-radius: 4px; transform: rotate(-5deg); }',
+    '.mg-cam-stamp.is-ok { color: #4ade80; border-color: #22c55e; background: rgba(34, 197, 94, 0.12); }'
+  ].join('\n');
+
+  function injectCamStyles() {
+    if (document.getElementById(CAM_EXTRA_STYLE_ID)) return;
+    var el = document.createElement('style');
+    el.id = CAM_EXTRA_STYLE_ID;
+    el.textContent = CAM_EXTRA_CSS;
+    document.head.appendChild(el);
+  }
+
+  function createFailTrigger(callbacks) {
+    var fired = false;
+    return function triggerFail(result) {
+      if (fired) return;
+      fired = true;
+      if (callbacks && typeof callbacks.onFail === 'function') {
+        callbacks.onFail(result || { success: false });
+      }
+    };
+  }
+
+  function buildCamCase418Scenario(config) {
+    return {
+      id: 'case418_act1_camera',
+      theme: 'ash',
+      title: config.title || 'ОСМОТР МЕСТА: ПЕПЕЛИЩЕ',
+      subtitle: config.subtitle || 'ДЕЛО №418 • ФОТОФИКСАЦИЯ УЛИК',
+      hudTag: 'SK-CAM 35MM • ISO 3200',
+      modeNormalLabel: '1. ВИД / РАСЧИСТКА',
+      modeSpecLabel: '2. КОСАЯ ВСПЫШКА',
+      shootLabel: 'СНЯТЬ КАДР',
+      stampWin: 'ПРОТОКОЛ ОСМОТРА ГОТОВ',
+      views: [
+        { id: 0, label: '1. ВНУТРИ ДОМА' },
+        { id: 1, label: '2. БАЛКИ И ДВОР' }
+      ],
+      spots: [
+        {
+          id: 'panel', view: 0, x: 0.18, y: 0.38, focusTarget: 26, kind: 'panel',
+          isEvidence: true, requiredMode: 'spec', debris: 0,
+          shortLabel: 'ЩИТОК', label: 'Щиток (целый внутри, обгорел снаружи)',
+          readNormal: 'Корпус электрощитка чёрный от копоти. Внутри темно — включите КОСУЮ ВСПЫШКУ, чтобы увидеть жилы.',
+          readSpec: 'ВСПЫШКА: медные жилы и автоматы внутри щитка абсолютно целые — короткого замыкания не было!',
+          wrongModeMsg: 'Без КОСОЙ ВСПЫШКИ не видно целые провода внутри щитка — включите вспышку!'
+        },
+        {
+          id: 'door', view: 0, x: 0.50, y: 0.44, focusTarget: 64, kind: 'door',
+          isEvidence: true, requiredMode: 'spec', debris: 0,
+          shortLabel: 'ДВЕРЬ', label: 'След отжима ломом на дверной коробке',
+          readNormal: 'Тёмная щель у замка перекошенной двери. Включите КОСУЮ ВСПЫШКУ для выявления рельефа вмятин.',
+          readSpec: 'ВСПЫШКА: свежие светлые щепки и парные вмятины стального лома прямо у защёлки замка!',
+          wrongModeMsg: 'Рельеф следа от лома не читается без КОСОЙ ВСПЫШКИ — включите вспышку!'
+        },
+        {
+          id: 'floor', view: 0, x: 0.58, y: 0.80, focusTarget: 46, kind: 'floor',
+          isEvidence: true, requiredMode: 'any', debris: 1.0, debrisKind: 'ash',
+          debrisHint: 'Мокрая куча пепла и штукатурки — потрите пальцем в режиме ВИД/РАСЧИСТКА.',
+          shortLabel: 'ПРОГАР', label: 'Три независимых очага прогара на полу',
+          readNormal: 'Три глубокие кольцевые воронки прогара на досках с чистыми перемычками между ними!',
+          readSpec: 'ВСПЫШКА: чёткий контур трёх отдельных очагов розлива горючего на полу!',
+          wrongModeMsg: ''
+        },
+        {
+          id: 'decoy_kettle', view: 0, x: 0.82, y: 0.64, focusTarget: 52, kind: 'kettle',
+          isEvidence: false, requiredMode: 'any', debris: 0,
+          shortLabel: '', label: 'Оплавленный электрочайник',
+          readNormal: 'Корпус бытового электрочайника потёк на полу у перегородки.',
+          readSpec: 'ВСПЫШКА: вилка не в розетке, пластик расплавился от внешнего жара сверху.',
+          falseReason: 'ЛОЖНЫЙ СЛЕД: бытовой чайник расплавился от общего жара, его вилка даже не была включена.'
+        },
+        {
+          id: 'decoy_glass', view: 0, x: 0.24, y: 0.76, focusTarget: 34, kind: 'glass',
+          isEvidence: false, requiredMode: 'any', debris: 0,
+          shortLabel: '', label: 'Осколки оконного стекла',
+          readNormal: 'Мелкая паутина оплавленного оконного стекла на полу.',
+          readSpec: 'ВСПЫШКА: типичное термическое разрушение рамы изнутри при пожаре.',
+          falseReason: 'ЛОЖНЫЙ СЛЕД: обычные осколки лопнувшего от жара стекла — не улика поджога.'
+        },
+        {
+          id: 'beam', view: 1, x: 0.34, y: 0.26, focusTarget: 82, kind: 'beam',
+          isEvidence: true, requiredMode: 'spec', debris: 0,
+          shortLabel: 'ПУЛЯ', label: 'Пуля в обугленной потолочной балке',
+          readNormal: 'Тёмное отверстие в обугленной балке — похоже на выпавший сучок. Проверьте КОСОЙ ВСПЫШКОЙ!',
+          readSpec: 'ВСПЫШКА: глубоко в щепках блестит медная оболочка деформированной пули!',
+          wrongModeMsg: 'В тусклом свете отверстие неотличимо от сучка — подсветите пулю КОСОЙ ВСПЫШКОЙ!'
+        },
+        {
+          id: 'canister', view: 1, x: 0.76, y: 0.68, focusTarget: 20, kind: 'canister',
+          isEvidence: true, requiredMode: 'any', debris: 1.0, debrisKind: 'bush',
+          debrisHint: 'Густые обгоревшие ветки за крыльцом — раздвиньте пальцем в режиме ВИД/РАСЧИСТКА.',
+          shortLabel: 'КАНИСТРА', label: 'Оплавленная канистра в кустах за крыльцом',
+          readNormal: 'Красная канистра с резким запахом растворителя, брошенная за крыльцом!',
+          readSpec: 'ВСПЫШКА: чётко видны оплавленный угол канистры и отпечаток пробки!',
+          wrongModeMsg: ''
+        },
+        {
+          id: 'decoy_knot', view: 1, x: 0.70, y: 0.24, focusTarget: 76, kind: 'knot',
+          isEvidence: false, requiredMode: 'any', debris: 0,
+          shortLabel: '', label: 'Выемка в балке справа',
+          readNormal: 'Тёмное углубление в обгоревшем брусе над верандой.',
+          readSpec: 'ВСПЫШКА: гладкие стенки старого выпавшего сучка, металла внутри нет.',
+          falseReason: 'ЛОЖНЫЙ СЛЕД: это пустой древесный сучок без металлических фрагментов.'
+        },
+        {
+          id: 'decoy_watering', view: 1, x: 0.24, y: 0.72, focusTarget: 30, kind: 'watering',
+          isEvidence: false, requiredMode: 'any', debris: 0,
+          shortLabel: '', label: 'Пластиковая лейка у крыльца',
+          readNormal: 'Зелёная садовая ёмкость, закопчённая с одного бока.',
+          readSpec: 'ВСПЫШКА: обычная дачная лейка с рассеивателем, внутри дождевая вода.',
+          falseReason: 'ЛОЖНЫЙ СЛЕД: старая садовая лейка с водой — не канистра поджигателя.'
+        }
+      ],
+      conclusion: {
+        question: 'На пяти резких кадрах: щиток цел внутри, дверь отжата ломом, на полу три очага, в балке пуля, в кустах канистра. Вывод:',
+        options: [
+          {
+            id: 'wiring',
+            text: 'Пожар начался из-за короткого замыкания щитка, а дверь выломали пожарные при тушении.',
+            isCorrect: false,
+            reason: 'Противоречие: медные жилы внутри щитка целы, а в балке застряла пуля.'
+          },
+          {
+            id: 'arson_murder',
+            text: 'Это не бытовой пожар: в дом вломились ломом, открыли стрельбу и устроили умышленный поджог из трёх очагов.',
+            isCorrect: true,
+            reason: 'Верно: все пять снимков опровергают версию о проводке и доказывают насильственный поджог.'
+          },
+          {
+            id: 'accident',
+            text: 'Вспыхнула случайная канистра у крыльца, а чайник вызвал взрыв оконных стёкол.',
+            isCorrect: false,
+            reason: 'Противоречие: три изолированных очага внутри дома, след лома и пуля в балке исключают случайность.'
+          }
+        ]
+      }
+    };
+  }
+
+  function buildCamCase412Scenario(config) {
+    return {
+      id: 'case412_act2_camera',
+      theme: 'cctv',
+      title: config.title || 'БУФЕР КАМЕРЫ БЕЛЯЕВА // ДЕЛО №412',
+      subtitle: config.subtitle || 'АКТ II • ВОССТАНОВЛЕНИЕ ПОВРЕЖДЁННЫХ КАДРОВ',
+      hudTag: 'CCTV-REC #12 • IR CACHE',
+      modeNormalLabel: '1. КЭШ / ДЕФРАГМ.',
+      modeSpecLabel: '2. ИК-КОНТРАСТ',
+      shootLabel: 'СОХРАНИТЬ КАДР',
+      stampWin: 'ФРАГМЕНТЫ КАМЕРЫ ВОССТАНОВЛЕНЫ',
+      views: [
+        { id: 0, label: '1. НОЧЬ 21:53' },
+        { id: 1, label: '2. УТРО 08:15' }
+      ],
+      spots: [
+        {
+          id: 'car_dark', view: 0, x: 0.24, y: 0.56, focusTarget: 34, kind: 'car',
+          isEvidence: true, requiredMode: 'any', debris: 1.0, debrisKind: 'glitch',
+          debrisHint: 'Битые сектора видеокэша — сотрите помехи пальцем в режиме КЭШ/ДЕФРАГМ.',
+          shortLabel: 'УНИВЕРСАЛ', label: 'Тёмный универсал без фар у забора №14',
+          readNormal: 'Между забором Беляева и участком №14 стоит тёмный универсал с погашенными фарами!',
+          readSpec: 'ИК-КОНТРАСТ: кузов универсала с открытым багажником припаркован прямо у ворот Кравцова.',
+          wrongModeMsg: ''
+        },
+        {
+          id: 'silhouette', view: 0, x: 0.72, y: 0.54, focusTarget: 72, kind: 'silhouette',
+          isEvidence: true, requiredMode: 'spec', debris: 0,
+          shortLabel: 'СИЛУЭТ', label: 'Силуэт тащит тяжесть в открытый гараж Кравцова',
+          readNormal: 'Глубокая ночная тень у открытых створок гаража №14. Включите ИК-КОНТРАСТ, чтобы проявить контур!',
+          readSpec: 'ИК-КОНТРАСТ: сгорбленный силуэт затаскивает тяжёлую ношу прямо в старый гараж Кравцова!',
+          wrongModeMsg: 'В темноте силуэт сливается со стеной гаража — включите ИК-КОНТРАСТ!'
+        },
+        {
+          id: 'timecode_gap', view: 0, x: 0.22, y: 0.18, focusTarget: 18, kind: 'timecode',
+          isEvidence: true, requiredMode: 'spec', debris: 0,
+          shortLabel: '21:53 GAP', label: 'Таймкод 21:53 и вырезанный интервал 14 минут',
+          readNormal: 'Верхний штамп времени 21:53 выглядит смазанным. Проверьте метаданные в режиме ИК-КОНТРАСТ!',
+          readSpec: 'ИК-КОНТРАСТ: CRC-разрыв буфера! После 21:53 вручную стёрты ровно 14 минут записи (до 22:07)!',
+          wrongModeMsg: 'Служебный маркер стирания виден только в режиме ИК-КОНТРАСТ!'
+        },
+        {
+          id: 'decoy_cat', view: 0, x: 0.50, y: 0.80, focusTarget: 48, kind: 'cat',
+          isEvidence: false, requiredMode: 'any', debris: 0,
+          shortLabel: '', label: 'Движение у канавы',
+          readNormal: 'Две яркие белые точки в траве на краю Садовой улицы.',
+          readSpec: 'ИК-КОНТРАСТ: бродячий кот перебегает дренажную канаву — ложное срабатывание датчика.',
+          falseReason: 'ЛОЖНЫЙ СЛЕД: это бродячий кот у канавы, не имеющий отношения к пропаже.'
+        },
+        {
+          id: 'decoy_glare', view: 0, x: 0.84, y: 0.24, focusTarget: 84, kind: 'glare',
+          isEvidence: false, requiredMode: 'any', debris: 0,
+          shortLabel: '', label: 'Засвет на заборе',
+          readNormal: 'Светлое пятно в верхнем правом углу кадра.',
+          readSpec: 'ИК-КОНТРАСТ: блик уличного фонаря на мокром профлисте под дождём.',
+          falseReason: 'ЛОЖНЫЙ СЛЕД: обычный блик ночного фонаря на мокром заборе.'
+        },
+        {
+          id: 'patrol_uaz', view: 1, x: 0.30, y: 0.54, focusTarget: 40, kind: 'patrol',
+          isEvidence: true, requiredMode: 'any', debris: 1.0, debrisKind: 'glitch',
+          debrisHint: 'Повреждённый блок утреннего кэша — сотрите помехи пальцем в режиме КЭШ/ДЕФРАГМ.',
+          shortLabel: 'ПАТРУЛЬ', label: 'Патрульный УАЗ Громова у ворот Беляева (08:15)',
+          readNormal: 'Утром в 08:15 прямо у ворот участка №12 стоит служебный патрульный автомобиль Громова!',
+          readSpec: 'ИК-КОНТРАСТ: чётко видна синяя полоса МВД и бортовой номер машины участкового Громова!',
+          wrongModeMsg: ''
+        },
+        {
+          id: 'gromov_usb', view: 1, x: 0.72, y: 0.50, focusTarget: 68, kind: 'usb',
+          isEvidence: true, requiredMode: 'spec', debris: 0,
+          shortLabel: 'ИЗЪЯТИЕ', label: 'Передача накопителя у калитки Беляева',
+          readNormal: 'Две фигуры у калитки №12 в контровом утреннем свете. Включите ИК-КОНТРАСТ для детализации!',
+          readSpec: 'ИК-КОНТРАСТ: сосед Беляев передаёт участковому Громову накопитель с видеорегистратора!',
+          wrongModeMsg: 'В контровом свете не видно, что передают у калитки — включите ИК-КОНТРАСТ!'
+        },
+        {
+          id: 'decoy_postbox', view: 1, x: 0.86, y: 0.72, focusTarget: 26, kind: 'postbox',
+          isEvidence: false, requiredMode: 'any', debris: 0,
+          shortLabel: '', label: 'Ящик на столбе у забора',
+          readNormal: 'Металлический короб на углу забора участка №12.',
+          readSpec: 'ИК-КОНТРАСТ: обычный почтовый ящик с номером дома «12».',
+          falseReason: 'ЛОЖНЫЙ СЛЕД: обычный почтовый ящик Беляева без признаков взлома.'
+        },
+        {
+          id: 'decoy_rut', view: 1, x: 0.48, y: 0.82, focusTarget: 55, kind: 'rut',
+          isEvidence: false, requiredMode: 'any', debris: 0,
+          shortLabel: '', label: 'Следы на обочине',
+          readNormal: 'Широкие грязные полосы вдоль раскисшей обочины.',
+          readSpec: 'ИК-КОНТРАСТ: старая глубокая колея от трактора, заполненная дождевой водой.',
+          falseReason: 'ЛОЖНЫЙ СЛЕД: старая размытая колея коммунальной техники на обочине.'
+        }
+      ],
+      conclusion: {
+        question: 'В 21:53 у участка №14 стоял тёмный универсал, силуэт тащил тяжесть в гараж Кравцова, 14 минут записи стёрты, а в 08:15 приезжал Громов. Вывод:',
+        options: [
+          {
+            id: 'artem_theory',
+            text: 'Алина уехала с Артёмом на универсале, а ночная запись повредилась сама из-за грозы.',
+            isCorrect: false,
+            reason: 'Противоречие: силуэт тащил тяжесть внутрь гаража Кравцова, а утром запись изымал Громов.'
+          },
+          {
+            id: 'garage_coverup',
+            text: 'В 21:53 Алину затащили в гараж Кравцова (участок №14), а утром участковый Громов помог зачистить 14 минут с камеры Беляева.',
+            isCorrect: true,
+            reason: 'Верно: все пять кадров буфера складываются в единую картину похищения и сокрытия улик.'
+          },
+          {
+            id: 'belyaev_alone',
+            text: 'Камера Беляева сняла только случайного кота и утренний объезд участкового без нарушений.',
+            isCorrect: false,
+            reason: 'Противоречие: в буфере зафиксированы силуэт у открытого гаража №14 и ручное удаление 14 минут.'
+          }
+        ]
+      }
+    };
+  }
+
+  function buildCamGenericScenario(config, storyNode) {
+    var title = (config && config.title) || (storyNode && storyNode.title) || 'ФОТОФИКСАЦИЯ УЛИК';
+    var raw = Array.isArray(config && config.points) && config.points.length > 0 ? config.points : [
+      { id: 'pt_1', label: 'Улика #1 (левый сектор)', shortLabel: 'УЛИКА 1', x: 0.25, y: 0.42, focusTarget: 32 },
+      { id: 'pt_2', label: 'Улика #2 (центр)', shortLabel: 'УЛИКА 2', x: 0.54, y: 0.56, focusTarget: 62 },
+      { id: 'pt_3', label: 'Улика #3 (правый сектор)', shortLabel: 'УЛИКА 3', x: 0.78, y: 0.36, focusTarget: 78 }
+    ];
+    var spots = raw.map(function (p, i) {
+      return {
+        id: p.id || 'pt_' + i,
+        view: 0,
+        x: clamp(typeof p.x === 'number' ? p.x : 0.25 + i * 0.22, 0.14, 0.86),
+        y: clamp(typeof p.y === 'number' ? p.y : 0.48, 0.18, 0.82),
+        focusTarget: clamp(typeof p.focusTarget === 'number' ? p.focusTarget : 45 + i * 15, 14, 86),
+        kind: p.kind || 'custom',
+        isEvidence: true,
+        requiredMode: i === 0 ? 'spec' : 'any',
+        debris: i === 1 ? 1.0 : 0,
+        debrisKind: 'ash',
+        debrisHint: 'Помеха перекрывает объект — потрите пальцем в режиме ОСМОТР.',
+        shortLabel: p.shortLabel || ('УЛИКА ' + (i + 1)),
+        label: p.label || ('Улика #' + (i + 1)),
+        readNormal: 'Зафиксируйте объект при чётком фокусе (включите СПЕЦСВЕТ при необходимости).',
+        readSpec: 'СПЕЦСВЕТ: ключевые признаки улики отчётливо читаются в кадре!',
+        wrongModeMsg: 'Переключитесь в СПЕЦСВЕТ для фиксации скрытой детали!'
+      };
+    });
+    spots.push({
+      id: 'gen_decoy', view: 0, x: 0.36, y: 0.76, focusTarget: 40, kind: 'glass',
+      isEvidence: false, requiredMode: 'any', debris: 0, shortLabel: '',
+      label: 'Посторонний бытовой фрагмент',
+      readNormal: 'Случайный мусор на месте осмотра.',
+      readSpec: 'СПЕЦСВЕТ: следов преступления не обнаружено.',
+      falseReason: 'ЛОЖНЫЙ СЛЕД: посторонний бытовой предмет без криминалистической ценности.'
+    });
+
+    return {
+      id: 'generic_camera',
+      theme: 'ash',
+      title: title,
+      subtitle: (config && config.subtitle) || 'КРИМИНАЛИСТИЧЕСКАЯ СЪЁМКА',
+      hudTag: 'SK-CAM • FORENSIC',
+      modeNormalLabel: '1. ВИД / РАСЧИСТКА',
+      modeSpecLabel: '2. СПЕЦСВЕТ',
+      shootLabel: 'СНЯТЬ КАДР',
+      stampWin: 'ФОТОПРОТОКОЛ ЗАВЕРШЁН',
+      views: [{ id: 0, label: 'ОСНОВНОЙ РАКУРС' }],
+      spots: spots,
+      conclusion: {
+        question: 'Все ключевые вещественные детали зафиксированы в фотопротоколе. Итоговый вывод:',
+        options: [
+          { id: 'noise', text: 'Снимки показывают только бытовой шум без следов преступления.', isCorrect: false, reason: 'Противоречие: в кадре зафиксированы явные криминалистические улики.' },
+          { id: 'confirmed', text: 'Фотопротокол подтверждает наличие вещественных улик, подлежащих приобщению к делу.', isCorrect: true, reason: 'Верно: снимки пригодны для приобщения к материалам.' },
+          { id: 'defect', text: 'Камера неисправна, кадры непригодны.', isCorrect: false, reason: 'Противоречие: все кадры сняты с резкостью выше 85%.' }
+        ]
+      }
+    };
+  }
+
+  function resolveCamScenario(config) {
+    var cfg = config || {};
+    var caseId = String(window.ACTIVE_CASE_ID || '').toLowerCase();
+    var nodeId = '';
+    try {
+      if (window.GameEngine && typeof window.GameEngine.getState === 'function') {
+        var st = window.GameEngine.getState();
+        if (st && st.nodeId) nodeId = String(st.nodeId);
+      }
+    } catch (e) {}
+    var storyNode = null;
+    try {
+      if (window.GameStory && window.GameStory.nodes && nodeId) {
+        storyNode = window.GameStory.nodes[nodeId] || null;
+      }
+    } catch (e) {}
+
+    if (Array.isArray(cfg.points) && cfg.points.length > 0) {
+      return buildCamGenericScenario(cfg, storyNode);
+    }
+    var hint = String(cfg.title || (storyNode && storyNode.title) || '');
+    if (cfg.preset === 'case412_cctv' || caseId === 'case412' || nodeId === 'act2_mg_camera' || /беляев|буфер/i.test(hint)) {
+      return buildCamCase412Scenario(cfg);
+    }
+    if (cfg.preset === 'case418_ash' || caseId === 'case418' || nodeId === 'act1_camera_game') {
+      return buildCamCase418Scenario(cfg);
+    }
+    return buildCamGenericScenario(cfg, storyNode);
+  }
+
+  /* ===== PROCEDURAL SCENE RENDERERS (CASE418 & CASE412) ===== */
+
+  function findSpotCoord(spots, kind, view, w, h, fx, fy) {
+    for (var i = 0; i < spots.length; i++) {
+      if (spots[i].view === view && spots[i].kind === kind) {
+        return { x: spots[i].x * w, y: spots[i].y * h };
+      }
+    }
+    return { x: fx * w, y: fy * h };
+  }
+
+  function drawCamSceneLayer(offCanvas, scenario, viewId, isSpec) {
     var w = offCanvas.width;
     var h = offCanvas.height;
     var ctx = offCanvas.getContext('2d');
-    var rand = mulberry32(41801);
+    var spots = scenario.spots;
+    var rand = mulberry32(scenario.id === 'case412_act2_camera' ? 41202 + viewId * 91 : 41801 + viewId * 77);
     var i;
 
-    // 1. Night smoky sky + ambient dark interior gradient
+    if (scenario.id === 'case412_act2_camera') {
+      // Grainy green-grey CCTV night/morning camera
+      var isNight = viewId === 0;
+      var bg = ctx.createLinearGradient(0, 0, 0, h);
+      if (isNight) {
+        bg.addColorStop(0, isSpec ? '#081a14' : '#060c0a');
+        bg.addColorStop(0.55, isSpec ? '#112922' : '#0b1411');
+        bg.addColorStop(1, isSpec ? '#0c1d17' : '#070c0a');
+      } else {
+        bg.addColorStop(0, isSpec ? '#1a2630' : '#263038');
+        bg.addColorStop(0.45, isSpec ? '#1f2b33' : '#303940');
+        bg.addColorStop(1, isSpec ? '#10181d' : '#181e22');
+      }
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, w, h);
+
+      // Perspective street & fence horizon
+      var horizonY = h * 0.44;
+      ctx.fillStyle = isNight ? (isSpec ? '#152c23' : '#0e1714') : '#1f262b';
+      ctx.beginPath();
+      ctx.moveTo(0, h * 0.62);
+      ctx.lineTo(w, h * 0.56);
+      ctx.lineTo(w, h);
+      ctx.lineTo(0, h);
+      ctx.closePath();
+      ctx.fill();
+
+      // Fence planks across background
+      ctx.fillStyle = isNight ? (isSpec ? '#173026' : '#0d1512') : '#232c33';
+      ctx.fillRect(0, h * 0.24, w, h * 0.36);
+      ctx.strokeStyle = isNight ? 'rgba(134, 239, 172, 0.14)' : 'rgba(203, 213, 225, 0.16)';
+      ctx.lineWidth = 2;
+      for (i = 0; i < w; i += 28) {
+        ctx.beginPath(); ctx.moveTo(i, h * 0.24); ctx.lineTo(i, h * 0.60); ctx.stroke();
+      }
+
+      if (isNight) {
+        // FRAME 0: NIGHT 21:53
+        // Open brick garage on right side
+        var gx = w * 0.60;
+        var gy = h * 0.25;
+        ctx.fillStyle = isSpec ? '#1c352a' : '#121c18';
+        ctx.fillRect(gx, gy, w * 0.28, h * 0.40);
+        // Open dark garage doorway
+        ctx.fillStyle = '#030605';
+        ctx.fillRect(gx + w * 0.05, gy + h * 0.08, w * 0.17, h * 0.32);
+        // Open double doors swung outward
+        ctx.strokeStyle = isSpec ? '#4ade80' : '#263b32';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(gx + w * 0.01, gy + h * 0.08, w * 0.04, h * 0.31);
+        ctx.strokeRect(gx + w * 0.22, gy + h * 0.08, w * 0.04, h * 0.31);
+
+        // 1. Dark station wagon (car)
+        var pCar = findSpotCoord(spots, 'car', 0, w, h, 0.24, 0.56);
+        ctx.save();
+        ctx.translate(pCar.x, pCar.y);
+        ctx.fillStyle = isSpec ? '#233d33' : '#111916';
+        ctx.beginPath();
+        ctx.moveTo(-110, 26); ctx.lineTo(-104, -12); ctx.lineTo(-56, -42);
+        ctx.lineTo(58, -42); ctx.lineTo(106, -12); ctx.lineTo(114, 26); ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = isSpec ? '#86efac' : '#2d473d';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // Darkened glass windows & unlit headlights
+        ctx.fillStyle = '#060c0a';
+        ctx.fillRect(-46, -34, 42, 22);
+        ctx.fillRect(4, -34, 48, 22);
+        ctx.fillStyle = '#0a0d0c';
+        ctx.beginPath(); ctx.arc(-66, 26, 20, 0, Math.PI * 2); ctx.arc(68, 26, 20, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = isSpec ? '#6ee7b7' : '#334155';
+        ctx.stroke();
+        // Open tailgate hint
+        ctx.strokeStyle = isSpec ? '#fde68a' : '#2d473d';
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(58, -42); ctx.lineTo(118, -64); ctx.stroke();
+        ctx.restore();
+
+        // 2. Hunched silhouette dragging bundle toward open garage
+        var pSil = findSpotCoord(spots, 'silhouette', 0, w, h, 0.72, 0.54);
+        ctx.save();
+        ctx.translate(pSil.x, pSil.y);
+        ctx.fillStyle = isSpec ? '#a7f3d0' : '#0a120f';
+        ctx.strokeStyle = isSpec ? '#4ade80' : 'rgba(60, 95, 80, 0.22)';
+        ctx.lineWidth = isSpec ? 3 : 1;
+        // Hunched person torso + head + dragging arms
+        ctx.beginPath(); ctx.arc(-18, -46, 15, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-26, -30); ctx.quadraticCurveTo(4, -22, 16, 12);
+        ctx.lineTo(-10, 56); ctx.lineTo(-34, 56); ctx.lineTo(-28, 6); ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        // Dragged heavy silhouette bundle
+        ctx.fillStyle = isSpec ? '#fde68a' : '#070e0b';
+        ctx.beginPath(); ctx.ellipse(28, 30, 38, 17, 0.22, 0, Math.PI * 2); ctx.fill();
+        if (isSpec) { ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2.2; ctx.stroke(); }
+        ctx.restore();
+
+        // 3. Timecode overlay + 14-min CRC deletion gap (top-left)
+        var pTc = findSpotCoord(spots, 'timecode', 0, w, h, 0.22, 0.18);
+        ctx.save();
+        ctx.fillStyle = 'rgba(4, 10, 8, 0.82)';
+        ctx.fillRect(pTc.x - 120, pTc.y - 36, 240, 72);
+        ctx.strokeStyle = isSpec ? '#ef4444' : 'rgba(134, 239, 172, 0.35)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(pTc.x - 120, pTc.y - 36, 240, 72);
+        ctx.font = '700 22px "IBM Plex Mono", monospace';
+        ctx.fillStyle = '#bbf7d0';
+        ctx.textAlign = 'center';
+        ctx.fillText('CAM-12  21:53:04', pTc.x, pTc.y - 6);
+        if (isSpec) {
+          ctx.font = '700 14px "IBM Plex Mono", monospace';
+          ctx.fillStyle = '#f87171';
+          ctx.fillText('! GAP: 21:54-22:07 (14M DEL) !', pTc.x, pTc.y + 22);
+        } else {
+          ctx.font = '600 12px "IBM Plex Mono", monospace';
+          ctx.fillStyle = 'rgba(134, 239, 172, 0.38)';
+          ctx.fillText('REC • IR AUTO', pTc.x, pTc.y + 20);
+        }
+        ctx.restore();
+
+        // Decoy: Cat glowing eyes near ditch
+        var pCat = findSpotCoord(spots, 'cat', 0, w, h, 0.50, 0.80);
+        ctx.fillStyle = '#0c1411';
+        ctx.beginPath(); ctx.ellipse(pCat.x, pCat.y + 10, 22, 13, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ecfccb';
+        ctx.beginPath(); ctx.arc(pCat.x - 7, pCat.y, 4, 0, Math.PI * 2); ctx.arc(pCat.x + 7, pCat.y, 4, 0, Math.PI * 2); ctx.fill();
+
+        // Decoy: Wet lamp glare on fence
+        var pGlare = findSpotCoord(spots, 'glare', 0, w, h, 0.84, 0.24);
+        var gg = ctx.createRadialGradient(pGlare.x, pGlare.y, 4, pGlare.x, pGlare.y, 42);
+        gg.addColorStop(0, 'rgba(220, 252, 231, 0.65)');
+        gg.addColorStop(1, 'rgba(220, 252, 231, 0)');
+        ctx.fillStyle = gg;
+        ctx.beginPath(); ctx.arc(pGlare.x, pGlare.y, 42, 0, Math.PI * 2); ctx.fill();
+      } else {
+        // FRAME 1: MORNING 08:15
+        // Timestamp top-left
+        ctx.fillStyle = 'rgba(10, 14, 18, 0.78)';
+        ctx.fillRect(28, 22, 225, 38);
+        ctx.font = '700 20px "IBM Plex Mono", monospace';
+        ctx.fillStyle = '#e2e8f0';
+        ctx.textAlign = 'left';
+        ctx.fillText('CAM-12  08:15:41', 42, 48);
+
+        // 4. Police patrol UAZ at Belyaev's gate
+        var pPat = findSpotCoord(spots, 'patrol', 1, w, h, 0.30, 0.54);
+        ctx.save();
+        ctx.translate(pPat.x, pPat.y);
+        ctx.fillStyle = isSpec ? '#cbd5e1' : '#94a3b8';
+        ctx.fillRect(-102, -46, 204, 72);
+        // Blue MVD police stripe
+        ctx.fillStyle = isSpec ? '#2563eb' : '#1d4ed8';
+        ctx.fillRect(-102, -6, 204, 16);
+        // Police roof beacon
+        ctx.fillStyle = '#ef4444'; ctx.fillRect(-26, -58, 24, 12);
+        ctx.fillStyle = '#3b82f6'; ctx.fillRect(2, -58, 24, 12);
+        // Windows & wheels
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(-86, -38, 48, 24); ctx.fillRect(-28, -38, 56, 24); ctx.fillRect(38, -38, 46, 24);
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath(); ctx.arc(-62, 28, 22, 0, Math.PI * 2); ctx.arc(62, 28, 22, 0, Math.PI * 2); ctx.fill();
+        if (isSpec) {
+          ctx.font = '700 13px "IBM Plex Mono", monospace';
+          ctx.fillStyle = '#fde68a'; ctx.textAlign = 'center';
+          ctx.fillText('ПОЛИЦИЯ • БОРТ 014', 0, 6);
+        }
+        ctx.restore();
+
+        // 5. Gromov receiving flash drive from Belyaev at gate
+        var pUsb = findSpotCoord(spots, 'usb', 1, w, h, 0.72, 0.50);
+        ctx.save();
+        ctx.translate(pUsb.x, pUsb.y);
+        // Uniformed officer figure (left) & neighbor figure (right)
+        ctx.fillStyle = isSpec ? '#1e3a8a' : '#1e293b';
+        ctx.beginPath(); ctx.arc(-44, -46, 16, 0, Math.PI * 2); ctx.fill();
+        ctx.fillRect(-62, -28, 36, 84);
+        ctx.fillStyle = isSpec ? '#475569' : '#334155';
+        ctx.beginPath(); ctx.arc(44, -42, 15, 0, Math.PI * 2); ctx.fill();
+        ctx.fillRect(28, -24, 34, 80);
+        // Outstretched hands exchanging USB stick
+        ctx.strokeStyle = isSpec ? '#fde68a' : '#94a3b8';
+        ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.moveTo(-26, -8); ctx.lineTo(-4, -2); ctx.moveTo(28, -8); ctx.lineTo(8, -2); ctx.stroke();
+        // Metallic flash drive glint
+        ctx.fillStyle = isSpec ? '#fef08a' : '#cbd5e1';
+        ctx.fillRect(-8, -7, 18, 9);
+        if (isSpec) {
+          ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2;
+          ctx.strokeRect(-14, -14, 30, 22);
+        }
+        ctx.restore();
+
+        // Decoy: Postbox
+        var pBox = findSpotCoord(spots, 'postbox', 1, w, h, 0.86, 0.72);
+        ctx.fillStyle = '#334155'; ctx.fillRect(pBox.x - 18, pBox.y - 24, 36, 48);
+        ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2; ctx.strokeRect(pBox.x - 18, pBox.y - 24, 36, 48);
+        ctx.fillStyle = '#cbd5e1'; ctx.font = '700 14px "IBM Plex Mono", monospace'; ctx.textAlign = 'center';
+        ctx.fillText('12', pBox.x, pBox.y + 5);
+
+        // Decoy: Muddy tractor rut
+        var pRut = findSpotCoord(spots, 'rut', 1, w, h, 0.48, 0.82);
+        ctx.strokeStyle = 'rgba(15, 23, 42, 0.72)'; ctx.lineWidth = 14;
+        ctx.beginPath(); ctx.moveTo(pRut.x - 90, pRut.y + 12); ctx.quadraticCurveTo(pRut.x, pRut.y - 8, pRut.x + 90, pRut.y + 10); ctx.stroke();
+      }
+
+      // CCTV scanlines & digital grain
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.16)';
+      for (i = 0; i < h; i += 4) ctx.fillRect(0, i, w, 1.5);
+      for (i = 0; i < 220; i++) {
+        ctx.fillStyle = rand() > 0.5 ? 'rgba(200,255,220,0.06)' : 'rgba(0,0,0,0.12)';
+        ctx.fillRect(rand() * w, rand() * h, 3, 2);
+      }
+      return;
+    }
+
+    // ===== CASE418 & GENERIC BURNT COTTAGE SCENES =====
     var bgGrad = ctx.createLinearGradient(0, 0, 0, h);
-    bgGrad.addColorStop(0, '#090b10');
-    bgGrad.addColorStop(0.45, '#12141a');
-    bgGrad.addColorStop(0.68, '#161413');
+    bgGrad.addColorStop(0, isSpec ? '#15171e' : '#090b10');
+    bgGrad.addColorStop(0.6, isSpec ? '#1e1b18' : '#121112');
     bgGrad.addColorStop(1, '#0b0a09');
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, w, h);
 
-    // Distant orange sodium streetlight / cold moon glow through burnt roof opening
-    var moonGlow = ctx.createRadialGradient(w * 0.62, h * 0.12, 10, w * 0.62, h * 0.12, w * 0.45);
-    moonGlow.addColorStop(0, 'rgba(130, 155, 195, 0.22)');
-    moonGlow.addColorStop(0.5, 'rgba(65, 80, 108, 0.08)');
-    moonGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = moonGlow;
-    ctx.fillRect(0, 0, w, h);
+    var floorY = h * 0.64;
+    if (viewId === 0) {
+      // ANGLE 0: INSIDE CHARRED COTTAGE (Panel, Door, 3 Floor Craters + Decoys)
+      ctx.fillStyle = isSpec ? '#231f1e' : '#161415';
+      ctx.fillRect(w * 0.04, h * 0.10, w * 0.92, floorY - h * 0.10);
+      for (i = 0; i < 10; i++) {
+        var py = h * 0.10 + i * ((floorY - h * 0.10) / 10);
+        ctx.strokeStyle = 'rgba(0,0,0,0.48)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(w * 0.04, py); ctx.lineTo(w * 0.96, py); ctx.stroke();
+      }
+      // Floor
+      ctx.fillStyle = isSpec ? '#241e1b' : '#141211';
+      ctx.fillRect(0, floorY, w, h - floorY);
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1.5;
+      for (i = 0; i < 12; i++) {
+        ctx.beginPath(); ctx.moveTo(i * (w / 11), floorY); ctx.lineTo((i - 0.5) * (w / 10), h); ctx.stroke();
+      }
 
-    var emberGlow = ctx.createRadialGradient(w * 0.48, h * 0.78, 12, w * 0.48, h * 0.78, w * 0.5);
-    emberGlow.addColorStop(0, 'rgba(190, 92, 24, 0.16)');
-    emberGlow.addColorStop(0.6, 'rgba(120, 48, 12, 0.05)');
-    emberGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = emberGlow;
-    ctx.fillRect(0, 0, w, h);
+      // 1. Breaker Panel
+      var pPanel = findSpotCoord(spots, 'panel', 0, w, h, 0.18, 0.38);
+      var pw = w * 0.11, ph = h * 0.20;
+      ctx.fillStyle = '#0c0d10';
+      ctx.fillRect(pPanel.x - pw * 0.6, pPanel.y - ph * 0.6, pw * 1.2, ph * 1.2);
+      ctx.fillStyle = '#20242d';
+      ctx.fillRect(pPanel.x - pw / 2, pPanel.y - ph / 2, pw, ph);
+      ctx.strokeStyle = isSpec ? '#94a3b8' : '#374151'; ctx.lineWidth = 2;
+      ctx.strokeRect(pPanel.x - pw / 2, pPanel.y - ph / 2, pw, ph);
+      if (isSpec) {
+        // Strobe reveals bright intact copper & blue wires + crisp unmelted breakers!
+        ctx.fillStyle = '#11151d';
+        ctx.fillRect(pPanel.x - pw * 0.4, pPanel.y - ph * 0.4, pw * 0.8, ph * 0.8);
+        ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(pPanel.x - pw * 0.2, pPanel.y - ph * 0.35); ctx.lineTo(pPanel.x - pw * 0.2, pPanel.y + ph * 0.35); ctx.stroke();
+        ctx.strokeStyle = '#38bdf8';
+        ctx.beginPath(); ctx.moveTo(pPanel.x + pw * 0.16, pPanel.y - ph * 0.35); ctx.lineTo(pPanel.x + pw * 0.16, pPanel.y + ph * 0.35); ctx.stroke();
+        ctx.fillStyle = '#cbd5e1';
+        for (i = 0; i < 3; i++) ctx.fillRect(pPanel.x - pw * 0.3 + i * (pw * 0.22), pPanel.y - 10, pw * 0.16, 20);
+      } else {
+        ctx.fillStyle = 'rgba(6, 7, 9, 0.88)';
+        ctx.fillRect(pPanel.x - pw * 0.42, pPanel.y - ph * 0.42, pw * 0.84, ph * 0.84);
+      }
 
-    // 2. Back charred timber wall (left to right-center)
-    var wallLeft = w * 0.04;
-    var wallRight = w * 0.78;
-    var wallTop = h * 0.12;
-    var floorY = h * 0.65;
-
-    ctx.fillStyle = '#181617';
-    ctx.fillRect(wallLeft, wallTop, wallRight - wallLeft, floorY - wallTop);
-
-    // Horizontal charred logs/planks
-    var plankCount = 11;
-    var plankH = (floorY - wallTop) / plankCount;
-    for (i = 0; i < plankCount; i++) {
-      var py = wallTop + i * plankH;
-      var tone = 18 + Math.floor(rand() * 14);
-      ctx.fillStyle = 'rgb(' + (tone + 4) + ',' + (tone + 1) + ',' + tone + ')';
-      ctx.fillRect(wallLeft, py, wallRight - wallLeft, plankH - 1.5);
-
-      // Alligatoring char texture streaks
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
-      ctx.lineWidth = 1;
-      for (var s = 0; s < 14; s++) {
-        var sx = wallLeft + rand() * (wallRight - wallLeft);
-        var sw = 18 + rand() * 55;
+      // 2. Door with crowbar pry marks
+      var pDoor = findSpotCoord(spots, 'door', 0, w, h, 0.50, 0.44);
+      var dw = w * 0.20, dh = h * 0.44;
+      ctx.fillStyle = '#060709';
+      ctx.fillRect(pDoor.x - dw / 2, floorY - dh, dw, dh);
+      ctx.strokeStyle = '#332821'; ctx.lineWidth = 10;
+      ctx.strokeRect(pDoor.x - dw / 2, floorY - dh, dw, dh);
+      ctx.fillStyle = '#241c17';
+      ctx.fillRect(pDoor.x - dw / 2 + 6, floorY - dh + 6, dw * 0.68, dh - 8);
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(pDoor.x + dw * 0.15, pDoor.y - 18, 10, 36);
+      if (isSpec) {
+        // Strobe exposes bright fresh pale splinters & crowbar steel gouges!
+        ctx.strokeStyle = '#fde68a'; ctx.lineWidth = 3.2;
         ctx.beginPath();
-        ctx.moveTo(sx, py + rand() * plankH);
-        ctx.lineTo(sx + sw, py + rand() * plankH);
+        ctx.moveTo(pDoor.x + dw * 0.06, pDoor.y - 20); ctx.lineTo(pDoor.x + dw * 0.24, pDoor.y - 4);
+        ctx.moveTo(pDoor.x + dw * 0.04, pDoor.y + 4); ctx.lineTo(pDoor.x + dw * 0.26, pDoor.y + 18);
+        ctx.stroke();
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillRect(pDoor.x + dw * 0.17, pDoor.y - 4, 15, 8);
+      }
+
+      // 3. Three floor char craters
+      var pFloor = findSpotCoord(spots, 'floor', 0, w, h, 0.58, 0.80);
+      var cr = [[-82, -10], [0, 14], [82, -12]];
+      for (i = 0; i < cr.length; i++) {
+        var cx = pFloor.x + cr[i][0], cy = pFloor.y + cr[i][1];
+        var cg = ctx.createRadialGradient(cx, cy, 4, cx, cy, 52);
+        cg.addColorStop(0, '#020202');
+        cg.addColorStop(0.58, '#1a110e');
+        cg.addColorStop(0.84, 'rgba(201, 138, 46, 0.42)');
+        cg.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = cg;
+        ctx.beginPath(); ctx.ellipse(cx, cy, 52, 28, 0, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // Decoy: Melted electric kettle
+      var pKet = findSpotCoord(spots, 'kettle', 0, w, h, 0.82, 0.64);
+      ctx.fillStyle = isSpec ? '#64748b' : '#334155';
+      ctx.beginPath(); ctx.ellipse(pKet.x, pKet.y, 26, 20, -0.3, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(pKet.x + 18, pKet.y - 4, 12, -1.2, 1.3); ctx.stroke();
+
+      // Decoy: Cracked glass pile
+      var pGls = findSpotCoord(spots, 'glass', 0, w, h, 0.24, 0.76);
+      ctx.strokeStyle = isSpec ? 'rgba(186,230,253,0.75)' : 'rgba(148,163,184,0.38)';
+      ctx.lineWidth = 1.6;
+      for (i = 0; i < 6; i++) {
+        ctx.beginPath();
+        ctx.moveTo(pGls.x - 24 + i * 9, pGls.y - 10 + (i % 2) * 14);
+        ctx.lineTo(pGls.x - 10 + i * 9, pGls.y + 8 - (i % 2) * 10);
         ctx.stroke();
       }
-    }
+    } else {
+      // ANGLE 1: CHARRED ROOF BEAMS & PORCH BUSHES (Bullet, Canister + Decoys)
+      // Heavy overhead charred timber beam
+      ctx.fillStyle = isSpec ? '#231d19' : '#141110';
+      ctx.fillRect(0, h * 0.14, w, h * 0.24);
+      ctx.strokeStyle = 'rgba(180,145,110,0.16)'; ctx.lineWidth = 1.4;
+      for (i = 0; i < 18; i++) {
+        var bx = rand() * w, by = h * 0.16 + rand() * h * 0.20;
+        ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + 60, by + 2); ctx.stroke();
+      }
+      // Dark yard & bushes in lower half
+      ctx.fillStyle = isSpec ? '#111915' : '#090e0b';
+      ctx.fillRect(0, h * 0.42, w, h * 0.58);
 
-    // Soot smoke plumes along upper wall
-    for (i = 0; i < 16; i++) {
-      var gx = wallLeft + rand() * (wallRight - wallLeft);
-      var gy = wallTop + rand() * (floorY - wallTop) * 0.65;
-      var gr = 35 + rand() * 70;
-      var soot = ctx.createRadialGradient(gx, gy, 4, gx, gy, gr);
-      soot.addColorStop(0, 'rgba(5, 5, 6, 0.62)');
-      soot.addColorStop(1, 'rgba(5, 5, 6, 0)');
-      ctx.fillStyle = soot;
-      ctx.beginPath();
-      ctx.arc(gx, gy, gr, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // 3. Burned wooden floor perspective plane
-    var floorGrad = ctx.createLinearGradient(0, floorY, 0, h);
-    floorGrad.addColorStop(0, '#171514');
-    floorGrad.addColorStop(0.5, '#1d1917');
-    floorGrad.addColorStop(1, '#0e0c0b');
-    ctx.fillStyle = floorGrad;
-    ctx.beginPath();
-    ctx.moveTo(0, floorY);
-    ctx.lineTo(w * 0.80, floorY);
-    ctx.lineTo(w * 0.72, h);
-    ctx.lineTo(0, h);
-    ctx.closePath();
-    ctx.fill();
-
-    // Floorboard perspective lines
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.52)';
-    ctx.lineWidth = 1.4;
-    for (i = 0; i < 12; i++) {
-      var t = i / 11;
-      ctx.beginPath();
-      ctx.moveTo(w * (0.02 + t * 0.75), floorY);
-      ctx.lineTo(w * (-0.08 + t * 0.85), h);
-      ctx.stroke();
-    }
-
-    // Scattered ash piles on floor
-    for (i = 0; i < 90; i++) {
-      ctx.fillStyle = 'rgba(135, 130, 125, ' + (0.04 + rand() * 0.1).toFixed(3) + ')';
-      ctx.beginPath();
-      ctx.ellipse(
-        w * (0.05 + rand() * 0.72),
-        floorY + rand() * (h - floorY),
-        4 + rand() * 20,
-        2 + rand() * 7,
-        0,
-        0,
-        Math.PI * 2
-      );
-      ctx.fill();
-    }
-
-    // 4. Exterior porch yard & dark bushes on right side
-    var yardGrad = ctx.createLinearGradient(w * 0.76, h * 0.35, w, h);
-    yardGrad.addColorStop(0, '#0a0d12');
-    yardGrad.addColorStop(1, '#0c100d');
-    ctx.fillStyle = yardGrad;
-    ctx.fillRect(w * 0.78, h * 0.12, w * 0.22, h * 0.88);
-
-    // Porch railing post separating house & yard
-    ctx.fillStyle = '#141211';
-    ctx.fillRect(w * 0.765, h * 0.14, w * 0.028, h * 0.72);
-    ctx.strokeStyle = 'rgba(120, 95, 70, 0.18)';
-    ctx.strokeRect(w * 0.765, h * 0.14, w * 0.028, h * 0.72);
-
-    // 5. Roof rafters & charred ceiling beams
-    ctx.save();
-    ctx.fillStyle = '#131110';
-    // Horizontal main tie beam
-    ctx.fillRect(0, h * 0.16, w * 0.88, h * 0.085);
-    // Diagonal rafters
-    var rafters = [0.14, 0.34, 0.56, 0.74];
-    for (i = 0; i < rafters.length; i++) {
-      ctx.beginPath();
-      ctx.moveTo(w * rafters[i], 0);
-      ctx.lineTo(w * (rafters[i] + 0.05), 0);
-      ctx.lineTo(w * (rafters[i] - 0.03), h * 0.24);
-      ctx.lineTo(w * (rafters[i] - 0.08), h * 0.24);
-      ctx.closePath();
-      ctx.fill();
-    }
-    // Wood grain cracks on main beam
-    ctx.strokeStyle = 'rgba(180, 145, 110, 0.14)';
-    ctx.lineWidth = 1;
-    for (i = 0; i < 24; i++) {
-      var bx = rand() * w * 0.86;
-      var by = h * 0.165 + rand() * h * 0.075;
-      ctx.beginPath();
-      ctx.moveTo(bx, by);
-      ctx.lineTo(bx + 25 + rand() * 55, by + (rand() - 0.5) * 4);
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    // 6. Draw forensic details mapped directly to each point coordinate
-    function getPt(kind, fallbackX, fallbackY) {
-      for (var k = 0; k < points.length; k++) {
-        if (points[k].kind === kind || points[k].id === kind) {
-          return { x: points[k].x * w, y: points[k].y * h, found: true };
+      // 4. Bullet in beam
+      var pBeam = findSpotCoord(spots, 'beam', 1, w, h, 0.34, 0.26);
+      ctx.fillStyle = '#050506';
+      ctx.beginPath(); ctx.ellipse(pBeam.x, pBeam.y, 18, 13, -0.15, 0, Math.PI * 2); ctx.fill();
+      if (isSpec) {
+        // Strobe reveals bright copper bullet jacket & splinter stars!
+        ctx.strokeStyle = '#e6c59c'; ctx.lineWidth = 1.8;
+        for (i = 0; i < 6; i++) {
+          var ang = (i / 6) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.moveTo(pBeam.x + Math.cos(ang) * 10, pBeam.y + Math.sin(ang) * 8);
+          ctx.lineTo(pBeam.x + Math.cos(ang) * 26, pBeam.y + Math.sin(ang) * 18);
+          ctx.stroke();
         }
+        var bgBullet = ctx.createRadialGradient(pBeam.x - 2, pBeam.y - 2, 1, pBeam.x, pBeam.y, 10);
+        bgBullet.addColorStop(0, '#fef08a');
+        bgBullet.addColorStop(0.55, '#d97706');
+        bgBullet.addColorStop(1, '#78350f');
+        ctx.fillStyle = bgBullet;
+        ctx.beginPath(); ctx.arc(pBeam.x, pBeam.y, 9, 0, Math.PI * 2); ctx.fill();
       }
-      return { x: fallbackX * w, y: fallbackY * h, found: false };
-    }
 
-    // 6a. Electrical Breaker Panel (обгорел снаружи)
-    var pPanel = getPt('panel', 0.16, 0.38);
-    ctx.save();
-    var pw = w * 0.095;
-    var ph = h * 0.165;
-    // External soot halo blowing around casing
-    var halo = ctx.createRadialGradient(pPanel.x, pPanel.y, pw * 0.2, pPanel.x, pPanel.y, pw * 1.35);
-    halo.addColorStop(0, 'rgba(10, 10, 10, 0.85)');
-    halo.addColorStop(1, 'rgba(10, 10, 10, 0)');
-    ctx.fillStyle = halo;
-    ctx.beginPath();
-    ctx.arc(pPanel.x, pPanel.y, pw * 1.35, 0, Math.PI * 2);
-    ctx.fill();
-    // Metal cabinet body
-    ctx.fillStyle = '#252930';
-    ctx.fillRect(pPanel.x - pw / 2, pPanel.y - ph / 2, pw, ph);
-    // Scorched outside door flap slightly ajar
-    ctx.fillStyle = '#181a1f';
-    ctx.fillRect(pPanel.x - pw / 2 + 4, pPanel.y - ph / 2 + 4, pw - 8, ph - 8);
-    ctx.strokeStyle = '#525866';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(pPanel.x - pw / 2, pPanel.y - ph / 2, pw, ph);
-    // Intact copper & blue wires inside (clue: burned externally, not short circuit)
-    ctx.strokeStyle = '#b45309';
-    ctx.lineWidth = 1.8;
-    ctx.beginPath();
-    ctx.moveTo(pPanel.x - pw * 0.2, pPanel.y - ph * 0.32);
-    ctx.lineTo(pPanel.x - pw * 0.2, pPanel.y + ph * 0.32);
-    ctx.stroke();
-    ctx.strokeStyle = '#38bdf8';
-    ctx.beginPath();
-    ctx.moveTo(pPanel.x + pw * 0.12, pPanel.y - ph * 0.3);
-    ctx.lineTo(pPanel.x + pw * 0.12, pPanel.y + ph * 0.3);
-    ctx.stroke();
-    // Breakers row
-    ctx.fillStyle = '#3f4552';
-    for (i = 0; i < 3; i++) {
-      ctx.fillRect(pPanel.x - pw * 0.3 + i * (pw * 0.22), pPanel.y - 6, pw * 0.16, 14);
-    }
-    // High voltage lightning triangle (partially blistered)
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.55)';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(pPanel.x, pPanel.y - ph * 0.34);
-    ctx.lineTo(pPanel.x + 8, pPanel.y - ph * 0.2);
-    ctx.lineTo(pPanel.x - 8, pPanel.y - ph * 0.2);
-    ctx.closePath();
-    ctx.stroke();
-    // Conduit pipe going up
-    ctx.fillStyle = '#323741';
-    ctx.fillRect(pPanel.x - 3, wallTop, 6, pPanel.y - ph / 2 - wallTop);
-    ctx.restore();
+      // Decoy: Empty wood knot on right of beam
+      var pKnot = findSpotCoord(spots, 'knot', 1, w, h, 0.70, 0.24);
+      ctx.fillStyle = '#070606';
+      ctx.beginPath(); ctx.ellipse(pKnot.x, pKnot.y, 16, 11, 0.2, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = isSpec ? '#5c4b3c' : '#261f1a'; ctx.lineWidth = 2; ctx.stroke();
 
-    // 6b. Splintered Door Frame & Crowbar Pry Marks
-    var pDoor = getPt('door', 0.43, 0.47);
-    ctx.save();
-    var dw = w * 0.17;
-    var dh = h * 0.41;
-    var dx = pDoor.x - dw * 0.5;
-    var dy = floorY - dh;
-    // Dark hallway beyond door
-    ctx.fillStyle = '#060709';
-    ctx.fillRect(dx, dy, dw, dh);
-    // Heavy wooden jamb
-    ctx.strokeStyle = '#2d241f';
-    ctx.lineWidth = 9;
-    ctx.strokeRect(dx, dy, dw, dh);
-    // Partially broken door panel hanging askew
-    ctx.fillStyle = '#231c18';
-    ctx.beginPath();
-    ctx.moveTo(dx + 4, dy + 4);
-    ctx.lineTo(dx + dw * 0.72, dy + 10);
-    ctx.lineTo(dx + dw * 0.68, dy + dh - 2);
-    ctx.lineTo(dx + 4, dy + dh - 2);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = '#3b2f28';
-    ctx.lineWidth = 1.4;
-    ctx.stroke();
-    // Lock plate & bright metallic pry-bar gouges right around pDoor
-    ctx.fillStyle = '#7c8594';
-    ctx.fillRect(pDoor.x + dw * 0.14, pDoor.y - 14, 9, 28);
-    // Fresh pale wood splinters & steel scrape marks from crowbar
-    ctx.strokeStyle = '#d6b48c';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(pDoor.x + dw * 0.08, pDoor.y - 16);
-    ctx.lineTo(pDoor.x + dw * 0.21, pDoor.y - 5);
-    ctx.moveTo(pDoor.x + dw * 0.06, pDoor.y + 4);
-    ctx.lineTo(pDoor.x + dw * 0.22, pDoor.y + 13);
-    ctx.moveTo(pDoor.x + dw * 0.10, pDoor.y - 2);
-    ctx.lineTo(pDoor.x + dw * 0.19, pDoor.y + 3);
-    ctx.stroke();
-    // Bent brass latch
-    ctx.fillStyle = '#c98a2e';
-    ctx.fillRect(pDoor.x + dw * 0.16, pDoor.y - 3, 12, 6);
-    ctx.restore();
+      // 5. Melted red fuel canister in bushes
+      var pCan = findSpotCoord(spots, 'canister', 1, w, h, 0.76, 0.68);
+      ctx.save();
+      ctx.translate(pCan.x, pCan.y);
+      ctx.rotate(-0.22);
+      ctx.fillStyle = isSpec ? '#b91c1c' : '#7f1d1d';
+      ctx.fillRect(-30, -24, 58, 46);
+      ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2; ctx.strokeRect(-30, -24, 58, 46);
+      ctx.strokeStyle = 'rgba(254, 202, 202, 0.5)';
+      ctx.beginPath(); ctx.moveTo(-20, -14); ctx.lineTo(18, 14); ctx.moveTo(18, -14); ctx.lineTo(-20, 14); ctx.stroke();
+      ctx.fillStyle = '#450a0a'; ctx.fillRect(-22, -34, 34, 10);
+      ctx.fillStyle = '#f59e0b'; ctx.fillRect(14, -34, 12, 10);
+      ctx.restore();
 
-    // 6c. Three Arson Floor Char Craters (Три очага прогара)
-    var pFloor = getPt('floor', 0.54, 0.80);
-    ctx.save();
-    var craters = [
-      { ox: -w * 0.09, oy: -h * 0.015, rx: w * 0.055, ry: h * 0.036 },
-      { ox: 0, oy: h * 0.025, rx: w * 0.062, ry: h * 0.042 },
-      { ox: w * 0.09, oy: -h * 0.02, rx: w * 0.052, ry: h * 0.034 }
-    ];
-    for (i = 0; i < craters.length; i++) {
-      var c = craters[i];
-      var cx = pFloor.x + c.ox;
-      var cy = pFloor.y + c.oy;
-      var cg = ctx.createRadialGradient(cx, cy, 2, cx, cy, c.rx);
-      cg.addColorStop(0, 'rgba(3, 3, 3, 0.96)');
-      cg.addColorStop(0.55, 'rgba(20, 14, 12, 0.9)');
-      cg.addColorStop(0.82, 'rgba(145, 130, 118, 0.36)');
-      cg.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = cg;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, c.rx, c.ry, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Subtle glowing ember ring / ash crack inside crater
-      ctx.strokeStyle = 'rgba(201, 138, 46, 0.32)';
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, c.rx * 0.55, c.ry * 0.55, 0, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    // 6d. Deformed Bullet Embedded in Charred Ceiling Beam
-    var pBeam = getPt('beam', 0.72, 0.21);
-    ctx.save();
-    // Impact splinter crater in beam
-    ctx.fillStyle = '#080707';
-    ctx.beginPath();
-    ctx.ellipse(pBeam.x, pBeam.y, 13, 10, -0.2, 0, Math.PI * 2);
-    ctx.fill();
-    // Radiating light wood splinters
-    ctx.strokeStyle = 'rgba(186, 152, 112, 0.65)';
-    ctx.lineWidth = 1.3;
-    for (i = 0; i < 6; i++) {
-      var ang = (i / 6) * Math.PI * 2 + 0.3;
-      ctx.beginPath();
-      ctx.moveTo(pBeam.x + Math.cos(ang) * 7, pBeam.y + Math.sin(ang) * 5);
-      ctx.lineTo(pBeam.x + Math.cos(ang) * 18, pBeam.y + Math.sin(ang) * 12);
-      ctx.stroke();
-    }
-    // Metallic copper-jacketed bullet base glinting inside hole
-    var bGrad = ctx.createRadialGradient(pBeam.x - 2, pBeam.y - 2, 1, pBeam.x, pBeam.y, 7.5);
-    bGrad.addColorStop(0, '#fde68a');
-    bGrad.addColorStop(0.55, '#c98a2e');
-    bGrad.addColorStop(1, '#5c3712');
-    ctx.fillStyle = bGrad;
-    ctx.beginPath();
-    ctx.arc(pBeam.x, pBeam.y, 6.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-
-    // 6e. Partially Melted Fuel Canister in Bushes
-    var pCan = getPt('canister', 0.86, 0.74);
-    ctx.save();
-    // Background bush silhouettes
-    ctx.fillStyle = '#0f1712';
-    for (i = 0; i < 7; i++) {
-      ctx.beginPath();
-      ctx.arc(pCan.x + (i - 3) * 18, pCan.y - 10 + (i % 2) * 16, 22 + (i % 3) * 7, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    // Red/rusty fuel jerrycan tilted on ground
-    ctx.save();
-    ctx.translate(pCan.x, pCan.y);
-    ctx.rotate(-0.24);
-    ctx.fillStyle = '#7f1d1d';
-    ctx.fillRect(-18, -14, 34, 28);
-    ctx.strokeStyle = '#b91c1c';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(-18, -14, 34, 28);
-    // Stamped X indentation on jerrycan
-    ctx.strokeStyle = 'rgba(248, 113, 113, 0.42)';
-    ctx.beginPath();
-    ctx.moveTo(-12, -8);
-    ctx.lineTo(10, 8);
-    ctx.moveTo(10, -8);
-    ctx.lineTo(-12, 8);
-    ctx.stroke();
-    // Handle & cap spout
-    ctx.fillStyle = '#450a0a';
-    ctx.fillRect(-14, -20, 22, 6);
-    ctx.fillStyle = '#d97706';
-    ctx.fillRect(9, -20, 7, 6);
-    ctx.restore();
-    // Foreground thorny branches partially concealing canister
-    ctx.strokeStyle = '#1d2b21';
-    ctx.lineWidth = 2.2;
-    for (i = 0; i < 6; i++) {
-      ctx.beginPath();
-      ctx.moveTo(pCan.x - 36 + i * 14, pCan.y + 30);
-      ctx.quadraticCurveTo(pCan.x - 16 + i * 8, pCan.y - 2, pCan.x - 24 + i * 15, pCan.y - 28);
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    // 7. Draw subtle clue markers for any custom points not matching default kinds
-    for (i = 0; i < points.length; i++) {
-      var pt = points[i];
-      if (
-        pt.kind !== 'panel' &&
-        pt.kind !== 'door' &&
-        pt.kind !== 'floor' &&
-        pt.kind !== 'beam' &&
-        pt.kind !== 'canister' &&
-        pt.id !== 'panel' &&
-        pt.id !== 'door' &&
-        pt.id !== 'floor' &&
-        pt.id !== 'beam' &&
-        pt.id !== 'canister'
-      ) {
-        var cxCustom = pt.x * w;
-        var cyCustom = pt.y * h;
-        ctx.save();
-        ctx.fillStyle = 'rgba(201, 138, 46, 0.25)';
-        ctx.beginPath();
-        ctx.arc(cxCustom, cyCustom, 10, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(230, 195, 130, 0.45)';
-        ctx.lineWidth = 1.4;
-        ctx.beginPath();
-        ctx.arc(cxCustom, cyCustom, 5, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-      }
+      // Decoy: Garden watering can on left
+      var pWat = findSpotCoord(spots, 'watering', 1, w, h, 0.24, 0.72);
+      ctx.fillStyle = isSpec ? '#15803d' : '#14532d';
+      ctx.fillRect(pWat.x - 24, pWat.y - 16, 42, 34);
+      ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(pWat.x + 18, pWat.y + 4); ctx.lineTo(pWat.x + 42, pWat.y - 14); ctx.stroke();
     }
   }
+
+
+  function drawDebrisOverlay(ctx, spot, w, h, now) {
+    if (!spot || spot.debris <= 0.02) return;
+    var cx = spot.x * w;
+    var cy = spot.y * h;
+    var alpha = clamp(spot.debris, 0.15, 1);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    if (spot.debrisKind === 'glitch') {
+      var gw = w * 0.28;
+      var gh = h * 0.24;
+      ctx.fillStyle = '#07130f';
+      ctx.fillRect(cx - gw / 2, cy - gh / 2, gw, gh);
+      var rows = 7;
+      for (var r = 0; r < rows; r++) {
+        var shift = Math.sin(now * 0.015 + r * 2.1) * 6;
+        ctx.fillStyle = r % 2 === 0 ? 'rgba(74, 222, 128, 0.42)' : 'rgba(226, 232, 240, 0.28)';
+        ctx.fillRect(cx - gw / 2 + shift, cy - gh / 2 + r * (gh / rows), gw * 0.88, gh / rows - 2);
+      }
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([4, 3]);
+      ctx.strokeRect(cx - gw / 2, cy - gh / 2, gw, gh);
+      ctx.setLineDash([]);
+    } else if (spot.debrisKind === 'bush') {
+      ctx.fillStyle = '#0e1711';
+      for (var b = 0; b < 7; b++) {
+        ctx.beginPath();
+        ctx.arc(cx + (b - 3) * 14, cy + (b % 2 === 0 ? -8 : 10), 22, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.strokeStyle = '#243529';
+      ctx.lineWidth = 3;
+      for (var k = 0; k < 6; k++) {
+        ctx.beginPath();
+        ctx.moveTo(cx - 34 + k * 14, cy + 28);
+        ctx.quadraticCurveTo(cx - 12 + k * 8, cy, cx - 22 + k * 14, cy - 26);
+        ctx.stroke();
+      }
+    } else {
+      // Wet ash & plaster mound
+      ctx.fillStyle = '#3d3935';
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, w * 0.14, h * 0.09, 0.08, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#5c554e';
+      ctx.beginPath();
+      ctx.ellipse(cx - 10, cy - 5, w * 0.08, h * 0.05, -0.15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(212, 202, 180, 0.65)';
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, w * 0.145, h * 0.095, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Small visual badge cue
+    ctx.globalAlpha = 0.92;
+    ctx.font = '700 9px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = spot.debrisKind === 'glitch' ? '#fca5a5' : '#fde68a';
+    ctx.fillText(spot.debrisKind === 'glitch' ? 'СБОЙ КЭША (СОТРИТЕ)' : 'ПЕРЕКРЫТО (РАСЧИСТИТЕ)', cx, cy);
+    ctx.restore();
+  }
+
   function initCrimeCamera(containerEl, config, callbacks) {
     config = config || {};
+    injectCamStyles();
+
     var timers = createTimerBag();
     var listeners = createListenerBag();
     var triggerWin = createWinTrigger(callbacks);
-    var finished = false;
+    var triggerFail = createFailTrigger(callbacks);
 
-    var rawPoints =
-      Array.isArray(config.points) && config.points.length > 0
-        ? config.points
-        : DEFAULT_CAMERA_POINTS;
-
-    var points = rawPoints.map(function (p, idx) {
-      return {
-        id: p.id || 'pt_' + idx,
-        label: p.label || 'Улика #' + (idx + 1),
-        shortLabel: p.shortLabel || (p.label ? p.label.split(' ')[0].toUpperCase().slice(0, 9) : 'УЛИКА ' + (idx + 1)),
-        x: clamp(typeof p.x === 'number' ? p.x : 0.2 + idx * 0.15, 0.08, 0.92),
-        y: clamp(typeof p.y === 'number' ? p.y : 0.5, 0.1, 0.9),
-        focusTarget: clamp(typeof p.focusTarget === 'number' ? p.focusTarget : 50, 8, 92),
-        kind: p.kind || p.id || 'custom',
-        captured: false
-      };
+    var scenario = resolveCamScenario(config);
+    var spots = scenario.spots.map(function (s) {
+      return Object.assign({}, s, { captured: false });
     });
+    var evidenceSpots = spots.filter(function (s) {
+      return s.isEvidence;
+    });
+
+    var maxErrors = typeof config.maxErrors === 'number' && config.maxErrors > 0 ? config.maxErrors : 4;
+    var activeView = 0;
+    var activeMode = 'normal';
+    var capturedCount = 0;
+    var errorsCount = 0;
+    var phase = 'shoot';
 
     var shell = createShell(containerEl, {
-      title: config.title || 'Осмотр места: Пепелище',
-      subtitle: config.subtitle || 'ДЕЛО №418 • ФОТОФИКСАЦИЯ УЛИК',
+      title: scenario.title,
+      subtitle: scenario.subtitle,
       extraClass: 'mg-cam-wrap'
     });
+
+    // Replace plain subtitle with counter + error tracker
+    shell.subEl.style.display = 'none';
+    var metaRow = document.createElement('div');
+    metaRow.className = 'mg-cam-meta';
+    var statFound = document.createElement('span');
+    statFound.className = 'mg-cam-stat';
+    var statErr = document.createElement('span');
+    statErr.className = 'mg-cam-err';
+    metaRow.appendChild(statFound);
+    metaRow.appendChild(statErr);
+    shell.subEl.parentNode.appendChild(metaRow);
 
     listeners.on(shell.cancelBtn, 'click', function () {
       haptic('light');
@@ -1215,7 +1629,33 @@
       triggerCancel(callbacks);
     });
 
-    // Stage canvas
+    // View switcher tabs (if > 1 view)
+    var viewsBar = document.createElement('div');
+    viewsBar.className = 'mg-cam-views';
+    var viewButtons = [];
+    if (scenario.views.length > 1) {
+      for (var vi = 0; vi < scenario.views.length; vi++) {
+        (function (vw) {
+          var vb = document.createElement('button');
+          vb.type = 'button';
+          vb.className = 'mg-cam-vbtn';
+          vb.innerHTML = '<span class="mg-cam-vdot"></span><span>' + vw.label + '</span>';
+          listeners.on(vb, 'click', function () {
+            if (phase !== 'shoot' || activeView === vw.id) return;
+            activeView = vw.id;
+            rebuildViewLayers();
+            syncHeaderAndViews();
+            haptic('light');
+            sfx('click');
+          });
+          viewsBar.appendChild(vb);
+          viewButtons.push({ id: vw.id, el: vb });
+        })(scenario.views[vi]);
+      }
+      shell.body.appendChild(viewsBar);
+    }
+
+    // Viewfinder stage
     var stage = document.createElement('div');
     stage.className = 'mg-for-stage mg-cam-stage';
     var canvas = document.createElement('canvas');
@@ -1223,22 +1663,48 @@
     stage.appendChild(canvas);
     shell.body.appendChild(stage);
 
-    // Status bar
+    // Live status bar
     var statusEl = document.createElement('div');
     statusEl.className = 'mg-for-status';
     var statusText = document.createElement('span');
-    statusText.textContent = 'Наведите видоискатель на подозрительный участок';
-    var countBadge = document.createElement('span');
-    countBadge.className = 'mg-for-value';
-    countBadge.textContent = '0 / ' + points.length;
     statusEl.appendChild(statusText);
-    statusEl.appendChild(countBadge);
     shell.body.appendChild(statusEl);
 
-    // Controls panel
+    // Control panel
     var panel = document.createElement('div');
     panel.className = 'mg-for-panel';
 
+    // Mode buttons (Normal/Clear vs Special Flash/IR-Contrast)
+    var modesRow = document.createElement('div');
+    modesRow.className = 'mg-cam-modes';
+    var btnModeNorm = document.createElement('button');
+    btnModeNorm.type = 'button';
+    btnModeNorm.className = 'mg-cam-mbtn';
+    btnModeNorm.textContent = scenario.modeNormalLabel;
+    var btnModeSpec = document.createElement('button');
+    btnModeSpec.type = 'button';
+    btnModeSpec.className = 'mg-cam-mbtn';
+    btnModeSpec.textContent = scenario.modeSpecLabel;
+
+    listeners.on(btnModeNorm, 'click', function () {
+      if (phase !== 'shoot' || activeMode === 'normal') return;
+      activeMode = 'normal';
+      syncModeButtons();
+      haptic('light');
+      sfx('click');
+    });
+    listeners.on(btnModeSpec, 'click', function () {
+      if (phase !== 'shoot' || activeMode === 'spec') return;
+      activeMode = 'spec';
+      syncModeButtons();
+      haptic('light');
+      sfx('click');
+    });
+    modesRow.appendChild(btnModeNorm);
+    modesRow.appendChild(btnModeSpec);
+    panel.appendChild(modesRow);
+
+    // Focus slider
     var sliderWrap = document.createElement('div');
     sliderWrap.className = 'mg-for-slider-wrap';
     var sliderRow = document.createElement('div');
@@ -1267,41 +1733,33 @@
     var shootBtn = document.createElement('button');
     shootBtn.type = 'button';
     shootBtn.className = 'mg-for-btn';
-    shootBtn.textContent = 'СНЯТЬ КАДР';
+    shootBtn.textContent = scenario.shootLabel;
     shootBtn.disabled = true;
     panel.appendChild(shootBtn);
-
     shell.body.appendChild(panel);
 
     // Filmstrip thumbnails
     var strip = document.createElement('div');
     strip.className = 'mg-cam-strip';
-    strip.style.gridTemplateColumns = 'repeat(' + Math.min(points.length, 5) + ', 1fr)';
-
+    strip.style.gridTemplateColumns = 'repeat(' + Math.min(evidenceSpots.length, 5) + ', 1fr)';
     var slotEls = [];
-    for (var i = 0; i < points.length; i++) {
+    for (var si = 0; si < evidenceSpots.length; si++) {
       var slot = document.createElement('div');
       slot.className = 'mg-cam-slot';
-
       var thumbBox = document.createElement('div');
       thumbBox.className = 'mg-cam-thumb-box';
-
       var thumbCanvas = document.createElement('canvas');
       thumbCanvas.className = 'mg-cam-thumb-canvas';
       thumbCanvas.width = 96;
       thumbCanvas.height = 72;
-
       var num = document.createElement('span');
       num.className = 'mg-cam-slot-num';
-      num.textContent = '#0' + (i + 1);
-
+      num.textContent = '#0' + (si + 1);
       thumbBox.appendChild(thumbCanvas);
       thumbBox.appendChild(num);
-
       var lbl = document.createElement('div');
       lbl.className = 'mg-cam-slot-lbl';
       lbl.textContent = '???';
-
       slot.appendChild(thumbBox);
       slot.appendChild(lbl);
       strip.appendChild(slot);
@@ -1309,491 +1767,622 @@
     }
     shell.body.appendChild(strip);
 
-    // Offscreen scene buffer + blur scratch canvas
-    var sceneCanvas = document.createElement('canvas');
-    sceneCanvas.width = 960;
-    sceneCanvas.height = 720;
-    drawProceduralAshScene(sceneCanvas, points);
+    // Offscreen scene buffers (normal + special strobe/IR)
+    var sceneNormal = document.createElement('canvas');
+    var sceneSpec = document.createElement('canvas');
+    sceneNormal.width = sceneSpec.width = 960;
+    sceneNormal.height = sceneSpec.height = 720;
 
     var blurCanvas = document.createElement('canvas');
     blurCanvas.width = 240;
     blurCanvas.height = 180;
     var blurCtx = blurCanvas.getContext('2d');
 
-    // Optional external bgImage with graceful fallback
-    var bgLoaded = false;
+    function rebuildViewLayers() {
+      drawCamSceneLayer(sceneNormal, scenario, activeView, false);
+      drawCamSceneLayer(sceneSpec, scenario, activeView, true);
+    }
+    rebuildViewLayers();
+
+    // Optional external bgImage fallback
     var bgImg = null;
     if (config.bgImage && typeof config.bgImage === 'string') {
       bgImg = new Image();
       bgImg.onload = function () {
         if (timers.isCleared()) return;
-        var sctx = sceneCanvas.getContext('2d');
-        sctx.clearRect(0, 0, sceneCanvas.width, sceneCanvas.height);
-        // Cover-fit image cleanly
         var sw = bgImg.naturalWidth || bgImg.width;
         var sh = bgImg.naturalHeight || bgImg.height;
         if (sw > 0 && sh > 0) {
-          var scale = Math.max(sceneCanvas.width / sw, sceneCanvas.height / sh);
-          var dw = sw * scale;
-          var dh = sh * scale;
-          sctx.drawImage(bgImg, (sceneCanvas.width - dw) / 2, (sceneCanvas.height - dh) / 2, dw, dh);
-          bgLoaded = true;
+          var scale = Math.max(sceneNormal.width / sw, sceneNormal.height / sh);
+          var dw = sw * scale, dh = sh * scale;
+          var ox = (sceneNormal.width - dw) / 2, oy = (sceneNormal.height - dh) / 2;
+          sceneNormal.getContext('2d').drawImage(bgImg, ox, oy, dw, dh);
+          sceneSpec.getContext('2d').drawImage(bgImg, ox, oy, dw, dh);
         }
-      };
-      bgImg.onerror = function () {
-        bgLoaded = false;
       };
       bgImg.src = config.bgImage;
     }
 
-    // Floating embers for noir atmosphere
+    // Floating embers/grain particles + scrubbed debris particles
     var embers = [];
-    var emberRand = mulberry32(41899);
-    for (var e = 0; e < 24; e++) {
+    var eRand = mulberry32(41899);
+    for (var ei = 0; ei < 20; ei++) {
       embers.push({
-        x: emberRand(),
-        y: emberRand(),
-        vy: 0.012 + emberRand() * 0.025,
-        vx: (emberRand() - 0.5) * 0.012,
-        r: 0.8 + emberRand() * 1.6,
-        alpha: 0.25 + emberRand() * 0.55
+        x: eRand(), y: eRand(),
+        vy: 0.012 + eRand() * 0.022,
+        vx: (eRand() - 0.5) * 0.01,
+        r: 0.8 + eRand() * 1.5,
+        alpha: 0.22 + eRand() * 0.48
       });
     }
+    var debrisParticles = [];
 
-    // Camera state
     var retX = 0.5;
     var retY = 0.5;
     var targetRetX = 0.5;
     var targetRetY = 0.5;
+    var lastNormX = 0.5;
+    var lastNormY = 0.5;
     var focusValue = 50;
     var dragging = false;
-    var activePoint = null;
+    var activeSpot = null;
     var currentSharpness = 0;
     var wasLocked = false;
     var flashAlpha = 0;
+    var errFlashAlpha = 0;
     var shutterClose = 0;
+    var tempStatus = null;
     var lastFrameTime = performance.now();
 
     var canvasMgr = setupResponsiveCanvas(canvas, stage);
 
+    function syncHeaderAndViews() {
+      statFound.textContent = 'СНИМКИ: ' + capturedCount + ' / ' + evidenceSpots.length;
+      statErr.textContent = 'ОШИБКИ: ' + errorsCount + ' / ' + maxErrors;
+      statErr.classList.toggle('is-warn', errorsCount >= maxErrors - 1);
+
+      for (var i = 0; i < viewButtons.length; i++) {
+        var vw = viewButtons[i];
+        var viewDone = true;
+        for (var j = 0; j < spots.length; j++) {
+          if (spots[j].view === vw.id && spots[j].isEvidence && !spots[j].captured) {
+            viewDone = false;
+            break;
+          }
+        }
+        vw.el.classList.toggle('is-active', activeView === vw.id);
+        vw.el.classList.toggle('is-done', viewDone);
+      }
+    }
+
+    function syncModeButtons() {
+      btnModeNorm.className = 'mg-cam-mbtn' + (activeMode === 'normal' ? ' is-norm' : '');
+      btnModeSpec.className = 'mg-cam-mbtn' + (activeMode === 'spec' ? ' is-spec' : '');
+    }
+
+    function setTempStatus(text, tone, ms) {
+      tempStatus = { text: text, tone: tone || 'err', until: performance.now() + (ms || 1750) };
+    }
+
+    function scrubDebrisAt(nx, ny, distNorm) {
+      if (activeMode !== 'normal') return;
+      for (var i = 0; i < spots.length; i++) {
+        var sp = spots[i];
+        if (sp.view !== activeView || sp.debris <= 0) continue;
+        if (Math.hypot(sp.x - nx, sp.y - ny) <= 0.15) {
+          sp.debris = Math.max(0, sp.debris - Math.max(0.14, distNorm * 2.5));
+          for (var p = 0; p < 3; p++) {
+            debrisParticles.push({
+              x: sp.x + (Math.random() - 0.5) * 0.08,
+              y: sp.y + (Math.random() - 0.5) * 0.06,
+              vx: (Math.random() - 0.5) * 0.25,
+              vy: (Math.random() - 0.3) * 0.22 + 0.06,
+              r: 1.5 + Math.random() * 2.2,
+              kind: sp.debrisKind,
+              alpha: 0.9
+            });
+          }
+          if (sp.debris <= 0.14) {
+            sp.debris = 0;
+            haptic('medium');
+            sfx('paper');
+            setTempStatus('Помеха расчищена! Теперь наведите фокус и снимите кадр.', 'ok', 1500);
+          }
+        }
+      }
+    }
+
     function updatePointerPos(ev) {
       var rect = canvas.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
-      targetRetX = clamp((ev.clientX - rect.left) / rect.width, 0.12, 0.88);
-      targetRetY = clamp((ev.clientY - rect.top) / rect.height, 0.14, 0.86);
+      var nx = clamp((ev.clientX - rect.left) / rect.width, 0.10, 0.90);
+      var ny = clamp((ev.clientY - rect.top) / rect.height, 0.12, 0.88);
+      var dist = Math.hypot(nx - lastNormX, ny - lastNormY);
+      lastNormX = nx;
+      lastNormY = ny;
+      targetRetX = nx;
+      targetRetY = ny;
+      scrubDebrisAt(nx, ny, dist);
     }
 
     listeners.on(canvas, 'pointerdown', function (ev) {
-      if (finished) return;
+      if (phase !== 'shoot') return;
       dragging = true;
-      try {
-        canvas.setPointerCapture(ev.pointerId);
-      } catch (err) {}
+      try { canvas.setPointerCapture(ev.pointerId); } catch (err) {}
+      var rect = canvas.getBoundingClientRect();
+      if (rect.width && rect.height) {
+        lastNormX = clamp((ev.clientX - rect.left) / rect.width, 0.10, 0.90);
+        lastNormY = clamp((ev.clientY - rect.top) / rect.height, 0.12, 0.88);
+      }
       updatePointerPos(ev);
     });
-
     listeners.on(canvas, 'pointermove', function (ev) {
-      if (!dragging || finished) return;
+      if (!dragging || phase !== 'shoot') return;
       updatePointerPos(ev);
     });
-
-    listeners.on(canvas, 'pointerup', function () {
-      dragging = false;
-    });
-    listeners.on(canvas, 'pointercancel', function () {
-      dragging = false;
-    });
+    listeners.on(canvas, 'pointerup', function () { dragging = false; });
+    listeners.on(canvas, 'pointercancel', function () { dragging = false; });
 
     listeners.on(focusSlider, 'input', function () {
-      if (finished) return;
+      if (phase !== 'shoot') return;
       focusValue = parseInt(focusSlider.value, 10) || 0;
       var distM = (0.4 + (focusValue / 100) * 4.2).toFixed(1);
       sliderVal.textContent = focusValue + '% • ' + distM + 'м';
     });
 
-    function evaluateTarget() {
-      var frameHalfW = 0.145;
-      var frameHalfH = 0.175;
+    function showFailScreen(reason, msg) {
+      phase = 'fail';
+      if (viewsBar.parentNode) viewsBar.style.display = 'none';
+      stage.style.display = 'none';
+      statusEl.style.display = 'none';
+      panel.style.display = 'none';
+      strip.style.display = 'none';
+
+      var box = document.createElement('div');
+      box.className = 'mg-cam-stamp-box';
+      var st = document.createElement('div');
+      st.className = 'mg-cam-stamp';
+      st.textContent = 'СЪЁМКА ПРОВАЛЕНА';
+      var txt = document.createElement('div');
+      txt.className = 'mg-cam-dq';
+      txt.textContent = msg || 'Превышен лимит ошибок фотофиксации. Повторите осмотр.';
+      box.appendChild(st);
+      box.appendChild(txt);
+      shell.body.appendChild(box);
+
+      timers.setTimeout(function () {
+        triggerFail({ minigame: 'crime_camera', scenarioId: scenario.id, reason: reason, errors: errorsCount });
+      }, 950);
+    }
+
+    function openDeductionPhase() {
+      phase = 'deduce';
+      if (viewsBar.parentNode) viewsBar.style.display = 'none';
+      stage.style.display = 'none';
+      statusEl.style.display = 'none';
+      panel.style.display = 'none';
+      strip.style.display = 'none';
+
+      var card = document.createElement('div');
+      card.className = 'mg-cam-deduce';
+      var kicker = document.createElement('div');
+      kicker.className = 'mg-cam-dkicker';
+      kicker.textContent = 'ФАЗА 3 // КРИМИНАЛИСТИЧЕСКИЙ ВЫВОД';
+      card.appendChild(kicker);
+
+      var facts = document.createElement('div');
+      facts.className = 'mg-cam-dfacts';
+      for (var i = 0; i < evidenceSpots.length; i++) {
+        var row = document.createElement('div');
+        row.textContent = '• ' + evidenceSpots[i].label;
+        facts.appendChild(row);
+      }
+      card.appendChild(facts);
+
+      var q = document.createElement('div');
+      q.className = 'mg-cam-dq';
+      q.textContent = scenario.conclusion.question;
+      card.appendChild(q);
+
+      var optsWrap = document.createElement('div');
+      optsWrap.className = 'mg-cam-dopts';
+      var fb = document.createElement('div');
+      fb.className = 'mg-cam-dfb';
+
+      var settled = false;
+      var opts = scenario.conclusion.options || [];
+      for (var oi = 0; oi < opts.length; oi++) {
+        (function (opt) {
+          var ob = document.createElement('button');
+          ob.type = 'button';
+          ob.className = 'mg-cam-dopt';
+          ob.textContent = opt.text;
+          listeners.on(ob, 'click', function () {
+            if (settled || phase !== 'deduce') return;
+            if (opt.isCorrect) {
+              settled = true;
+              ob.classList.add('is-correct');
+              fb.className = 'mg-cam-dfb is-ok';
+              fb.textContent = opt.reason;
+              haptic('success');
+              sfx('stamp');
+              timers.setTimeout(function () {
+                card.innerHTML = '';
+                var box = document.createElement('div');
+                box.className = 'mg-cam-stamp-box';
+                var st = document.createElement('div');
+                st.className = 'mg-cam-stamp is-ok';
+                st.textContent = scenario.stampWin;
+                var btnDone = document.createElement('button');
+                btnDone.type = 'button';
+                btnDone.className = 'mg-for-btn is-ready';
+                btnDone.textContent = 'ПРИОБЩИТЬ К ДЕЛУ';
+                listeners.on(btnDone, 'click', function () {
+                  haptic('success');
+                  sfx('success');
+                  triggerWin({
+                    minigame: 'crime_camera',
+                    scenarioId: scenario.id,
+                    errors: errorsCount,
+                    deduced: opt.id,
+                    captured: evidenceSpots.map(function (it) { return { id: it.id, label: it.label }; })
+                  });
+                });
+                box.appendChild(st);
+                box.appendChild(btnDone);
+                card.appendChild(box);
+              }, 550);
+            } else {
+              errorsCount += 1;
+              syncHeaderAndViews();
+              ob.classList.add('is-wrong');
+              fb.className = 'mg-cam-dfb';
+              fb.textContent = opt.reason;
+              haptic('error');
+              sfx('alert');
+              flashShake(card);
+              if (errorsCount >= maxErrors) {
+                settled = true;
+                timers.setTimeout(function () {
+                  showFailScreen('wrong_deduction', 'Лимит ошибок исчерпан — вывод по снимкам отклонён.');
+                }, 700);
+              }
+            }
+          });
+          optsWrap.appendChild(ob);
+        })(opts[oi]);
+      }
+
+      card.appendChild(optsWrap);
+      card.appendChild(fb);
+      shell.body.appendChild(card);
+    }
+
+    function triggerCamError(msg) {
+      errorsCount += 1;
+      errFlashAlpha = 0.85;
+      syncHeaderAndViews();
+      haptic('error');
+      sfx('alert');
+      flashShake(stage);
+      if (errorsCount >= maxErrors) {
+        showFailScreen('too_many_errors', msg);
+        return;
+      }
+      setTempStatus(msg, 'err', 1950);
+    }
+
+    function evaluateTarget(now) {
+      var frameHalfW = 0.14;
+      var frameHalfH = 0.17;
       var nearestDist = 999;
       var inFrame = null;
       var inFrameDist = 999;
 
-      for (var k = 0; k < points.length; k++) {
-        var pt = points[k];
-        var dx = pt.x - retX;
-        var dy = pt.y - retY;
+      for (var k = 0; k < spots.length; k++) {
+        var sp = spots[k];
+        if (sp.view !== activeView) continue;
+        var dx = sp.x - retX;
+        var dy = sp.y - retY;
         var d = Math.hypot(dx, dy);
-        if (!pt.captured && d < nearestDist) {
+        if (sp.isEvidence && !sp.captured && d < nearestDist) {
           nearestDist = d;
         }
         if (Math.abs(dx) <= frameHalfW && Math.abs(dy) <= frameHalfH) {
-          if (!inFrame || (!pt.captured && inFrame.captured) || (pt.captured === inFrame.captured && d < inFrameDist)) {
-            inFrame = pt;
+          if (!inFrame || (!sp.captured && inFrame.captured) || (sp.captured === inFrame.captured && d < inFrameDist)) {
+            inFrame = sp;
             inFrameDist = d;
           }
         }
       }
 
-      activePoint = inFrame;
-
-      // Compute sharpness (0..100)
+      activeSpot = inFrame;
       var idealFocus = inFrame ? inFrame.focusTarget : 50;
       var diff = Math.abs(focusValue - idealFocus);
-      currentSharpness = clamp(Math.round(100 - diff * 2.35), 0, 100);
+      currentSharpness = clamp(Math.round(100 - diff * 2.2), 0, 100);
 
-      // Proximity signal for uncaptured points (0..1)
-      var signal = nearestDist >= 999 ? 0 : clamp(1 - nearestDist / 0.42, 0, 1);
-
-      var canShoot = !!(inFrame && !inFrame.captured && currentSharpness > 85 && !finished);
+      var signal = nearestDist >= 999 ? 0 : clamp(1 - nearestDist / 0.44, 0, 1);
+      var canShoot = !!(inFrame && !inFrame.captured && inFrame.debris <= 0 && currentSharpness > 85 && phase === 'shoot');
 
       if (canShoot && !wasLocked) {
         haptic('light');
-        sfx('scan');
+        sfx('click');
       }
       wasLocked = canShoot;
 
       shootBtn.disabled = !canShoot;
-      if (canShoot) {
-        shootBtn.classList.add('is-ready');
-      } else {
-        shootBtn.classList.remove('is-ready');
-      }
+      shootBtn.classList.toggle('is-ready', canShoot);
 
-      // Status bar feedback
-      if (finished) {
+      if (tempStatus && now < tempStatus.until) {
+        statusEl.className = 'mg-for-status ' + (tempStatus.tone === 'ok' ? 'is-ok' : 'is-err');
+        statusText.textContent = tempStatus.text;
+        return { signal: signal, canShoot: canShoot, inFrame: inFrame };
+      }
+      tempStatus = null;
+
+      if (inFrame && inFrame.captured) {
         statusEl.className = 'mg-for-status is-ok';
-        statusText.textContent = 'Все улики зафиксированы. Передача в протокол...';
-      } else if (inFrame && inFrame.captured) {
-        statusEl.className = 'mg-for-status is-ok';
-        statusText.textContent = 'Уже снято: ' + inFrame.label;
-      } else if (inFrame && !inFrame.captured) {
-        if (currentSharpness > 85) {
-          statusEl.className = 'mg-for-status is-ok';
-          statusText.textContent = 'Фокус пойман (' + currentSharpness + '%) — нажмите «СНЯТЬ КАДР»';
-        } else {
-          statusEl.className = 'mg-for-status is-warn';
-          statusText.textContent = 'Объект в кадре! Настройте резкость (' + currentSharpness + '%)';
-        }
-      } else if (signal > 0.55) {
+        statusText.textContent = 'Зафиксировано: ' + inFrame.label;
+      } else if (inFrame && inFrame.debris > 0) {
         statusEl.className = 'mg-for-status is-warn';
-        statusText.textContent = 'Сильный сигнал автофокуса — объект совсем рядом';
-      } else if (signal > 0.2) {
-        statusEl.className = 'mg-for-status';
-        statusText.textContent = 'Слабый отклик автофокуса — осмотрите участок вокруг';
+        statusText.textContent = inFrame.debrisHint || 'Перекрыто — потрите пальцем в режиме 1, чтобы расчистить.';
+      } else if (inFrame && currentSharpness > 85) {
+        statusEl.className = 'mg-for-status is-ok';
+        statusText.textContent = activeMode === 'spec' ? inFrame.readSpec : inFrame.readNormal;
+      } else if (inFrame) {
+        statusEl.className = 'mg-for-status is-warn';
+        statusText.textContent = 'Объект в кадре! Наведите резкость >85% (' + currentSharpness + '%).';
+      } else if (signal > 0.52) {
+        statusEl.className = 'mg-for-status is-warn';
+        statusText.textContent = 'Сильный сигнал автофокуса — улика совсем рядом.';
       } else {
         statusEl.className = 'mg-for-status';
-        statusText.textContent = 'Водите видоискателем по сцене в поисках улик';
+        statusText.textContent = 'Водите видоискателем и переключайте ракурсы сверху.';
       }
 
       return { signal: signal, canShoot: canShoot, inFrame: inFrame };
     }
 
-    function captureCurrentEvidence() {
-      if (finished || !activePoint || activePoint.captured || currentSharpness <= 85) return;
+    listeners.on(shootBtn, 'click', function () {
+      if (phase !== 'shoot' || !activeSpot || activeSpot.captured || activeSpot.debris > 0 || currentSharpness <= 85) {
+        return;
+      }
 
-      var pt = activePoint;
-      pt.captured = true;
+      if (!activeSpot.isEvidence) {
+        triggerCamError(activeSpot.falseReason || 'ЛОЖНЫЙ СЛЕД: объект не имеет отношения к делу.');
+        return;
+      }
+
+      if (activeSpot.requiredMode === 'spec' && activeMode !== 'spec') {
+        triggerCamError(activeSpot.wrongModeMsg || 'Включите специальный оптический режим (кнопка 2)!');
+        return;
+      }
+
+      var sp = activeSpot;
+      sp.captured = true;
+      capturedCount += 1;
       flashAlpha = 1;
       shutterClose = 1;
       haptic('medium');
-      sfx('click');
+      sfx('stamp');
 
-      // Render crisp thumbnail into filmstrip slot
-      var idx = points.indexOf(pt);
-      if (idx !== -1 && slotEls[idx]) {
-        var slotObj = slotEls[idx];
+      var evIdx = evidenceSpots.indexOf(sp);
+      var activeLayer = activeMode === 'spec' ? sceneSpec : sceneNormal;
+      if (evIdx !== -1 && slotEls[evIdx]) {
+        var slotObj = slotEls[evIdx];
         var tCtx = slotObj.canvas.getContext('2d');
-        var cropW = sceneCanvas.width * 0.25;
-        var cropH = sceneCanvas.height * 0.25;
-        var sx = clamp(pt.x * sceneCanvas.width - cropW / 2, 0, sceneCanvas.width - cropW);
-        var sy = clamp(pt.y * sceneCanvas.height - cropH / 2, 0, sceneCanvas.height - cropH);
-        tCtx.drawImage(sceneCanvas, sx, sy, cropW, cropH, 0, 0, slotObj.canvas.width, slotObj.canvas.height);
-        // Subtle forensic corner frame on thumbnail
-        tCtx.strokeStyle = 'rgba(34, 197, 94, 0.8)';
+        var cropW = activeLayer.width * 0.26;
+        var cropH = activeLayer.height * 0.26;
+        var sx = clamp(sp.x * activeLayer.width - cropW / 2, 0, activeLayer.width - cropW);
+        var sy = clamp(sp.y * activeLayer.height - cropH / 2, 0, activeLayer.height - cropH);
+        tCtx.drawImage(activeLayer, sx, sy, cropW, cropH, 0, 0, slotObj.canvas.width, slotObj.canvas.height);
+        tCtx.strokeStyle = 'rgba(34, 197, 94, 0.85)';
         tCtx.lineWidth = 2;
         tCtx.strokeRect(2, 2, slotObj.canvas.width - 4, slotObj.canvas.height - 4);
         slotObj.slot.classList.add('is-captured');
-        slotObj.label.textContent = pt.shortLabel;
-        slotObj.slot.title = pt.label;
+        slotObj.label.textContent = sp.shortLabel;
       }
 
-      var capturedCount = 0;
-      for (var k = 0; k < points.length; k++) {
-        if (points[k].captured) capturedCount++;
-      }
-      countBadge.textContent = capturedCount + ' / ' + points.length;
-      if (capturedCount === points.length) {
-        countBadge.classList.add('is-ok');
-        finished = true;
-        shootBtn.disabled = true;
-        shootBtn.classList.remove('is-ready');
-        statusEl.className = 'mg-for-status is-ok';
-        statusText.textContent = 'Снято: ' + pt.label + ' — протокол готов!';
+      syncHeaderAndViews();
+      setTempStatus('Снято: ' + sp.label, 'ok', 1450);
+
+      if (capturedCount >= evidenceSpots.length) {
         timers.setTimeout(function () {
-          haptic('success');
-          sfx('success');
-          triggerWin({
-            minigame: 'crime_camera',
-            captured: points.map(function (item) {
-              return { id: item.id, label: item.label };
-            })
-          });
-        }, 900);
-      } else {
-        statusEl.className = 'mg-for-status is-ok';
-        statusText.textContent = 'Зафиксировано: ' + pt.label;
+          if (phase === 'shoot') openDeductionPhase();
+        }, 720);
       }
-    }
+    });
 
-    listeners.on(shootBtn, 'click', captureCurrentEvidence);
+    syncHeaderAndViews();
+    syncModeButtons();
 
     function render(now) {
       var dt = Math.min((now - lastFrameTime) / 1000, 0.05);
       lastFrameTime = now;
 
-      // Smooth viewfinder glide
-      retX = lerp(retX, targetRetX, Math.min(1, dt * 16));
-      retY = lerp(retY, targetRetY, Math.min(1, dt * 16));
+      if (phase === 'shoot') {
+        retX = lerp(retX, targetRetX, Math.min(1, dt * 16));
+        retY = lerp(retY, targetRetY, Math.min(1, dt * 16));
 
-      var state = evaluateTarget();
-      var metrics = canvasMgr.getMetrics();
-      var w = metrics.width;
-      var h = metrics.height;
-      var dpr = metrics.dpr;
-      var ctx = canvas.getContext('2d');
+        var st = evaluateTarget(now);
+        var metrics = canvasMgr.getMetrics();
+        var w = metrics.width;
+        var h = metrics.height;
+        var dpr = metrics.dpr;
+        var ctx = canvas.getContext('2d');
+        var activeLayer = activeMode === 'spec' ? sceneSpec : sceneNormal;
 
-      ctx.save();
-      ctx.scale(dpr, dpr);
+        ctx.save();
+        ctx.scale(dpr, dpr);
 
-      // 1. Base scene (dimmed slightly outside viewfinder)
-      ctx.drawImage(sceneCanvas, 0, 0, w, h);
+        ctx.drawImage(activeLayer, 0, 0, w, h);
 
-      // Animated subtle floating embers
-      for (var e = 0; e < embers.length; e++) {
-        var em = embers[e];
-        em.y -= em.vy * dt;
-        em.x += em.vx * dt + Math.sin(now * 0.002 + e) * 0.004 * dt;
-        if (em.y < -0.02) {
-          em.y = 1.02;
-          em.x = (em.x + 0.37) % 1;
+        // Ambient ash embers (case418) or subtle CCTV static drift
+        if (scenario.theme === 'ash') {
+          for (var e = 0; e < embers.length; e++) {
+            var em = embers[e];
+            em.y -= em.vy * dt;
+            if (em.y < -0.02) { em.y = 1.02; em.x = (em.x + 0.37) % 1; }
+            ctx.fillStyle = 'rgba(245, 158, 11, ' + em.alpha.toFixed(2) + ')';
+            ctx.beginPath();
+            ctx.arc(em.x * w, em.y * h, em.r, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
-        ctx.fillStyle = 'rgba(245, 158, 11, ' + em.alpha.toFixed(2) + ')';
-        ctx.beginPath();
-        ctx.arc(em.x * w, em.y * h, em.r, 0, Math.PI * 2);
-        ctx.fill();
-      }
 
-      // Subtle captured pin icons for already photographed clues
-      for (var p = 0; p < points.length; p++) {
-        var pt = points[p];
-        if (pt.captured) {
-          var px = pt.x * w;
-          var py = pt.y * h;
-          ctx.strokeStyle = 'rgba(34, 197, 94, 0.75)';
-          ctx.lineWidth = 1.5;
+        // Draw obstructions & captured green badges
+        for (var p = 0; p < spots.length; p++) {
+          var sp = spots[p];
+          if (sp.view !== activeView) continue;
+          if (sp.debris > 0) {
+            drawDebrisOverlay(ctx, sp, w, h, now);
+          }
+          if (sp.captured) {
+            ctx.strokeStyle = 'rgba(34, 197, 94, 0.85)';
+            ctx.lineWidth = 1.8;
+            ctx.beginPath(); ctx.arc(sp.x * w, sp.y * h, 10, 0, Math.PI * 2); ctx.stroke();
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath(); ctx.arc(sp.x * w, sp.y * h, 3, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+
+        // Scrubbed debris flying particles
+        for (var dp = debrisParticles.length - 1; dp >= 0; dp--) {
+          var part = debrisParticles[dp];
+          part.x += part.vx * dt;
+          part.y += part.vy * dt;
+          part.alpha -= dt * 1.8;
+          if (part.alpha <= 0) { debrisParticles.splice(dp, 1); continue; }
+          ctx.fillStyle =
+            part.kind === 'glitch'
+              ? 'rgba(74, 222, 128, ' + part.alpha.toFixed(2) + ')'
+              : part.kind === 'bush'
+              ? 'rgba(34, 197, 94, ' + part.alpha.toFixed(2) + ')'
+              : 'rgba(180, 172, 162, ' + part.alpha.toFixed(2) + ')';
           ctx.beginPath();
-          ctx.arc(px, py, 8, 0, Math.PI * 2);
-          ctx.stroke();
-          ctx.fillStyle = '#22c55e';
-          ctx.beginPath();
-          ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+          ctx.arc(part.x * w, part.y * h, part.r, 0, Math.PI * 2);
           ctx.fill();
         }
+
+        // Viewfinder window
+        var vfW = w * 0.44;
+        var vfH = h * 0.48;
+        var vfX = clamp(retX * w - vfW / 2, 10, w - vfW - 10);
+        var vfY = clamp(retY * h - vfH / 2, 10, h - vfH - 10);
+
+        ctx.fillStyle = 'rgba(6, 8, 11, 0.54)';
+        ctx.beginPath();
+        ctx.rect(0, 0, w, h);
+        ctx.rect(vfX, vfY, vfW, vfH);
+        ctx.fill('evenodd');
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(vfX, vfY, vfW, vfH);
+        ctx.clip();
+
+        var zoom = 1.32;
+        var srcW = (vfW / w) * activeLayer.width / zoom;
+        var srcH = (vfH / h) * activeLayer.height / zoom;
+        var srcX = clamp(retX * activeLayer.width - srcW / 2, 0, activeLayer.width - srcW);
+        var srcY = clamp(retY * activeLayer.height - srcH / 2, 0, activeLayer.height - srcH);
+        var defocus = clamp((100 - currentSharpness) / 100, 0, 1);
+
+        if (defocus > 0.06) {
+          var downScale = lerp(0.55, 0.12, defocus);
+          var bw = Math.max(14, Math.round(vfW * downScale));
+          var bh = Math.max(10, Math.round(vfH * downScale));
+          blurCtx.clearRect(0, 0, blurCanvas.width, blurCanvas.height);
+          blurCtx.drawImage(activeLayer, srcX, srcY, srcW, srcH, 0, 0, bw, bh);
+          ctx.drawImage(blurCanvas, 0, 0, bw, bh, vfX, vfY, vfW, vfH);
+        } else {
+          ctx.drawImage(activeLayer, srcX, srcY, srcW, srcH, vfX, vfY, vfW, vfH);
+        }
+
+        // Re-draw magnified debris inside viewfinder if uncleared
+        if (st.inFrame && st.inFrame.debris > 0) {
+          ctx.fillStyle = 'rgba(10, 12, 16, ' + (st.inFrame.debris * 0.72).toFixed(2) + ')';
+          ctx.fillRect(vfX, vfY, vfW, vfH);
+          ctx.fillStyle = '#fde68a';
+          ctx.font = '700 10px "IBM Plex Mono", monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('РАСЧИСТИТЕ ПОМЕХУ', vfX + vfW / 2, vfY + vfH / 2);
+        }
+
+        // Rule of thirds & center crosshair
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(vfX + vfW / 3, vfY); ctx.lineTo(vfX + vfW / 3, vfY + vfH);
+        ctx.moveTo(vfX + (vfW * 2) / 3, vfY); ctx.lineTo(vfX + (vfW * 2) / 3, vfY + vfH);
+        ctx.moveTo(vfX, vfY + vfH / 3); ctx.lineTo(vfX + vfW, vfY + vfH / 3);
+        ctx.moveTo(vfX, vfY + (vfH * 2) / 3); ctx.lineTo(vfX + vfW, vfY + (vfH * 2) / 3);
+        ctx.stroke();
+
+        var cx = vfX + vfW / 2, cy = vfY + vfH / 2;
+        ctx.strokeStyle = st.canShoot ? '#22c55e' : '#f59e0b';
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.moveTo(cx - 10, cy); ctx.lineTo(cx - 3, cy);
+        ctx.moveTo(cx + 3, cy); ctx.lineTo(cx + 10, cy);
+        ctx.moveTo(cx, cy - 10); ctx.lineTo(cx, cy - 3);
+        ctx.moveTo(cx, cy + 3); ctx.lineTo(cx, cy + 10);
+        ctx.stroke();
+
+        if (shutterClose > 0.01) {
+          var bladeH = (vfH / 2) * shutterClose;
+          ctx.fillStyle = '#050608';
+          ctx.fillRect(vfX, vfY, vfW, bladeH);
+          ctx.fillRect(vfX, vfY + vfH - bladeH, vfW, bladeH);
+          shutterClose = Math.max(0, shutterClose - dt * 6.5);
+        }
+        ctx.restore();
+
+        // Corner brackets
+        var br = 14;
+        ctx.strokeStyle = st.canShoot ? '#22c55e' : st.inFrame && !st.inFrame.captured ? '#f59e0b' : '#9ca3af';
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(vfX, vfY + br); ctx.lineTo(vfX, vfY); ctx.lineTo(vfX + br, vfY);
+        ctx.moveTo(vfX + vfW - br, vfY); ctx.lineTo(vfX + vfW, vfY); ctx.lineTo(vfX + vfW, vfY + br);
+        ctx.moveTo(vfX + vfW, vfY + vfH - br); ctx.lineTo(vfX + vfW, vfY + vfH); ctx.lineTo(vfX + vfW - br, vfY + vfH);
+        ctx.moveTo(vfX + br, vfY + vfH); ctx.lineTo(vfX, vfY + vfH); ctx.lineTo(vfX, vfY + vfH - br);
+        ctx.stroke();
+
+        // Top HUD & AF bar
+        ctx.font = '600 10px "IBM Plex Mono", monospace';
+        ctx.textBaseline = 'top';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'rgba(229, 231, 235, 0.85)';
+        ctx.fillText(scenario.hudTag + (activeMode === 'spec' ? ' [SPEC]' : ''), 10, 8);
+
+        var bars = 7;
+        var activeBars = st.inFrame && !st.inFrame.captured ? bars : Math.round(st.signal * bars);
+        var barStartX = w - 10 - bars * 7;
+        for (var b = 0; b < bars; b++) {
+          var bhBar = 5 + b * 1.4;
+          ctx.fillStyle = b < activeBars ? (st.canShoot ? '#22c55e' : '#f59e0b') : 'rgba(75, 85, 99, 0.45)';
+          ctx.fillRect(barStartX + b * 7, 19 - bhBar, 4.5, bhBar);
+        }
+
+        var hudY = vfY + vfH + 5 > h - 16 ? vfY - 14 : vfY + vfH + 5;
+        ctx.fillStyle = st.canShoot ? '#4ade80' : '#f59e0b';
+        ctx.fillText(st.canShoot ? 'FOCUS LOCK ' + currentSharpness + '%' : 'SHARP ' + currentSharpness + '%', vfX, hudY);
+
+        if (flashAlpha > 0.005) {
+          ctx.fillStyle = 'rgba(255, 252, 245, ' + flashAlpha.toFixed(3) + ')';
+          ctx.fillRect(0, 0, w, h);
+          flashAlpha = Math.max(0, flashAlpha - dt * 2.9);
+        }
+        if (errFlashAlpha > 0.005) {
+          ctx.fillStyle = 'rgba(220, 38, 38, ' + (errFlashAlpha * 0.38).toFixed(3) + ')';
+          ctx.fillRect(0, 0, w, h);
+          errFlashAlpha = Math.max(0, errFlashAlpha - dt * 2.5);
+        }
+
+        ctx.restore();
       }
-
-      // Viewfinder geometry
-      var vfW = w * 0.44;
-      var vfH = h * 0.48;
-      var vfX = clamp(retX * w - vfW / 2, 10, w - vfW - 10);
-      var vfY = clamp(retY * h - vfH / 2, 10, h - vfH - 10);
-
-      // Dark matte outside viewfinder
-      ctx.fillStyle = 'rgba(6, 8, 11, 0.56)';
-      ctx.beginPath();
-      ctx.rect(0, 0, w, h);
-      ctx.rect(vfX, vfY, vfW, vfH);
-      ctx.fill('evenodd');
-
-      // 2. Magnified & optical-focus-simulated view inside viewfinder
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(vfX, vfY, vfW, vfH);
-      ctx.clip();
-
-      var zoom = 1.32;
-      var srcW = (vfW / w) * sceneCanvas.width / zoom;
-      var srcH = (vfH / h) * sceneCanvas.height / zoom;
-      var srcX = clamp(retX * sceneCanvas.width - srcW / 2, 0, sceneCanvas.width - srcW);
-      var srcY = clamp(retY * sceneCanvas.height - srcH / 2, 0, sceneCanvas.height - srcH);
-
-      var defocus = clamp((100 - currentSharpness) / 100, 0, 1);
-
-      if (defocus > 0.06) {
-        // Cross-platform smooth optical defocus via downscale-upscale + chromatic double contour
-        var downScale = lerp(0.55, 0.11, defocus);
-        var bw = Math.max(14, Math.round(vfW * downScale));
-        var bh = Math.max(10, Math.round(vfH * downScale));
-        blurCtx.clearRect(0, 0, blurCanvas.width, blurCanvas.height);
-        blurCtx.imageSmoothingEnabled = true;
-        blurCtx.drawImage(sceneCanvas, srcX, srcY, srcW, srcH, 0, 0, bw, bh);
-
-        ctx.imageSmoothingEnabled = true;
-        ctx.drawImage(blurCanvas, 0, 0, bw, bh, vfX, vfY, vfW, vfH);
-
-        // Optical double-contour ghosting proportional to defocus
-        var shift = defocus * 7.5;
-        ctx.globalAlpha = 0.24 * defocus;
-        ctx.drawImage(blurCanvas, 0, 0, bw, bh, vfX - shift, vfY - shift * 0.4, vfW, vfH);
-        ctx.drawImage(blurCanvas, 0, 0, bw, bh, vfX + shift, vfY + shift * 0.4, vfW, vfH);
-        ctx.globalAlpha = 1;
-      } else {
-        // Crisp sharp optical view
-        ctx.drawImage(sceneCanvas, srcX, srcY, srcW, srcH, vfX, vfY, vfW, vfH);
-      }
-
-      // Slight cool tactical lens tint inside viewfinder
-      ctx.fillStyle = 'rgba(18, 28, 38, 0.08)';
-      ctx.fillRect(vfX, vfY, vfW, vfH);
-
-      // Subtle forensic target lock reticle around clue ONLY when inside frame & sharpness rising
-      if (state.inFrame && !state.inFrame.captured && currentSharpness > 45) {
-        var lockAlpha = clamp((currentSharpness - 45) / 45, 0, 1);
-        var relX = ((state.inFrame.x * sceneCanvas.width - srcX) / srcW) * vfW + vfX;
-        var relY = ((state.inFrame.y * sceneCanvas.height - srcY) / srcH) * vfH + vfY;
-        var boxR = lerp(34, 20, lockAlpha);
-        ctx.strokeStyle =
-          currentSharpness > 85
-            ? 'rgba(34, 197, 94, ' + (0.65 + 0.35 * Math.sin(now * 0.01)) + ')'
-            : 'rgba(245, 158, 11, ' + (0.55 * lockAlpha) + ')';
-        ctx.lineWidth = 1.6;
-        ctx.setLineDash([6, 4]);
-        ctx.strokeRect(relX - boxR, relY - boxR, boxR * 2, boxR * 2);
-        ctx.setLineDash([]);
-      }
-
-      // Rule of thirds grid
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(vfX + vfW / 3, vfY);
-      ctx.lineTo(vfX + vfW / 3, vfY + vfH);
-      ctx.moveTo(vfX + (vfW * 2) / 3, vfY);
-      ctx.lineTo(vfX + (vfW * 2) / 3, vfY + vfH);
-      ctx.moveTo(vfX, vfY + vfH / 3);
-      ctx.lineTo(vfX + vfW, vfY + vfH / 3);
-      ctx.moveTo(vfX, vfY + (vfH * 2) / 3);
-      ctx.lineTo(vfX + vfW, vfY + (vfH * 2) / 3);
-      ctx.stroke();
-
-      // Center crosshair
-      var cx = vfX + vfW / 2;
-      var cy = vfY + vfH / 2;
-      ctx.strokeStyle = state.canShoot ? 'rgba(34, 197, 94, 0.9)' : 'rgba(245, 158, 11, 0.72)';
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.moveTo(cx - 10, cy);
-      ctx.lineTo(cx - 3, cy);
-      ctx.moveTo(cx + 3, cy);
-      ctx.lineTo(cx + 10, cy);
-      ctx.moveTo(cx, cy - 10);
-      ctx.lineTo(cx, cy - 3);
-      ctx.moveTo(cx, cy + 3);
-      ctx.lineTo(cx, cy + 10);
-      ctx.stroke();
-
-      // Shutter mechanical blades blink
-      if (shutterClose > 0.01) {
-        var bladeH = (vfH / 2) * shutterClose;
-        ctx.fillStyle = '#050608';
-        ctx.fillRect(vfX, vfY, vfW, bladeH);
-        ctx.fillRect(vfX, vfY + vfH - bladeH, vfW, bladeH);
-        shutterClose = Math.max(0, shutterClose - dt * 6.5);
-      }
-
-      ctx.restore();
-
-      // 3. Viewfinder corner brackets & outline
-      var frameColor = state.canShoot
-        ? '#22c55e'
-        : state.inFrame && !state.inFrame.captured
-        ? '#f59e0b'
-        : state.signal > 0.45
-        ? '#c98a2e'
-        : '#6b7280';
-
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(vfX, vfY, vfW, vfH);
-
-      var br = 14;
-      ctx.strokeStyle = frameColor;
-      ctx.lineWidth = 2.4;
-      ctx.beginPath();
-      // TL
-      ctx.moveTo(vfX, vfY + br);
-      ctx.lineTo(vfX, vfY);
-      ctx.lineTo(vfX + br, vfY);
-      // TR
-      ctx.moveTo(vfX + vfW - br, vfY);
-      ctx.lineTo(vfX + vfW, vfY);
-      ctx.lineTo(vfX + vfW, vfY + br);
-      // BR
-      ctx.moveTo(vfX + vfW, vfY + vfH - br);
-      ctx.lineTo(vfX + vfW, vfY + vfH);
-      ctx.lineTo(vfX + vfW - br, vfY + vfH);
-      // BL
-      ctx.moveTo(vfX + br, vfY + vfH);
-      ctx.lineTo(vfX, vfY + vfH);
-      ctx.lineTo(vfX, vfY + vfH - br);
-      ctx.stroke();
-
-      // 4. Camera HUD overlays (top-left REC/ISO, top-right AF signal meter, bottom-left sharpness)
-      ctx.font = '600 10px "IBM Plex Mono", monospace';
-      ctx.textBaseline = 'top';
-      ctx.fillStyle = 'rgba(229, 231, 235, 0.82)';
-      ctx.fillText('SK-CAM 35MM • ISO 3200', 10, 8);
-
-      // AF Signal Bar (top right)
-      var bars = 7;
-      var activeBars = Math.round(state.signal * bars);
-      if (state.inFrame && !state.inFrame.captured) activeBars = bars;
-      var barStartX = w - 10 - bars * 7;
-      ctx.fillStyle = 'rgba(156, 163, 175, 0.85)';
-      ctx.textAlign = 'right';
-      ctx.fillText('AF', barStartX - 5, 8);
-      ctx.textAlign = 'left';
-
-      for (var b = 0; b < bars; b++) {
-        var bhBar = 5 + b * 1.4;
-        var isLit = b < activeBars;
-        ctx.fillStyle = isLit
-          ? state.canShoot
-            ? '#22c55e'
-            : b >= 5
-            ? '#f59e0b'
-            : '#c98a2e'
-          : 'rgba(75, 85, 99, 0.45)';
-        ctx.fillRect(barStartX + b * 7, 19 - bhBar, 4.5, bhBar);
-      }
-
-      // Sharpness bar under viewfinder
-      var hudY = vfY + vfH + 5;
-      if (hudY > h - 16) hudY = vfY - 14;
-      ctx.fillStyle = state.canShoot ? '#4ade80' : '#f59e0b';
-      ctx.font = '600 10px "IBM Plex Mono", monospace';
-      var sharpLabel = state.canShoot
-        ? 'FOCUS LOCK ' + currentSharpness + '%'
-        : 'SHARP ' + currentSharpness + '%';
-      ctx.fillText(sharpLabel, vfX, hudY);
-
-      // White camera flash decay
-      if (flashAlpha > 0.005) {
-        ctx.fillStyle = 'rgba(255, 252, 245, ' + flashAlpha.toFixed(3) + ')';
-        ctx.fillRect(0, 0, w, h);
-        flashAlpha = Math.max(0, flashAlpha - dt * 2.9);
-      }
-
-      ctx.restore();
 
       timers.raf(render);
     }
@@ -1804,10 +2393,7 @@
       timers.clearAll();
       listeners.clearAll();
       canvasMgr.destroy();
-      if (bgImg) {
-        bgImg.onload = null;
-        bgImg.onerror = null;
-      }
+      if (bgImg) { bgImg.onload = null; }
       containerEl.innerHTML = '';
     };
   }
