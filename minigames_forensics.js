@@ -2399,59 +2399,193 @@
   }
 
   // ============================================================================
-  // MINIGAME 2: ballistics
+  // MINIGAME 2: ballistics (3-phase soot cleaning, caliper, oblique ×40 & verdict)
   // ============================================================================
 
-  var DEFAULT_BALLISTICS_CONFIG = {
-    title: 'Баллистическая экспертиза',
-    subtitle: 'ДЕЛО №418 • СРАВНИТЕЛЬНЫЙ МИКРОСКОП',
-    caliberMm: 9.2,
-    caliberOptions: [
-      { id: '545', label: '5.45×18 ПСМ', isCorrect: false },
-      { id: '762', label: '7.62×25 ТТ', isCorrect: false },
-      { id: '918', label: '9×18 мм ПМ', isCorrect: true }
-    ],
-    samples: [
-      {
-        id: 'lro_041',
-        code: 'ЛРО-041 • ПМ-Т #88412',
-        meta: 'Частный стрелковый тир «Вымпел»',
-        seed: 1041,
-        slope: 0.16,
-        grooveCount: 3,
-        isMatch: false
-      },
-      {
-        id: 'lro_119',
-        code: 'ЛРО-119 • ИЖ-71 #КН-2094',
-        meta: 'ЧОП «Гранит» • списан в 2021',
-        seed: 2119,
-        slope: -0.14,
-        grooveCount: 4,
-        isMatch: false
-      },
-      {
-        id: 'lro_207',
-        code: 'ЛРО-207 • ПМ #АЕ-4719',
-        meta: 'Табельный ствол • числится в розыске',
-        seed: 41807,
-        slope: 0.13,
-        grooveCount: 4,
-        isMatch: true
-      },
-      {
-        id: 'lro_388',
-        code: 'ЛРО-388 • МР-79 #90315',
-        meta: 'Изъято по делу №392 • склад вещдоков',
-        seed: 3882,
-        slope: 0.13,
-        grooveCount: 5,
-        isMatch: false
-      }
-    ]
-  };
+  var BAL_EXTRA_STYLE_ID = 'minigames-forensics-bal-extra';
 
-  function buildStriationPattern(seed, grooveCount, period) {
+  var BAL_EXTRA_CSS = [
+    '.mg-bal-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 3px; }',
+    '.mg-bal-stat { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; font-weight: 600; color: var(--case-accent, #c98a2e); }',
+    '.mg-bal-err { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; font-weight: 600; color: #9ca3af; }',
+    '.mg-bal-err.is-warn { color: #f87171; }',
+    '.mg-bal-steps3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }',
+    '.mg-bal-tools { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }',
+    '.mg-bal-tbtn {',
+    '  padding: 7px 6px; border-radius: 6px; background: #161a23; border: 1px solid #2f3646;',
+    '  font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 700;',
+    '  color: #9ca3af; text-transform: uppercase; cursor: pointer;',
+    '}',
+    '.mg-bal-tbtn.is-norm { background: rgba(212, 202, 180, 0.14); border-color: #d4cab4; color: #f5efe2; }',
+    '.mg-bal-tbtn.is-oblique { background: rgba(245, 158, 11, 0.22); border-color: var(--case-accent, #f59e0b); color: #fde68a; box-shadow: 0 0 10px rgba(245, 158, 11, 0.24); }',
+    '.mg-bal-deduce { display: flex; flex-direction: column; gap: 9px; padding: 12px; background: #14171f; border: 1px solid #353b4a; border-top: 3px solid var(--case-accent, #c98a2e); border-radius: 8px; }',
+    '.mg-bal-dkicker { font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 700; color: var(--case-accent, #c98a2e); text-transform: uppercase; }',
+    '.mg-bal-dfacts { padding: 8px 9px; background: #0d1016; border: 1px solid #262b36; border-radius: 6px; font-family: "IBM Plex Mono", monospace; font-size: 10px; line-height: 1.4; color: #c2cad8; display: flex; flex-direction: column; gap: 3px; }',
+    '.mg-bal-dq { font-size: 12.8px; line-height: 1.4; color: #f3efe6; font-weight: 500; }',
+    '.mg-bal-dopts { display: flex; flex-direction: column; gap: 6px; }',
+    '.mg-bal-dopt { width: 100%; text-align: left; padding: 9px 10px; background: #1b202b; border: 1px solid #353d4e; border-radius: 6px; color: #e4e0d8; font-size: 12px; line-height: 1.36; cursor: pointer; }',
+    '.mg-bal-dopt.is-wrong { border-color: #ef4444; background: rgba(153, 27, 27, 0.25); color: #fecaca; }',
+    '.mg-bal-dopt.is-correct { border-color: #22c55e; background: rgba(34, 197, 94, 0.2); color: #bbf7d0; }',
+    '.mg-bal-dfb { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; line-height: 1.38; min-height: 16px; color: #fca5a5; }',
+    '.mg-bal-dfb.is-ok { color: #86efac; }',
+    '.mg-bal-stamp-box { padding: 24px 14px; background: #0d1016; border: 1px solid #2a2e38; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }',
+    '.mg-bal-stamp { padding: 8px 16px; font-family: "Oswald", sans-serif; font-size: 19px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #ef4444; border: 3px double #ef4444; border-radius: 4px; transform: rotate(-5deg); }',
+    '.mg-bal-stamp.is-ok { color: #4ade80; border-color: #22c55e; background: rgba(34, 197, 94, 0.12); }'
+  ].join('\n');
+
+  function injectBalStyles() {
+    if (document.getElementById(BAL_EXTRA_STYLE_ID)) return;
+    var el = document.createElement('style');
+    el.id = BAL_EXTRA_STYLE_ID;
+    el.textContent = BAL_EXTRA_CSS;
+    document.head.appendChild(el);
+  }
+
+  function buildBalCase418Scenario(config) {
+    return {
+      id: 'case418_act3_ballistics',
+      title: config.title || 'БАЛЛИСТИЧЕСКАЯ ЭКСПЕРТИЗА',
+      subtitle: config.subtitle || 'ДЕЛО №418 • ЭКЦ • СРАВНИТЕЛЬНЫЙ МИКРОСКОП',
+      evidenceCode: 'УЛИКА #418-Б (БАЛКА)',
+      stampWin: 'СТВОЛ ИДЕНТИФИЦИРОВАН // ЛРО-207',
+      caliberMm: typeof config.caliberMm === 'number' ? config.caliberMm : 9.2,
+      caliberLabel: '9×18 мм ПМ',
+      caliberOptions: Array.isArray(config.caliberOptions) && config.caliberOptions.length > 0
+        ? config.caliberOptions
+        : [
+            { id: '545', label: '5.45×18 ПСМ', isCorrect: false, wrongMsg: 'Диаметр 5.45×18 ПСМ — около 5.6 мм, а пуля #418-Б заметно крупнее (9.2 мм).' },
+            { id: '762', label: '7.62×25 ТТ', isCorrect: false, wrongMsg: 'Диаметр 7.62×25 ТТ — около 7.8 мм, что не соответствует замеру 9.2 мм.' },
+            { id: '918', label: '9×18 мм ПМ', isCorrect: true, wrongMsg: '' }
+          ],
+      samples: Array.isArray(config.samples) && config.samples.length > 0
+        ? config.samples
+        : [
+            {
+              id: 'lro_041',
+              code: 'ЛРО-041 • ПМ-Т #88412',
+              meta: 'Частный стрелковый тир «Вымпел» (3 нареза)',
+              seed: 1041,
+              slope: 0.17,
+              grooveCount: 3,
+              hasBurr: false,
+              isMatch: false,
+              mismatchReason: 'ЛОЖНЫЙ СТВОЛ: у ЛРО-041 только 3 нареза с другим шагом — не совпадает с 4 нарезами пули #418-Б.'
+            },
+            {
+              id: 'lro_119',
+              code: 'ЛРО-119 • ИЖ-71 #КН-2094',
+              meta: 'ЧОП «Гранит» • списан в 2021 (левые нарезы)',
+              seed: 2119,
+              slope: -0.13,
+              grooveCount: 4,
+              hasBurr: false,
+              isMatch: false,
+              mismatchReason: 'ЛОЖНЫЙ СТВОЛ: у ЛРО-119 левосторонний наклон нарезов, а на пуле #418-Б — правосторонние.'
+            },
+            {
+              id: 'lro_207',
+              code: 'ЛРО-207 • ПМ #АЕ-4719',
+              meta: 'Числится в розыске • архивное дело 90-х',
+              seed: 41807,
+              slope: 0.13,
+              grooveCount: 4,
+              hasBurr: true,
+              isMatch: true,
+              mismatchReason: ''
+            },
+            {
+              id: 'lro_388',
+              code: 'ЛРО-388 • МР-79 #90315',
+              meta: 'Склад вещдоков • 4 правых нареза (двойник)',
+              seed: 3882,
+              slope: 0.13,
+              grooveCount: 4,
+              hasBurr: false,
+              isMatch: false,
+              mismatchReason: 'ЛОЖНЫЙ СТВОЛ: шаг 4 правых нарезов похож, но в КОСОМ СВЕТЕ ×40 микротрассы и заусенец ствола не сходятся!'
+            }
+          ],
+      conclusion: {
+        question: 'Пуля #418-Б из обугленной балки — 9×18 мм ПМ (9.2 мм), а в косом свете ×40 её микротрассы и дефект ствола на 99.1% совпали с ЛРО-207. Вывод:',
+        options: [
+          {
+            id: 'chop',
+            text: 'Стреляли из служебного ИЖ-71 охраны ЧОП «Гранит» (ЛРО-119), а деформация от пожара исказила наклон нарезов.',
+            isCorrect: false,
+            reason: 'Противоречие: нагрев не способен поменять левосторонние нарезы ЛРО-119 на правосторонние.'
+          },
+          {
+            id: 'lro207_hit',
+            text: 'В коттедже стреляли из «грязного» ПМ #АЕ-4719 (карточка ЛРО-207) — необходимо немедленно поднять дело старого владельца ствола.',
+            isCorrect: true,
+            reason: 'Верно: точное совпадение калибра 9×18 мм ПМ и уникальных микротрасс канала ствола выводит на ЛРО-207.'
+          },
+          {
+            id: 'inconclusive',
+            text: 'Сходство с МР-79 (ЛРО-388) доказывает, что баллистика не позволяет выделить конкретный пистолет.',
+            isCorrect: false,
+            reason: 'Противоречие: в косом свете ×40 микротрассы ЛРО-388 разошлись, тогда как ЛРО-207 дал совпадение 99.1%.'
+          }
+        ]
+      }
+    };
+  }
+
+  function buildBalGenericScenario(config) {
+    var cal = typeof config.caliberMm === 'number' ? config.caliberMm : 9.2;
+    var samples = Array.isArray(config.samples) && config.samples.length > 0
+      ? config.samples
+      : [
+          { id: 's_1', code: 'ОБРАЗЕЦ #01', meta: 'Контрольный отстрел (3 нареза)', seed: 501, slope: 0.16, grooveCount: 3, hasBurr: false, isMatch: false, mismatchReason: 'ЛОЖНЫЙ СТВОЛ: не совпадает число нарезов.' },
+          { id: 's_2', code: 'ОБРАЗЕЦ #02', meta: 'Контрольный отстрел (совпадение)', seed: 777, slope: 0.13, grooveCount: 4, hasBurr: true, isMatch: true, mismatchReason: '' },
+          { id: 's_3', code: 'ОБРАЗЕЦ #03', meta: 'Контрольный отстрел (схожий шаг)', seed: 913, slope: 0.13, grooveCount: 4, hasBurr: false, isMatch: false, mismatchReason: 'ЛОЖНЫЙ СТВОЛ: микротрассы в косом свете не сходятся.' }
+        ];
+    var calOpts = Array.isArray(config.caliberOptions) && config.caliberOptions.length > 0
+      ? config.caliberOptions
+      : [
+          { id: 'c1', label: '5.45 мм', isCorrect: false, wrongMsg: 'Замер не соответствует 5.45 мм.' },
+          { id: 'c2', label: '7.62 мм', isCorrect: false, wrongMsg: 'Замер не соответствует 7.62 мм.' },
+          { id: 'c3', label: '9×18 мм', isCorrect: true, wrongMsg: '' }
+        ];
+    return {
+      id: 'generic_ballistics',
+      title: config.title || 'БАЛЛИСТИЧЕСКАЯ ЭКСПЕРТИЗА',
+      subtitle: config.subtitle || 'ЭКЦ • СРАВНИТЕЛЬНЫЙ МИКРОСКОП',
+      evidenceCode: config.evidenceCode || 'ВЕЩДОК // ПУЛЯ',
+      stampWin: config.stampWin || 'СОВПАДЕНИЕ ПОДТВЕРЖДЕНО',
+      caliberMm: cal,
+      caliberLabel: config.caliberLabel || (cal.toFixed(1) + ' мм'),
+      caliberOptions: calOpts,
+      samples: samples,
+      conclusion: config.conclusion || {
+        question: 'Замер калибра и сверка микронарезов в косом свете ×40 завершены. Вывод экспертизы:',
+        options: [
+          { id: 'no_match', text: 'Ствол не установлен — микротрассы случайны.', isCorrect: false, reason: 'Противоречие: микротрассы и заусенец канала ствола сошлись точно по оси.' },
+          { id: 'ok', text: 'Вещдок отстрелян именно из идентифицированного контрольного образца картотеки.', isCorrect: true, reason: 'Верно: баллистическая идентификация подтверждена.' },
+          { id: 'wrong_cal', text: 'Калибр не соответствует ни одному из образцов.', isCorrect: false, reason: 'Противоречие: замер штангенциркулем полностью подтвердил калибр.' }
+        ]
+      }
+    };
+  }
+
+  function resolveBalScenario(config) {
+    var cfg = config || {};
+    var caseId = String(window.ACTIVE_CASE_ID || '').toLowerCase();
+    var nodeId = '';
+    try {
+      if (window.GameEngine && typeof window.GameEngine.getState === 'function') {
+        var st = window.GameEngine.getState();
+        if (st && st.nodeId) nodeId = String(st.nodeId);
+      }
+    } catch (e) {}
+
+    if (cfg.preset === 'generic' || (caseId && caseId !== 'case418' && nodeId !== 'act3_ballistics_game')) {
+      return buildBalGenericScenario(cfg);
+    }
+    return buildBalCase418Scenario(cfg);
+  }
+
+  function buildStriationPattern(seed, grooveCount, period, hasBurr) {
     var rand = mulberry32(seed);
     var grooves = [];
     var scratches = [];
@@ -2460,84 +2594,191 @@
     for (i = 0; i < grooveCount; i++) {
       var base = (i / grooveCount) * period;
       grooves.push({
-        y: (base + rand() * (period / grooveCount) * 0.28) % period,
-        width: 11 + rand() * 11,
-        darkness: 0.24 + rand() * 0.2
+        y: (base + rand() * (period / grooveCount) * 0.22) % period,
+        width: 11 + rand() * 10,
+        darkness: 0.26 + rand() * 0.18
       });
     }
 
-    for (i = 0; i < 46; i++) {
+    for (i = 0; i < 44; i++) {
       scratches.push({
         y: rand() * period,
-        width: 0.7 + rand() * 2.1,
-        bright: rand() > 0.48,
-        alpha: 0.18 + rand() * 0.56
+        width: 0.7 + rand() * 1.9,
+        bright: rand() > 0.46,
+        alpha: 0.22 + rand() * 0.56
       });
     }
 
-    return { grooves: grooves, scratches: scratches, period: period };
+    // Signature twin barrel-burr defect (crucial in Oblique ×40 light to separate true match from decoy!)
+    var burr = hasBurr ? { y1: period * 0.34, y2: period * 0.375 } : null;
+    return { grooves: grooves, scratches: scratches, period: period, burr: burr };
   }
+
+  function drawBulletHalf(ctx, pattern, slope, xStart, xEnd, midX, viewTop, viewH, offsetY, isRight, isOblique) {
+    var period = pattern.period;
+    var halfW = Math.abs(xEnd - xStart);
+
+    var baseGrad = ctx.createLinearGradient(0, viewTop, 0, viewTop + viewH);
+    if (isOblique) {
+      baseGrad.addColorStop(0, '#1c0f05');
+      baseGrad.addColorStop(0.22, '#5a3210');
+      baseGrad.addColorStop(0.48, '#d4984c');
+      baseGrad.addColorStop(0.56, '#e5b168');
+      baseGrad.addColorStop(0.80, '#5a3210');
+      baseGrad.addColorStop(1, '#190d04');
+    } else {
+      baseGrad.addColorStop(0, '#2a1809');
+      baseGrad.addColorStop(0.2, '#69411b');
+      baseGrad.addColorStop(0.5, '#b68044');
+      baseGrad.addColorStop(0.8, '#663f1a');
+      baseGrad.addColorStop(1, '#241408');
+    }
+    ctx.fillStyle = baseGrad;
+    ctx.fillRect(Math.min(xStart, xEnd), viewTop, halfW, viewH);
+
+    var yMin = viewTop - period;
+    var yMax = viewTop + viewH + period;
+    var normOffset = ((offsetY % period) + period) % period;
+    var k, baseCycle, g, sc, yMid, yOuter;
+
+    for (baseCycle = yMin - normOffset; baseCycle < yMax; baseCycle += period) {
+      for (k = 0; k < pattern.grooves.length; k++) {
+        g = pattern.grooves[k];
+        yMid = baseCycle + g.y;
+        yOuter = isRight ? yMid + slope * halfW : yMid - slope * halfW;
+
+        ctx.strokeStyle = 'rgba(18, 9, 3, ' + (g.darkness * (isOblique ? 1.25 : 0.9)).toFixed(2) + ')';
+        ctx.lineWidth = g.width;
+        ctx.beginPath();
+        ctx.moveTo(midX, yMid);
+        ctx.lineTo(isRight ? xEnd : xStart, yOuter);
+        ctx.stroke();
+
+        ctx.strokeStyle = isOblique ? 'rgba(255, 232, 178, 0.42)' : 'rgba(255, 224, 175, 0.16)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(midX, yMid - g.width * 0.5);
+        ctx.lineTo(isRight ? xEnd : xStart, yOuter - g.width * 0.5);
+        ctx.stroke();
+      }
+
+      // Fine micro-striations stand out vividly in Oblique ×40 light!
+      var microBoost = isOblique ? 1.0 : 0.24;
+      for (k = 0; k < pattern.scratches.length; k++) {
+        sc = pattern.scratches[k];
+        yMid = baseCycle + sc.y;
+        yOuter = isRight ? yMid + slope * halfW : yMid - slope * halfW;
+        ctx.strokeStyle = sc.bright
+          ? 'rgba(255, 238, 194, ' + (sc.alpha * microBoost).toFixed(2) + ')'
+          : 'rgba(14, 7, 2, ' + (sc.alpha * microBoost).toFixed(2) + ')';
+        ctx.lineWidth = isOblique ? sc.width * 1.1 : sc.width * 0.7;
+        ctx.beginPath();
+        ctx.moveTo(midX, yMid);
+        ctx.lineTo(isRight ? xEnd : xStart, yOuter);
+        ctx.stroke();
+      }
+
+      // Unique twin barrel-burr scar visible sharply in Oblique ×40 light
+      if (pattern.burr && isOblique) {
+        var bYs = [baseCycle + pattern.burr.y1, baseCycle + pattern.burr.y2];
+        for (var bi = 0; bi < bYs.length; bi++) {
+          var byM = bYs[bi];
+          var byO = isRight ? byM + slope * halfW : byM - slope * halfW;
+          ctx.strokeStyle = '#fef08a';
+          ctx.lineWidth = 2.1;
+          ctx.beginPath(); ctx.moveTo(midX, byM); ctx.lineTo(isRight ? xEnd : xStart, byO); ctx.stroke();
+          ctx.strokeStyle = 'rgba(12, 6, 2, 0.85)';
+          ctx.lineWidth = 1.3;
+          ctx.beginPath(); ctx.moveTo(midX, byM + 2.2); ctx.lineTo(isRight ? xEnd : xStart, byO + 2.2); ctx.stroke();
+        }
+      }
+    }
+
+    var vig = ctx.createLinearGradient(0, viewTop, 0, viewTop + viewH);
+    vig.addColorStop(0, 'rgba(0, 0, 0, 0.6)');
+    vig.addColorStop(0.22, 'rgba(0, 0, 0, 0)');
+    vig.addColorStop(0.78, 'rgba(0, 0, 0, 0)');
+    vig.addColorStop(1, 'rgba(0, 0, 0, 0.6)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(Math.min(xStart, xEnd), viewTop, halfW, viewH);
+  }
+
 
   function initBallistics(containerEl, config, callbacks) {
     config = config || {};
+    injectBalStyles();
+
     var timers = createTimerBag();
     var listeners = createListenerBag();
     var triggerWin = createWinTrigger(callbacks);
-    var finished = false;
+    var failFired = false;
+    function triggerBalFail(res) {
+      if (failFired) return;
+      failFired = true;
+      if (callbacks && typeof callbacks.onFail === 'function') {
+        callbacks.onFail(res || { success: false });
+      }
+    }
 
-    var caliberMm = typeof config.caliberMm === 'number' ? config.caliberMm : DEFAULT_BALLISTICS_CONFIG.caliberMm;
-    var caliberOptions =
-      Array.isArray(config.caliberOptions) && config.caliberOptions.length > 0
-        ? config.caliberOptions
-        : DEFAULT_BALLISTICS_CONFIG.caliberOptions;
-
-    var rawSamples =
-      Array.isArray(config.samples) && config.samples.length > 0
-        ? config.samples
-        : DEFAULT_BALLISTICS_CONFIG.samples;
+    var scenario = resolveBalScenario(config);
+    var caliberTarget = scenario.caliberMm;
+    var caliberOptions = scenario.caliberOptions;
+    var rawSamples = scenario.samples;
+    var maxErrors = typeof config.maxErrors === 'number' && config.maxErrors > 0 ? config.maxErrors : 4;
 
     var PERIOD = 160;
-    var matchIdx = -1;
-    for (var sIdx = 0; sIdx < rawSamples.length; sIdx++) {
-      if (rawSamples[sIdx].isMatch) {
-        matchIdx = sIdx;
-        break;
-      }
+    var matchIdx = 0;
+    for (var si = 0; si < rawSamples.length; si++) {
+      if (rawSamples[si].isMatch) { matchIdx = si; break; }
     }
     if (typeof config.matchIndex === 'number' && rawSamples[config.matchIndex]) {
       matchIdx = config.matchIndex;
     }
-    if (matchIdx === -1) matchIdx = 0;
 
-    var evidenceSeed = rawSamples[matchIdx].seed || 41807;
-    var evidenceSlope = typeof rawSamples[matchIdx].slope === 'number' ? rawSamples[matchIdx].slope : 0.13;
-    var evidenceGrooves = rawSamples[matchIdx].grooveCount || 4;
-    var evidencePattern = buildStriationPattern(evidenceSeed, evidenceGrooves, PERIOD);
+    var evSample = rawSamples[matchIdx];
+    var evidenceSlope = typeof evSample.slope === 'number' ? evSample.slope : 0.13;
+    var evidencePattern = buildStriationPattern(
+      evSample.seed || 41807,
+      evSample.grooveCount || 4,
+      PERIOD,
+      true
+    );
 
     var samples = rawSamples.map(function (s, idx) {
       var isMatch = idx === matchIdx;
       var pat = isMatch
         ? evidencePattern
-        : buildStriationPattern(s.seed || 1000 + idx * 777, s.grooveCount || (3 + (idx % 3)), PERIOD);
+        : buildStriationPattern(s.seed || (1000 + idx * 777), s.grooveCount || 4, PERIOD, Boolean(s.hasBurr));
       return {
         id: s.id || 'sample_' + idx,
-        code: s.code || 'ОБРАЗЕЦ ЛРО #' + (idx + 1),
+        code: s.code || ('ОБРАЗЕЦ ЛРО #' + (idx + 1)),
         meta: s.meta || 'Контрольный отстрел картотеки',
-        slope: isMatch ? evidenceSlope : typeof s.slope === 'number' ? s.slope : 0.15,
+        slope: isMatch ? evidenceSlope : (typeof s.slope === 'number' ? s.slope : 0.13),
         isMatch: isMatch,
+        mismatchReason: s.mismatchReason || 'НАРЕЗЫ НЕ СОВПАДАЮТ: проверьте другой образец ЛРО.',
         pattern: pat
       };
     });
 
-    // Hidden rotational offset for the matching sample (non-trivial offset so player actively aligns)
     var targetShiftPx = typeof config.targetShift === 'number' ? config.targetShift % PERIOD : 104;
     if (targetShiftPx < 25 || targetShiftPx > PERIOD - 25) targetShiftPx = 98;
 
     var shell = createShell(containerEl, {
-      title: config.title || DEFAULT_BALLISTICS_CONFIG.title,
-      subtitle: config.subtitle || DEFAULT_BALLISTICS_CONFIG.subtitle,
+      title: scenario.title,
+      subtitle: scenario.subtitle,
       extraClass: 'mg-bal-wrap'
     });
+
+    shell.subEl.style.display = 'none';
+    var metaRow = document.createElement('div');
+    metaRow.className = 'mg-bal-meta';
+    var statStage = document.createElement('span');
+    statStage.className = 'mg-bal-stat';
+    var statErr = document.createElement('span');
+    statErr.className = 'mg-bal-err';
+    metaRow.appendChild(statStage);
+    metaRow.appendChild(statErr);
+    shell.subEl.parentNode.appendChild(metaRow);
 
     listeners.on(shell.cancelBtn, 'click', function () {
       haptic('light');
@@ -2545,17 +2786,21 @@
       triggerCancel(callbacks);
     });
 
-    // Step indicator bar
+    // 3-step indicator
     var stepsRow = document.createElement('div');
-    stepsRow.className = 'mg-bal-steps';
+    stepsRow.className = 'mg-bal-steps3';
     var step1Badge = document.createElement('div');
     step1Badge.className = 'mg-bal-step is-active';
-    step1Badge.textContent = '1. ЗАМЕР КАЛИБРА';
+    step1Badge.textContent = '1. ОЧИСТКА/ЗАМЕР';
     var step2Badge = document.createElement('div');
     step2Badge.className = 'mg-bal-step';
-    step2Badge.textContent = '2. СОВМЕЩЕНИЕ НАРЕЗОВ';
+    step2Badge.textContent = '2. МИКРОСКОП';
+    var step3Badge = document.createElement('div');
+    step3Badge.className = 'mg-bal-step';
+    step3Badge.textContent = '3. ВЫВОД';
     stepsRow.appendChild(step1Badge);
     stepsRow.appendChild(step2Badge);
+    stepsRow.appendChild(step3Badge);
     shell.body.appendChild(stepsRow);
 
     // Canvas stage
@@ -2570,13 +2815,27 @@
     var statusEl = document.createElement('div');
     statusEl.className = 'mg-for-status';
     var statusText = document.createElement('span');
-    statusText.textContent = 'Сведите губки штангенциркуля к стенкам пули и укажите калибр';
+    statusText.textContent = 'Сначала сотрите гарь и щепки с пули пальцем (инструмент САЛФЕТКА).';
     statusEl.appendChild(statusText);
     shell.body.appendChild(statusEl);
 
-    // Controls panel (dynamically swapped between Stage 1 and Stage 2)
+    // === PANEL 1: CLEANING + CALIPER + CALIBER ===
     var panel1 = document.createElement('div');
     panel1.className = 'mg-for-panel';
+
+    var p1Tools = document.createElement('div');
+    p1Tools.className = 'mg-bal-tools';
+    var btnSwab = document.createElement('button');
+    btnSwab.type = 'button';
+    btnSwab.className = 'mg-bal-tbtn is-oblique';
+    btnSwab.textContent = '1. САЛФЕТКА (ГАРЬ)';
+    var btnCalTool = document.createElement('button');
+    btnCalTool.type = 'button';
+    btnCalTool.className = 'mg-bal-tbtn';
+    btnCalTool.textContent = '2. ШТАНГЕНЦИРКУЛЬ';
+    p1Tools.appendChild(btnSwab);
+    p1Tools.appendChild(btnCalTool);
+    panel1.appendChild(p1Tools);
 
     var calSliderWrap = document.createElement('div');
     calSliderWrap.className = 'mg-for-slider-wrap';
@@ -2587,7 +2846,7 @@
     calLbl.textContent = 'ШТАНГЕНЦИРКУЛЬ (ММ)';
     var calVal = document.createElement('span');
     calVal.className = 'mg-for-value';
-    calVal.textContent = '13.6 мм';
+    calVal.textContent = 'ОЧИСТИТЕ ПУЛЮ';
     calRow.appendChild(calLbl);
     calRow.appendChild(calVal);
 
@@ -2598,32 +2857,43 @@
     calSlider.max = '14.5';
     calSlider.step = '0.1';
     calSlider.value = '13.6';
+    calSlider.disabled = true;
     calSliderWrap.appendChild(calRow);
     calSliderWrap.appendChild(calSlider);
     panel1.appendChild(calSliderWrap);
 
     var choicesGrid = document.createElement('div');
     choicesGrid.className = 'mg-bal-choices';
-    var choiceBtns = [];
     for (var c = 0; c < caliberOptions.length; c++) {
       (function (opt) {
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'mg-for-btn-sec';
         btn.textContent = opt.label;
-        listeners.on(btn, 'click', function () {
-          handleCaliberChoice(opt, btn);
-        });
+        listeners.on(btn, 'click', function () { handleCaliberChoice(opt, btn); });
         choicesGrid.appendChild(btn);
-        choiceBtns.push(btn);
       })(caliberOptions[c]);
     }
     panel1.appendChild(choicesGrid);
 
-    // Stage 2 panel
+    // === PANEL 2: COMPARISON MICROSCOPE ×40 ===
     var panel2 = document.createElement('div');
     panel2.className = 'mg-for-panel';
     panel2.style.display = 'none';
+
+    var p2Lights = document.createElement('div');
+    p2Lights.className = 'mg-bal-tools';
+    var btnLightNorm = document.createElement('button');
+    btnLightNorm.type = 'button';
+    btnLightNorm.className = 'mg-bal-tbtn is-norm';
+    btnLightNorm.textContent = '1. ОБЫЧНЫЙ СВЕТ';
+    var btnLightObl = document.createElement('button');
+    btnLightObl.type = 'button';
+    btnLightObl.className = 'mg-bal-tbtn';
+    btnLightObl.textContent = '2. КОСОЙ СВЕТ ×40';
+    p2Lights.appendChild(btnLightNorm);
+    p2Lights.appendChild(btnLightObl);
+    panel2.appendChild(p2Lights);
 
     var switcher = document.createElement('div');
     switcher.className = 'mg-bal-switcher';
@@ -2654,7 +2924,7 @@
     shiftRow.className = 'mg-for-row';
     var shiftLbl = document.createElement('span');
     shiftLbl.className = 'mg-for-label';
-    shiftLbl.textContent = 'СДВИГ / ПОВОРОТ ОСИ';
+    shiftLbl.textContent = 'ПОВОРОТ ОСИ БАРАБАНА';
     var shiftVal = document.createElement('span');
     shiftVal.className = 'mg-for-value';
     shiftVal.textContent = '0°';
@@ -2681,58 +2951,233 @@
     shell.body.appendChild(panel1);
     shell.body.appendChild(panel2);
 
-    // Game state
-    var stageNum = 1;
+    // State
+    var stageNum = 1; // 1 | 2 | 3 | 99 (fail/win)
+    var p1Tool = 'swab'; // 'swab' | 'caliper'
+    var sootLevel = 1.0;
+    var sootParticles = [];
     var caliperMm = 13.6;
     var caliperLocked = false;
+    var lightMode = 'normal'; // 'normal' | 'oblique'
     var currentSampleIdx = 0;
     var shiftPx = 0;
+    var wasAlignedHaptic = false;
+    var errorsCount = 0;
     var redFlash = 0;
     var greenLock = 0;
     var draggingCanvas = false;
     var dragStartY = 0;
     var dragStartShift = 0;
+    var lastCanvasX = 0;
+    var lastCanvasY = 0;
+    var matchedCode = '';
     var lastTs = performance.now();
 
     var canvasMgr = setupResponsiveCanvas(canvas, stage);
+
+    function syncHeaderMeta() {
+      statStage.textContent = stageNum <= 3 ? ('ЭТАП ' + stageNum + ' / 3') : 'ЭКЦ // ПРОТОКОЛ';
+      statErr.textContent = 'ОШИБКИ: ' + errorsCount + ' / ' + maxErrors;
+      statErr.classList.toggle('is-warn', errorsCount >= maxErrors - 1);
+    }
+
+    function syncP1Tools() {
+      btnSwab.className = 'mg-bal-tbtn' + (p1Tool === 'swab' ? ' is-oblique' : '');
+      btnCalTool.className = 'mg-bal-tbtn' + (p1Tool === 'caliper' ? ' is-norm' : '');
+      calSlider.disabled = sootLevel > 0.01;
+    }
+
+    function syncP2Lights() {
+      btnLightNorm.className = 'mg-bal-tbtn' + (lightMode === 'normal' ? ' is-norm' : '');
+      btnLightObl.className = 'mg-bal-tbtn' + (lightMode === 'oblique' ? ' is-oblique' : '');
+    }
 
     function updateDossierUI() {
       var smp = samples[currentSampleIdx];
       dossierCode.textContent = '[' + (currentSampleIdx + 1) + '/' + samples.length + '] ' + smp.code;
       dossierMeta.textContent = smp.meta;
     }
-    updateDossierUI();
 
     function updateCaliperUI() {
+      if (sootLevel > 0.01) {
+        calVal.textContent = 'ГАРЬ: ' + Math.round(sootLevel * 100) + '%';
+        calVal.className = 'mg-for-value';
+        return;
+      }
       calSlider.value = caliperMm.toFixed(1);
-      var diff = Math.abs(caliperMm - caliberMmTarget());
-      var isTouching = diff <= 0.35;
+      var isTouching = Math.abs(caliperMm - caliberTarget) <= 0.35;
       calVal.textContent = caliperMm.toFixed(1) + ' мм' + (isTouching ? ' [КОНТАКТ]' : '');
       calVal.className = 'mg-for-value' + (isTouching ? ' is-ok' : '');
       if (isTouching && !caliperLocked) {
         caliperLocked = true;
         haptic('light');
-        sfx('scan');
+        sfx('click');
         statusEl.className = 'mg-for-status is-ok';
-        statusText.textContent = 'Замер: ' + caliperMm.toFixed(1) + ' мм — выберите калибр ниже';
+        statusText.textContent = 'Замер: ' + caliperMm.toFixed(1) + ' мм — выберите калибр ниже.';
       } else if (!isTouching) {
         caliperLocked = false;
       }
     }
 
-    function caliberMmTarget() {
-      return caliberMm;
+    function showFailScreen(reason, msg) {
+      stageNum = 99;
+      stepsRow.style.display = 'none';
+      stage.style.display = 'none';
+      statusEl.style.display = 'none';
+      panel1.style.display = 'none';
+      panel2.style.display = 'none';
+
+      var box = document.createElement('div');
+      box.className = 'mg-bal-stamp-box';
+      var st = document.createElement('div');
+      st.className = 'mg-bal-stamp';
+      st.textContent = 'ЭКСПЕРТИЗА ПРОВАЛЕНА';
+      var txt = document.createElement('div');
+      txt.className = 'mg-bal-dq';
+      txt.textContent = msg || 'Превышен лимит ошибок баллистической экспертизы.';
+      box.appendChild(st);
+      box.appendChild(txt);
+      shell.body.appendChild(box);
+
+      timers.setTimeout(function () {
+        triggerBalFail({ minigame: 'ballistics', scenarioId: scenario.id, reason: reason, errors: errorsCount });
+      }, 950);
+    }
+
+    function registerError(msg, reason) {
+      errorsCount += 1;
+      redFlash = 0.9;
+      syncHeaderMeta();
+      haptic('error');
+      sfx('alert');
+      flashShake(stage);
+      statusEl.className = 'mg-for-status is-err';
+      statusText.textContent = msg;
+      if (errorsCount >= maxErrors) {
+        timers.setTimeout(function () {
+          showFailScreen(reason || 'too_many_errors', msg);
+        }, 520);
+      }
+    }
+
+    function openDeductionPhase() {
+      stageNum = 3;
+      syncHeaderMeta();
+      step2Badge.className = 'mg-bal-step is-done';
+      step3Badge.className = 'mg-bal-step is-active';
+      stage.style.display = 'none';
+      statusEl.style.display = 'none';
+      panel1.style.display = 'none';
+      panel2.style.display = 'none';
+
+      var card = document.createElement('div');
+      card.className = 'mg-bal-deduce';
+      var kicker = document.createElement('div');
+      kicker.className = 'mg-bal-dkicker';
+      kicker.textContent = 'ФАЗА 3 // ЗАКЛЮЧЕНИЕ БАЛЛИСТА';
+      card.appendChild(kicker);
+
+      var facts = document.createElement('div');
+      facts.className = 'mg-bal-dfacts';
+      facts.innerHTML =
+        '<div>• Калибр пули: ' + scenario.caliberLabel + ' (замер ' + caliberTarget.toFixed(1) + ' мм после очистки)</div>' +
+        '<div>• Косой свет ×40: 4 правонаклонных нареза + уникальный двойной заусенец ствола</div>' +
+        '<div>• Картотека ЭКЦ: совпадение 99.1% с ' + matchedCode + '</div>';
+      card.appendChild(facts);
+
+      var q = document.createElement('div');
+      q.className = 'mg-bal-dq';
+      q.textContent = scenario.conclusion.question;
+      card.appendChild(q);
+
+      var optsWrap = document.createElement('div');
+      optsWrap.className = 'mg-bal-dopts';
+      var fb = document.createElement('div');
+      fb.className = 'mg-bal-dfb';
+
+      var settled = false;
+      var opts = scenario.conclusion.options || [];
+      for (var oi = 0; oi < opts.length; oi++) {
+        (function (opt) {
+          var ob = document.createElement('button');
+          ob.type = 'button';
+          ob.className = 'mg-bal-dopt';
+          ob.textContent = opt.text;
+          listeners.on(ob, 'click', function () {
+            if (settled || stageNum !== 3) return;
+            if (opt.isCorrect) {
+              settled = true;
+              step3Badge.className = 'mg-bal-step is-done';
+              ob.classList.add('is-correct');
+              fb.className = 'mg-bal-dfb is-ok';
+              fb.textContent = opt.reason;
+              haptic('success');
+              sfx('stamp');
+              timers.setTimeout(function () {
+                card.innerHTML = '';
+                var box = document.createElement('div');
+                box.className = 'mg-bal-stamp-box';
+                var st = document.createElement('div');
+                st.className = 'mg-bal-stamp is-ok';
+                st.textContent = scenario.stampWin;
+                var btnDone = document.createElement('button');
+                btnDone.type = 'button';
+                btnDone.className = 'mg-for-btn is-ready';
+                btnDone.textContent = 'ПРИОБЩИТЬ К ДЕЛУ';
+                listeners.on(btnDone, 'click', function () {
+                  haptic('success');
+                  sfx('success');
+                  triggerWin({
+                    minigame: 'ballistics',
+                    scenarioId: scenario.id,
+                    caliberMm: caliberTarget,
+                    matchedSample: matchedCode,
+                    errors: errorsCount,
+                    deduced: opt.id
+                  });
+                });
+                box.appendChild(st);
+                box.appendChild(btnDone);
+                card.appendChild(box);
+              }, 550);
+            } else {
+              errorsCount += 1;
+              syncHeaderMeta();
+              ob.classList.add('is-wrong');
+              fb.className = 'mg-bal-dfb';
+              fb.textContent = opt.reason;
+              haptic('error');
+              sfx('alert');
+              flashShake(card);
+              if (errorsCount >= maxErrors) {
+                settled = true;
+                timers.setTimeout(function () {
+                  showFailScreen('wrong_deduction', 'Лимит ошибок исчерпан — заключение баллиста отклонено.');
+                }, 700);
+              }
+            }
+          });
+          optsWrap.appendChild(ob);
+        })(opts[oi]);
+      }
+
+      card.appendChild(optsWrap);
+      card.appendChild(fb);
+      shell.body.appendChild(card);
     }
 
     function handleCaliberChoice(opt, btnEl) {
-      if (stageNum !== 1 || finished) return;
-      var diff = Math.abs(caliperMm - caliberMmTarget());
-      if (diff > 0.55) {
-        haptic('error');
-        sfx('error');
-        flashShake(stage);
+      if (stageNum !== 1) return;
+      if (sootLevel > 0.01) {
+        haptic('light');
         statusEl.className = 'mg-for-status is-warn';
-        statusText.textContent = 'Сначала подведите подвижную губку штангенциркуля к краю пули';
+        statusText.textContent = 'Пуля в гари и щепе — сначала сотрите копоть салфеткой!';
+        return;
+      }
+      if (Math.abs(caliperMm - caliberTarget) > 0.55) {
+        haptic('light');
+        statusEl.className = 'mg-for-status is-warn';
+        statusText.textContent = 'Сначала сведите подвижную губку штангенциркуля к стенке пули.';
         return;
       }
 
@@ -2741,116 +3186,185 @@
         sfx('success');
         btnEl.classList.add('is-ok');
         statusEl.className = 'mg-for-status is-ok';
-        statusText.textContent = 'Калибр подтверждён: ' + opt.label + ' • Переход к микроскопу...';
+        statusText.textContent = 'Калибр подтверждён: ' + opt.label + ' • Переход к микроскопу ×40...';
         step1Badge.className = 'mg-bal-step is-done';
         step2Badge.className = 'mg-bal-step is-active';
         timers.setTimeout(function () {
+          if (stageNum !== 1) return;
           stageNum = 2;
+          syncHeaderMeta();
           panel1.style.display = 'none';
           panel2.style.display = 'flex';
           statusEl.className = 'mg-for-status';
-          statusText.textContent = 'Подберите образец ЛРО и совместите нарезы стык-в-стык';
+          statusText.textContent = 'Подберите ствол ЛРО, включите КОСОЙ СВЕТ ×40 и совместите микротрассы.';
         }, 620);
       } else {
-        redFlash = 0.85;
-        haptic('error');
-        sfx('error');
-        flashShake(stage);
-        statusEl.className = 'mg-for-status is-err';
-        statusText.textContent = 'Неверный калибр! Сопоставьте замер (' + caliperMm.toFixed(1) + ' мм) со шкалой';
+        registerError(opt.wrongMsg || ('Неверный калибр при замере ' + caliberMm.toFixed(1) + ' мм!'), 'wrong_caliber');
       }
     }
 
+    listeners.on(btnSwab, 'click', function () {
+      if (stageNum !== 1) return;
+      p1Tool = 'swab';
+      syncP1Tools();
+      haptic('light'); sfx('click');
+    });
+    listeners.on(btnCalTool, 'click', function () {
+      if (stageNum !== 1) return;
+      if (sootLevel > 0.01) {
+        statusEl.className = 'mg-for-status is-warn';
+        statusText.textContent = 'Сначала сотрите гарь салфеткой, иначе губки дадут неточный замер!';
+        haptic('light');
+        return;
+      }
+      p1Tool = 'caliper';
+      syncP1Tools();
+      haptic('light'); sfx('click');
+    });
+
     listeners.on(calSlider, 'input', function () {
-      if (stageNum !== 1 || finished) return;
+      if (stageNum !== 1 || sootLevel > 0.01) return;
+      p1Tool = 'caliper';
+      syncP1Tools();
       caliperMm = clamp(parseFloat(calSlider.value) || 13.6, 4.0, 14.5);
       updateCaliperUI();
     });
 
-    listeners.on(prevBtn, 'click', function () {
-      if (stageNum !== 2 || finished) return;
-      currentSampleIdx = (currentSampleIdx - 1 + samples.length) % samples.length;
-      updateDossierUI();
-      haptic('light');
-      sfx('click');
+    listeners.on(btnLightNorm, 'click', function () {
+      if (stageNum !== 2) return;
+      lightMode = 'normal';
+      syncP2Lights();
+      haptic('light'); sfx('click');
+    });
+    listeners.on(btnLightObl, 'click', function () {
+      if (stageNum !== 2) return;
+      lightMode = 'oblique';
+      syncP2Lights();
+      haptic('light'); sfx('click');
+      statusEl.className = 'mg-for-status is-ok';
+      statusText.textContent = 'КОСОЙ СВЕТ ×40: сравнивайте тонкие микротрассы и двойной заусенец ствола.';
     });
 
+    listeners.on(prevBtn, 'click', function () {
+      if (stageNum !== 2) return;
+      currentSampleIdx = (currentSampleIdx - 1 + samples.length) % samples.length;
+      updateDossierUI();
+      haptic('light'); sfx('click');
+    });
     listeners.on(nextBtn, 'click', function () {
-      if (stageNum !== 2 || finished) return;
+      if (stageNum !== 2) return;
       currentSampleIdx = (currentSampleIdx + 1) % samples.length;
       updateDossierUI();
-      haptic('light');
-      sfx('click');
+      haptic('light'); sfx('click');
     });
+
+    function checkAlignmentTactile() {
+      var smp = samples[currentSampleIdx];
+      var delta = Math.abs(((shiftPx - targetShiftPx) % PERIOD + PERIOD) % PERIOD);
+      var err = Math.min(delta, PERIOD - delta);
+      var aligned = smp.isMatch && lightMode === 'oblique' && err <= 6.5;
+      if (aligned && !wasAlignedHaptic) {
+        haptic('light');
+      }
+      wasAlignedHaptic = aligned;
+    }
 
     function syncShiftUI() {
       shiftSlider.value = String(shiftPx);
-      var deg = Math.round((shiftPx / PERIOD) * 360);
-      shiftVal.textContent = deg + '°';
+      shiftVal.textContent = Math.round((shiftPx / PERIOD) * 360) + '°';
+      checkAlignmentTactile();
     }
 
     listeners.on(shiftSlider, 'input', function () {
-      if (stageNum !== 2 || finished) return;
+      if (stageNum !== 2) return;
       shiftPx = parseFloat(shiftSlider.value) || 0;
       syncShiftUI();
     });
 
     listeners.on(confirmBtn, 'click', function () {
-      if (stageNum !== 2 || finished) return;
+      if (stageNum !== 2) return;
+      if (lightMode !== 'oblique') {
+        registerError('НАРУШЕНА МЕТОДИКА: в обычном свете видны лишь общие нарезы — проверьте микротрассы в КОСОМ СВЕТЕ ×40!', 'wrong_light');
+        return;
+      }
       var smp = samples[currentSampleIdx];
+      if (!smp.isMatch) {
+        registerError(smp.mismatchReason, 'wrong_sample');
+        return;
+      }
       var delta = Math.abs(((shiftPx - targetShiftPx) % PERIOD + PERIOD) % PERIOD);
       var circularErr = Math.min(delta, PERIOD - delta);
-
-      if (smp.isMatch && circularErr <= 6.5) {
-        finished = true;
-        greenLock = 1;
-        confirmBtn.disabled = true;
-        confirmBtn.classList.add('is-ready');
-        step2Badge.className = 'mg-bal-step is-done';
-        statusEl.className = 'mg-for-status is-ok';
-        statusText.textContent = 'СОВПАДЕНИЕ НАРЕЗОВ 99.1% • СТВОЛ ИДЕНТИФИЦИРОВАН';
-        haptic('success');
-        sfx('success');
-        timers.setTimeout(function () {
-          triggerWin({
-            minigame: 'ballistics',
-            caliberMm: caliberMmTarget(),
-            matchedSample: smp.code
-          });
-        }, 1050);
-      } else {
-        redFlash = 0.95;
-        haptic('error');
-        sfx('error');
-        flashShake(stage);
-        statusEl.className = 'mg-for-status is-err';
-        statusText.textContent = 'НАРЕЗЫ НЕ СОВПАДАЮТ — проверьте образец ЛРО и поворот оси';
+      if (circularErr > 7.5) {
+        registerError('Ось повёрнута: совместите нарезы и двойной заусенец стык-в-стык по центральной линии!', 'misaligned');
+        return;
       }
+
+      matchedCode = smp.code;
+      greenLock = 1;
+      confirmBtn.disabled = true;
+      confirmBtn.classList.add('is-ready');
+      statusEl.className = 'mg-for-status is-ok';
+      statusText.textContent = 'СОВПАДЕНИЕ 99.1% (' + smp.code + ') • Формирование вывода...';
+      haptic('success');
+      sfx('success');
+      timers.setTimeout(function () {
+        if (stageNum === 2) openDeductionPhase();
+      }, 920);
     });
 
-    // Direct canvas interaction (Stage 1: drag caliper jaw; Stage 2: vertical drag on right half)
     function getCaliperLayout(w, h) {
-      var pxPerMm = (w * 0.66) / 14.5;
-      var zeroX = w * 0.20;
-      var rulerY = h * 0.16;
-      return { pxPerMm: pxPerMm, zeroX: zeroX, rulerY: rulerY };
+      return { pxPerMm: (w * 0.66) / 14.5, zeroX: w * 0.20, rulerY: h * 0.16 };
+    }
+
+    function scrubSoot(px, py, distPx, w, h) {
+      if (sootLevel <= 0) return;
+      var lay = getCaliperLayout(w, h);
+      var bx1 = lay.zeroX - 10;
+      var bx2 = lay.zeroX + caliberTarget * lay.pxPerMm + 12;
+      if (px >= bx1 && px <= bx2 && py >= h * 0.36 && py <= h * 0.90) {
+        sootLevel = Math.max(0, sootLevel - Math.max(0.08, distPx * 0.008));
+        for (var k = 0; k < 3; k++) {
+          sootParticles.push({
+            x: px + (Math.random() - 0.5) * 14,
+            y: py + (Math.random() - 0.5) * 14,
+            vx: (Math.random() - 0.5) * 65,
+            vy: (Math.random() - 0.2) * 45 + 18,
+            r: 1.5 + Math.random() * 2.3,
+            alpha: 0.9
+          });
+        }
+        updateCaliperUI();
+        if (sootLevel <= 0.12) {
+          sootLevel = 0;
+          p1Tool = 'caliper';
+          syncP1Tools();
+          updateCaliperUI();
+          haptic('medium');
+          sfx('paper');
+          statusEl.className = 'mg-for-status is-ok';
+          statusText.textContent = 'Оболочка очищена! Сведите губки штангенциркуля к стенке пули.';
+        }
+      }
     }
 
     listeners.on(canvas, 'pointerdown', function (ev) {
-      if (finished) return;
+      if (stageNum !== 1 && stageNum !== 2) return;
       draggingCanvas = true;
-      try {
-        canvas.setPointerCapture(ev.pointerId);
-      } catch (e) {}
-
+      try { canvas.setPointerCapture(ev.pointerId); } catch (e) {}
       var rect = canvas.getBoundingClientRect();
       var x = ev.clientX - rect.left;
       var y = ev.clientY - rect.top;
+      lastCanvasX = x;
+      lastCanvasY = y;
 
       if (stageNum === 1) {
-        var lay = getCaliperLayout(rect.width, rect.height);
-        caliperMm = clamp(Math.round(((x - lay.zeroX) / lay.pxPerMm) * 10) / 10, 4.0, 14.5);
-        updateCaliperUI();
+        if (p1Tool === 'swab' || sootLevel > 0.01) {
+          scrubSoot(x, y, 12, rect.width, rect.height);
+        } else {
+          var lay = getCaliperLayout(rect.width, rect.height);
+          caliperMm = clamp(Math.round(((x - lay.zeroX) / lay.pxPerMm) * 10) / 10, 4.0, 14.5);
+          updateCaliperUI();
+        }
       } else {
         dragStartY = y;
         dragStartShift = shiftPx;
@@ -2858,15 +3372,22 @@
     });
 
     listeners.on(canvas, 'pointermove', function (ev) {
-      if (!draggingCanvas || finished) return;
+      if (!draggingCanvas || (stageNum !== 1 && stageNum !== 2)) return;
       var rect = canvas.getBoundingClientRect();
       var x = ev.clientX - rect.left;
       var y = ev.clientY - rect.top;
+      var dist = Math.hypot(x - lastCanvasX, y - lastCanvasY);
+      lastCanvasX = x;
+      lastCanvasY = y;
 
       if (stageNum === 1) {
-        var lay = getCaliperLayout(rect.width, rect.height);
-        caliperMm = clamp(Math.round(((x - lay.zeroX) / lay.pxPerMm) * 10) / 10, 4.0, 14.5);
-        updateCaliperUI();
+        if (p1Tool === 'swab' || sootLevel > 0.01) {
+          scrubSoot(x, y, dist, rect.width, rect.height);
+        } else {
+          var lay = getCaliperLayout(rect.width, rect.height);
+          caliperMm = clamp(Math.round(((x - lay.zeroX) / lay.pxPerMm) * 10) / 10, 4.0, 14.5);
+          updateCaliperUI();
+        }
       } else {
         var dy = y - dragStartY;
         shiftPx = ((dragStartShift + dy) % PERIOD + PERIOD) % PERIOD;
@@ -2874,60 +3395,29 @@
       }
     });
 
-    listeners.on(canvas, 'pointerup', function () {
-      draggingCanvas = false;
-    });
-    listeners.on(canvas, 'pointercancel', function () {
-      draggingCanvas = false;
-    });
+    listeners.on(canvas, 'pointerup', function () { draggingCanvas = false; });
+    listeners.on(canvas, 'pointercancel', function () { draggingCanvas = false; });
 
-    function drawStage1(ctx, w, h) {
-      // Dark lab workbench mat with millimeter grid
+    function drawStage1(ctx, w, h, dt) {
       ctx.fillStyle = '#0a0c10';
       ctx.fillRect(0, 0, w, h);
-
       ctx.strokeStyle = 'rgba(42, 46, 56, 0.45)';
       ctx.lineWidth = 1;
-      var step = 18;
-      var gx, gy;
-      for (gx = 0; gx < w; gx += step) {
-        ctx.beginPath();
-        ctx.moveTo(gx, 0);
-        ctx.lineTo(gx, h);
-        ctx.stroke();
-      }
-      for (gy = 0; gy < h; gy += step) {
-        ctx.beginPath();
-        ctx.moveTo(0, gy);
-        ctx.lineTo(w, gy);
-        ctx.stroke();
-      }
+      for (var gx = 0; gx < w; gx += 18) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, h); ctx.stroke(); }
+      for (var gy = 0; gy < h; gy += 18) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy); ctx.stroke(); }
 
       var lay = getCaliperLayout(w, h);
-      var pxPerMm = lay.pxPerMm;
-      var zeroX = lay.zeroX;
-      var rulerY = lay.rulerY;
-      var bulletW = caliberMmTarget() * pxPerMm;
-      var bulletLeft = zeroX;
-      var bulletRight = zeroX + bulletW;
-      var bulletMidX = bulletLeft + bulletW / 2;
-      var bulletBaseY = h * 0.87;
-      var bulletTopY = h * 0.43;
-      var bodyTopY = h * 0.56;
+      var pxPerMm = lay.pxPerMm, zeroX = lay.zeroX, rulerY = lay.rulerY;
+      var bulletW = caliberTarget * pxPerMm;
+      var bulletLeft = zeroX, bulletRight = zeroX + bulletW, bulletMidX = bulletLeft + bulletW / 2;
+      var bulletBaseY = h * 0.87, bulletTopY = h * 0.43, bodyTopY = h * 0.56;
 
-      // Subtle shadow beneath bullet
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
-      ctx.beginPath();
-      ctx.ellipse(bulletMidX + 4, bulletBaseY + 6, bulletW * 0.55, 8, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Magnified deformed copper-jacketed bullet extracted from beam
+      // Bullet body
       var metalGrad = ctx.createLinearGradient(bulletLeft, 0, bulletRight, 0);
       metalGrad.addColorStop(0, '#4c2c12');
-      metalGrad.addColorStop(0.22, '#a86927');
-      metalGrad.addColorStop(0.42, '#efc078');
-      metalGrad.addColorStop(0.65, '#9d5f21');
-      metalGrad.addColorStop(0.88, '#663a15');
+      metalGrad.addColorStop(0.25, '#a86927');
+      metalGrad.addColorStop(0.45, '#efc078');
+      metalGrad.addColorStop(0.7, '#9d5f21');
       metalGrad.addColorStop(1, '#321c0b');
 
       ctx.save();
@@ -2935,371 +3425,183 @@
       ctx.beginPath();
       ctx.moveTo(bulletLeft, bulletBaseY);
       ctx.lineTo(bulletLeft, bodyTopY);
-      // Slightly mushroomed/dented nose profile from wood beam impact
-      ctx.bezierCurveTo(
-        bulletLeft - 2,
-        bulletTopY + 14,
-        bulletMidX - bulletW * 0.34,
-        bulletTopY + 2,
-        bulletMidX - bulletW * 0.08,
-        bulletTopY + 4
-      );
-      // Impact dent notch on nose
+      ctx.bezierCurveTo(bulletLeft - 2, bulletTopY + 14, bulletMidX - bulletW * 0.34, bulletTopY + 2, bulletMidX - bulletW * 0.08, bulletTopY + 4);
       ctx.lineTo(bulletMidX + bulletW * 0.14, bulletTopY + 10);
-      ctx.bezierCurveTo(
-        bulletMidX + bulletW * 0.38,
-        bulletTopY + 9,
-        bulletRight + 2,
-        bodyTopY - 12,
-        bulletRight,
-        bodyTopY
-      );
+      ctx.bezierCurveTo(bulletMidX + bulletW * 0.38, bulletTopY + 9, bulletRight + 2, bodyTopY - 12, bulletRight, bodyTopY);
       ctx.lineTo(bulletRight, bulletBaseY);
       ctx.closePath();
       ctx.fill();
 
-      // Exposed dark lead core inside the nose dent
+      // Lead dent
       ctx.fillStyle = '#525763';
       ctx.beginPath();
       ctx.ellipse(bulletMidX + bulletW * 0.05, bulletTopY + 10, bulletW * 0.16, 5.5, 0.25, 0, Math.PI * 2);
       ctx.fill();
 
-      // Angled rifling grooves visible along cylindrical jacket
+      // Rifling grooves
       ctx.strokeStyle = 'rgba(28, 16, 6, 0.45)';
       ctx.lineWidth = 2.4;
       for (var r = 0; r < 4; r++) {
         var rx = bulletLeft + bulletW * (0.16 + r * 0.22);
-        ctx.beginPath();
-        ctx.moveTo(rx - 6, bulletBaseY - 4);
-        ctx.lineTo(rx + 9, bodyTopY + 6);
-        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(rx - 6, bulletBaseY - 4); ctx.lineTo(rx + 9, bodyTopY + 6); ctx.stroke();
       }
 
-      // Soot smudge from fire
-      var sootGrad = ctx.createRadialGradient(bulletRight - 8, bodyTopY + 24, 3, bulletRight - 8, bodyTopY + 24, bulletW * 0.45);
-      sootGrad.addColorStop(0, 'rgba(8, 8, 10, 0.52)');
-      sootGrad.addColorStop(1, 'rgba(8, 8, 10, 0)');
-      ctx.fillStyle = sootGrad;
-      ctx.fillRect(bulletLeft, bulletTopY, bulletW, bulletBaseY - bulletTopY);
-
-      // Base bevel rim
-      ctx.strokeStyle = 'rgba(253, 224, 171, 0.35)';
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.moveTo(bulletLeft + 2, bulletBaseY - 2);
-      ctx.lineTo(bulletRight - 2, bulletBaseY - 2);
-      ctx.stroke();
+      // Physical soot & charred splinter crust (progressively brushed off!)
+      if (sootLevel > 0.01) {
+        ctx.globalAlpha = clamp(sootLevel, 0.12, 0.96);
+        ctx.fillStyle = '#12100f';
+        ctx.beginPath();
+        ctx.ellipse(bulletMidX + 4, (bodyTopY + bulletBaseY) * 0.5, bulletW * 0.66, (bulletBaseY - bodyTopY) * 0.58, 0.1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#473a2c';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(bulletLeft + 6, bodyTopY + 14); ctx.lineTo(bulletRight + 6, bodyTopY + 34);
+        ctx.moveTo(bulletLeft - 4, bulletBaseY - 26); ctx.lineTo(bulletRight - 6, bulletBaseY - 10);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        ctx.font = '700 10px "IBM Plex Mono", monospace';
+        ctx.fillStyle = '#fde68a';
+        ctx.textAlign = 'center';
+        ctx.fillText('ПОТРИТЕ ГАРЬ (' + Math.round(sootLevel * 100) + '%)', bulletMidX, bodyTopY - 12);
+      }
       ctx.restore();
 
-      // Vernier Caliper Steel Beam (horizontal bar)
+      // Flying soot particles
+      for (var p = sootParticles.length - 1; p >= 0; p--) {
+        var sp = sootParticles[p];
+        sp.x += sp.vx * dt; sp.y += sp.vy * dt; sp.alpha -= dt * 1.9;
+        if (sp.alpha <= 0) { sootParticles.splice(p, 1); continue; }
+        ctx.fillStyle = 'rgba(42, 36, 32, ' + sp.alpha.toFixed(2) + ')';
+        ctx.beginPath(); ctx.arc(sp.x, sp.y, sp.r, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // Caliper steel beam & ticks
       var beamH = 26;
       var steelGrad = ctx.createLinearGradient(0, rulerY, 0, rulerY + beamH);
-      steelGrad.addColorStop(0, '#4b5563');
-      steelGrad.addColorStop(0.5, '#9ca3af');
-      steelGrad.addColorStop(1, '#374151');
+      steelGrad.addColorStop(0, '#4b5563'); steelGrad.addColorStop(0.5, '#9ca3af'); steelGrad.addColorStop(1, '#374151');
       ctx.fillStyle = steelGrad;
       ctx.fillRect(zeroX - 18, rulerY, w - zeroX + 6, beamH);
-      ctx.strokeStyle = '#1f2937';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(zeroX - 18, rulerY, w - zeroX + 6, beamH);
 
-      // Millimeter ticks (0..15 mm)
-      ctx.strokeStyle = '#111827';
-      ctx.fillStyle = '#111827';
-      ctx.font = '600 9px "IBM Plex Mono", monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
+      ctx.strokeStyle = '#111827'; ctx.fillStyle = '#111827';
+      ctx.font = '600 9px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
       for (var mm = 0; mm <= 15; mm++) {
         var tx = zeroX + mm * pxPerMm;
         if (tx > w - 10) break;
-        var isMajor = mm % 5 === 0;
-        var tickH = isMajor ? 12 : 7;
-        ctx.lineWidth = isMajor ? 1.4 : 1;
-        ctx.beginPath();
-        ctx.moveTo(tx, rulerY + beamH);
-        ctx.lineTo(tx, rulerY + beamH - tickH);
-        ctx.stroke();
-        if (isMajor || mm % 2 === 0) {
-          ctx.fillText(String(mm), tx, rulerY + 3);
-        }
+        var tickH = mm % 5 === 0 ? 12 : 7;
+        ctx.lineWidth = mm % 5 === 0 ? 1.4 : 1;
+        ctx.beginPath(); ctx.moveTo(tx, rulerY + beamH); ctx.lineTo(tx, rulerY + beamH - tickH); ctx.stroke();
+        if (mm % 5 === 0 || mm % 2 === 0) ctx.fillText(String(mm), tx, rulerY + 3);
       }
 
-      // Fixed Left Jaw (anchored at 0 mm = bulletLeft)
-      var jawGrad = ctx.createLinearGradient(zeroX - 20, 0, zeroX, 0);
-      jawGrad.addColorStop(0, '#374151');
-      jawGrad.addColorStop(0.7, '#9ca3af');
-      jawGrad.addColorStop(1, '#d1d5db');
-      ctx.fillStyle = jawGrad;
+      // Fixed left jaw
+      ctx.fillStyle = '#9ca3af';
       ctx.beginPath();
-      ctx.moveTo(zeroX - 18, rulerY);
-      ctx.lineTo(zeroX, rulerY);
-      ctx.lineTo(zeroX, h * 0.85);
-      ctx.lineTo(zeroX - 10, h * 0.78);
-      ctx.lineTo(zeroX - 18, h * 0.62);
-      ctx.closePath();
+      ctx.moveTo(zeroX - 18, rulerY); ctx.lineTo(zeroX, rulerY); ctx.lineTo(zeroX, h * 0.85);
+      ctx.lineTo(zeroX - 10, h * 0.78); ctx.lineTo(zeroX - 18, h * 0.62); ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = '#111827';
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
 
-      // Movable Right Jaw (positioned at caliperMm)
+      // Movable right jaw
       var jawX = zeroX + caliperMm * pxPerMm;
-      var touch = Math.abs(caliperMm - caliberMmTarget()) <= 0.35;
-
-      var movGrad = ctx.createLinearGradient(jawX, 0, jawX + 24, 0);
-      movGrad.addColorStop(0, '#e5e7eb');
-      movGrad.addColorStop(0.35, '#9ca3af');
-      movGrad.addColorStop(1, '#374151');
-      ctx.fillStyle = movGrad;
+      var touch = sootLevel <= 0.01 && Math.abs(caliperMm - caliberTarget) <= 0.35;
+      ctx.fillStyle = sootLevel > 0.01 ? '#4b5563' : '#d1d5db';
       ctx.beginPath();
-      ctx.moveTo(jawX, rulerY - 4);
-      ctx.lineTo(jawX + 28, rulerY - 4);
-      ctx.lineTo(jawX + 28, rulerY + beamH + 4);
-      ctx.lineTo(jawX + 18, h * 0.62);
-      ctx.lineTo(jawX + 10, h * 0.78);
-      ctx.lineTo(jawX, h * 0.85);
-      ctx.closePath();
+      ctx.moveTo(jawX, rulerY - 4); ctx.lineTo(jawX + 26, rulerY - 4); ctx.lineTo(jawX + 26, rulerY + beamH + 4);
+      ctx.lineTo(jawX + 16, h * 0.62); ctx.lineTo(jawX + 9, h * 0.78); ctx.lineTo(jawX, h * 0.85); ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = touch ? '#22c55e' : '#f59e0b';
-      ctx.lineWidth = 1.6;
-      ctx.stroke();
+      ctx.strokeStyle = touch ? '#22c55e' : '#f59e0b'; ctx.lineWidth = 1.6; ctx.stroke();
 
-      // Digital LCD readout mounted on movable jaw carriage
-      var lcdW = 54;
-      var lcdH = 20;
-      var lcdX = clamp(jawX + 4, 10, w - lcdW - 8);
-      var lcdY = rulerY - lcdH - 8;
-      ctx.fillStyle = '#0d1117';
-      ctx.fillRect(lcdX, lcdY, lcdW, lcdH);
-      ctx.strokeStyle = touch ? '#22c55e' : '#c98a2e';
-      ctx.lineWidth = 1.2;
-      ctx.strokeRect(lcdX, lcdY, lcdW, lcdH);
+      // LCD readout
+      var lcdW = 54, lcdH = 20, lcdX = clamp(jawX + 4, 10, w - lcdW - 8), lcdY = rulerY - lcdH - 8;
+      ctx.fillStyle = '#0d1117'; ctx.fillRect(lcdX, lcdY, lcdW, lcdH);
+      ctx.strokeStyle = touch ? '#22c55e' : '#c98a2e'; ctx.lineWidth = 1.2; ctx.strokeRect(lcdX, lcdY, lcdW, lcdH);
       ctx.fillStyle = touch ? '#4ade80' : '#f59e0b';
-      ctx.font = '700 11px "IBM Plex Mono", monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(caliperMm.toFixed(1) + 'mm', lcdX + lcdW / 2, lcdY + lcdH / 2 + 0.5);
+      ctx.font = '700 11px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(sootLevel > 0.01 ? '---' : (caliperMm.toFixed(1) + 'mm'), lcdX + lcdW / 2, lcdY + lcdH / 2 + 0.5);
 
-      // Optical laser contact line when caliper kisses right edge of bullet
-      if (touch) {
-        ctx.strokeStyle = 'rgba(34, 197, 94, 0.75)';
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([4, 3]);
-        ctx.beginPath();
-        ctx.moveTo(bulletLeft, bodyTopY);
-        ctx.lineTo(bulletLeft, bulletBaseY);
-        ctx.moveTo(bulletRight, bodyTopY);
-        ctx.lineTo(bulletRight, bulletBaseY);
-        ctx.stroke();
-        ctx.setLineDash([]);
-      }
-
-      // Label bottom right
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'bottom';
-      ctx.fillStyle = 'rgba(156, 163, 175, 0.75)';
-      ctx.font = '500 10px "IBM Plex Mono", monospace';
-      ctx.fillText('ОБЪЕКТ: ПУЛЯ ИЗ БАЛКИ (#418-Б)', 10, h - 8);
-    }
-
-    function drawBulletHalf(ctx, pattern, slope, xStart, xEnd, midX, viewTop, viewH, offsetY, isRight) {
-      var period = pattern.period;
-      var halfW = Math.abs(xEnd - xStart);
-
-      // Cylindrical metallic copper-brass base shading across height
-      var baseGrad = ctx.createLinearGradient(0, viewTop, 0, viewTop + viewH);
-      baseGrad.addColorStop(0, '#2a1809');
-      baseGrad.addColorStop(0.18, '#6e4219');
-      baseGrad.addColorStop(0.45, '#be8442');
-      baseGrad.addColorStop(0.55, '#d5a15e');
-      baseGrad.addColorStop(0.82, '#6c4018');
-      baseGrad.addColorStop(1, '#261408');
-      ctx.fillStyle = baseGrad;
-      ctx.fillRect(Math.min(xStart, xEnd), viewTop, halfW, viewH);
-
-      var yMin = viewTop - period;
-      var yMax = viewTop + viewH + period;
-      var normOffset = ((offsetY % period) + period) % period;
-
-      // Repeat periodic rifling land/groove bands seamlessly
-      var k, baseCycle, g, sc, yMid, yOuter;
-      for (baseCycle = yMin - normOffset; baseCycle < yMax; baseCycle += period) {
-        // Major rifling grooves
-        for (k = 0; k < pattern.grooves.length; k++) {
-          g = pattern.grooves[k];
-          yMid = baseCycle + g.y;
-          yOuter = isRight ? yMid + slope * halfW : yMid - slope * halfW;
-
-          ctx.strokeStyle = 'rgba(20, 10, 4, ' + g.darkness.toFixed(2) + ')';
-          ctx.lineWidth = g.width;
-          ctx.beginPath();
-          ctx.moveTo(midX, yMid);
-          ctx.lineTo(isRight ? xEnd : xStart, yOuter);
-          ctx.stroke();
-
-          // Sharp groove shoulder edge
-          ctx.strokeStyle = 'rgba(255, 224, 175, 0.24)';
-          ctx.lineWidth = 1.2;
-          ctx.beginPath();
-          ctx.moveTo(midX, yMid - g.width * 0.5);
-          ctx.lineTo(isRight ? xEnd : xStart, yOuter - g.width * 0.5);
-          ctx.stroke();
-        }
-
-        // Fine unique micro-striation scratches
-        for (k = 0; k < pattern.scratches.length; k++) {
-          sc = pattern.scratches[k];
-          yMid = baseCycle + sc.y;
-          yOuter = isRight ? yMid + slope * halfW : yMid - slope * halfW;
-
-          ctx.strokeStyle = sc.bright
-            ? 'rgba(255, 232, 185, ' + sc.alpha.toFixed(2) + ')'
-            : 'rgba(18, 9, 3, ' + sc.alpha.toFixed(2) + ')';
-          ctx.lineWidth = sc.width;
-          ctx.beginPath();
-          ctx.moveTo(midX, yMid);
-          ctx.lineTo(isRight ? xEnd : xStart, yOuter);
-          ctx.stroke();
-        }
-      }
-
-      // Subtle cylindrical lighting vignette on top & bottom
-      var vig = ctx.createLinearGradient(0, viewTop, 0, viewTop + viewH);
-      vig.addColorStop(0, 'rgba(0, 0, 0, 0.58)');
-      vig.addColorStop(0.24, 'rgba(0, 0, 0, 0)');
-      vig.addColorStop(0.76, 'rgba(0, 0, 0, 0)');
-      vig.addColorStop(1, 'rgba(0, 0, 0, 0.58)');
-      ctx.fillStyle = vig;
-      ctx.fillRect(Math.min(xStart, xEnd), viewTop, halfW, viewH);
+      ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+      ctx.fillStyle = 'rgba(156, 163, 175, 0.78)'; ctx.font = '500 10px "IBM Plex Mono", monospace';
+      ctx.fillText('ОБЪЕКТ: ' + scenario.evidenceCode, 10, h - 8);
     }
 
     function drawStage2(ctx, w, h, now) {
       ctx.fillStyle = '#07080b';
       ctx.fillRect(0, 0, w, h);
 
-      var padX = 14;
-      var padTop = 26;
-      var padBot = 24;
-      var viewW = w - padX * 2;
-      var viewH = h - padTop - padBot;
-      var midX = w / 2;
-
+      var padX = 14, padTop = 26, padBot = 24;
+      var viewW = w - padX * 2, viewH = h - padTop - padBot, midX = w / 2;
       var smp = samples[currentSampleIdx];
-      // Relative visual shift on right side: when shiftPx === targetShiftPx, effective shift = 0 (exact match!)
+      var isObl = lightMode === 'oblique';
       var effectiveRightShift = shiftPx - targetShiftPx;
 
-      // Left microscope half: Evidence bullet
       ctx.save();
-      ctx.beginPath();
-      ctx.rect(padX, padTop, viewW / 2, viewH);
-      ctx.clip();
-      drawBulletHalf(ctx, evidencePattern, evidenceSlope, padX, midX, midX, padTop, viewH, 0, false);
+      ctx.beginPath(); ctx.rect(padX, padTop, viewW / 2, viewH); ctx.clip();
+      drawBulletHalf(ctx, evidencePattern, evidenceSlope, padX, midX, midX, padTop, viewH, 0, false, isObl);
       ctx.restore();
 
-      // Right microscope half: Control LRO bullet
       ctx.save();
-      ctx.beginPath();
-      ctx.rect(midX, padTop, viewW / 2, viewH);
-      ctx.clip();
-      drawBulletHalf(ctx, smp.pattern, smp.slope, midX, padX + viewW, midX, padTop, viewH, effectiveRightShift, true);
+      ctx.beginPath(); ctx.rect(midX, padTop, viewW / 2, viewH); ctx.clip();
+      drawBulletHalf(ctx, smp.pattern, smp.slope, midX, padX + viewW, midX, padTop, viewH, effectiveRightShift, true, isObl);
       ctx.restore();
 
-      // Microscope optical frame vignette
-      var radVig = ctx.createRadialGradient(midX, padTop + viewH / 2, Math.min(viewW, viewH) * 0.25, midX, padTop + viewH / 2, Math.max(viewW, viewH) * 0.62);
-      radVig.addColorStop(0, 'rgba(0, 0, 0, 0)');
-      radVig.addColorStop(1, 'rgba(0, 0, 0, 0.58)');
-      ctx.fillStyle = radVig;
-      ctx.fillRect(padX, padTop, viewW, viewH);
-
-      // Center comparison hairline + micrometer ticks
-      ctx.strokeStyle = greenLock > 0 ? '#22c55e' : '#f59e0b';
+      ctx.strokeStyle = greenLock > 0 ? '#22c55e' : isObl ? '#f59e0b' : '#94a3b8';
       ctx.lineWidth = greenLock > 0 ? 2.4 : 1.5;
-      ctx.beginPath();
-      ctx.moveTo(midX, padTop);
-      ctx.lineTo(midX, padTop + viewH);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(midX, padTop); ctx.lineTo(midX, padTop + viewH); ctx.stroke();
 
-      ctx.strokeStyle = 'rgba(245, 158, 11, 0.45)';
-      ctx.lineWidth = 1;
-      for (var ty = padTop + 14; ty < padTop + viewH - 10; ty += 16) {
-        ctx.beginPath();
-        ctx.moveTo(midX - 5, ty);
-        ctx.lineTo(midX + 5, ty);
-        ctx.stroke();
-      }
-
-      // Outer optical border
       ctx.strokeStyle = greenLock > 0 ? '#22c55e' : '#2a2e38';
       ctx.lineWidth = 1.6;
       ctx.strokeRect(padX, padTop, viewW, viewH);
 
-      // Green optical lock scan sweep upon victory
       if (greenLock > 0) {
-        var scanX = padX + ((now * 0.38) % viewW);
-        var scanG = ctx.createLinearGradient(scanX - 24, 0, scanX + 24, 0);
-        scanG.addColorStop(0, 'rgba(34, 197, 94, 0)');
-        scanG.addColorStop(0.5, 'rgba(34, 197, 94, 0.34)');
-        scanG.addColorStop(1, 'rgba(34, 197, 94, 0)');
-        ctx.fillStyle = scanG;
-        ctx.fillRect(padX, padTop, viewW, viewH);
-
-        // Lock badge center
-        ctx.fillStyle = 'rgba(5, 46, 22, 0.88)';
-        ctx.fillRect(midX - 88, padTop + viewH / 2 - 16, 176, 32);
-        ctx.strokeStyle = '#22c55e';
-        ctx.lineWidth = 1.6;
-        ctx.strokeRect(midX - 88, padTop + viewH / 2 - 16, 176, 32);
-        ctx.fillStyle = '#4ade80';
-        ctx.font = '700 12px "IBM Plex Mono", monospace';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('СОВПАДЕНИЕ СТВОЛА', midX, padTop + viewH / 2 + 0.5);
+        ctx.fillStyle = 'rgba(5, 46, 22, 0.9)';
+        ctx.fillRect(midX - 92, padTop + viewH / 2 - 16, 184, 32);
+        ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 1.6;
+        ctx.strokeRect(midX - 92, padTop + viewH / 2 - 16, 184, 32);
+        ctx.fillStyle = '#4ade80'; ctx.font = '700 12px "IBM Plex Mono", monospace';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('СОВПАДЕНИЕ 99.1%', midX, padTop + viewH / 2 + 0.5);
       }
 
-      // Header labels above split halves
       ctx.font = '600 10px "IBM Plex Mono", monospace';
       ctx.textBaseline = 'middle';
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#d1d5db';
-      ctx.fillText('УЛИКА #418-Б (БАЛКА)', padX, 13);
-
-      ctx.textAlign = 'right';
-      ctx.fillStyle = '#f59e0b';
-      ctx.fillText('ЛРО #' + (currentSampleIdx + 1) + ' (ПРАВЫЙ КАНАЛ)', w - padX, 13);
-
-      // Footer hint
-      ctx.textAlign = 'center';
-      ctx.fillStyle = 'rgba(156, 163, 175, 0.72)';
+      ctx.textAlign = 'left'; ctx.fillStyle = '#d1d5db';
+      ctx.fillText(scenario.evidenceCode, padX, 13);
+      ctx.textAlign = 'right'; ctx.fillStyle = '#f59e0b';
+      ctx.fillText('ЛРО #' + (currentSampleIdx + 1) + (isObl ? ' [КОСОЙ ×40]' : ' [ОБЫЧН.]'), w - padX, 13);
+      ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(156, 163, 175, 0.75)';
       ctx.font = '500 9.5px "IBM Plex Mono", monospace';
-      ctx.fillText('УВЕЛИЧЕНИЕ ×40 • СОВМЕСТИТЕ ЛИНИИ ЧЕРЕЗ ЦЕНТРАЛЬНУЮ ОСЬ', midX, h - 11);
+      ctx.fillText(isObl ? 'КОСОЙ СВЕТ ×40 • СОВМЕСТИТЕ МИКРОТРАССЫ И ДВОЙНОЙ ЗАУСЕНЕЦ' : 'ВКЛЮЧИТЕ КОСОЙ СВЕТ ×40 ДЛЯ ПРОЯВКИ МИКРОТРАСС', midX, h - 11);
     }
+
+    syncHeaderMeta();
+    syncP1Tools();
+    syncP2Lights();
+    updateDossierUI();
+    updateCaliperUI();
 
     function render(now) {
       var dt = Math.min((now - lastTs) / 1000, 0.05);
       lastTs = now;
 
-      var metrics = canvasMgr.getMetrics();
-      var w = metrics.width;
-      var h = metrics.height;
-      var dpr = metrics.dpr;
-      var ctx = canvas.getContext('2d');
+      if (stageNum === 1 || stageNum === 2) {
+        var metrics = canvasMgr.getMetrics();
+        var ctx = canvas.getContext('2d');
+        ctx.save();
+        ctx.scale(metrics.dpr, metrics.dpr);
 
-      ctx.save();
-      ctx.scale(dpr, dpr);
+        if (stageNum === 1) {
+          drawStage1(ctx, metrics.width, metrics.height, dt);
+        } else {
+          drawStage2(ctx, metrics.width, metrics.height, now);
+        }
 
-      if (stageNum === 1) {
-        drawStage1(ctx, w, h);
-      } else {
-        drawStage2(ctx, w, h, now);
+        if (redFlash > 0.01) {
+          ctx.fillStyle = 'rgba(220, 38, 38, ' + (redFlash * 0.4).toFixed(3) + ')';
+          ctx.fillRect(0, 0, metrics.width, metrics.height);
+          redFlash = Math.max(0, redFlash - dt * 2.5);
+        }
+        ctx.restore();
       }
-
-      if (redFlash > 0.01) {
-        ctx.fillStyle = 'rgba(220, 38, 38, ' + (redFlash * 0.42).toFixed(3) + ')';
-        ctx.fillRect(0, 0, w, h);
-        redFlash = Math.max(0, redFlash - dt * 2.6);
-      }
-
-      ctx.restore();
       timers.raf(render);
     }
 
@@ -3312,6 +3614,7 @@
       containerEl.innerHTML = '';
     };
   }
+
   // ============================================================================
   // MINIGAME 3: arson_lab (mode: 'chem' | 'map')
   // ============================================================================
