@@ -1726,203 +1726,371 @@
   }
 
   // ============================================================================
-  // MINIGAME 2: doc_forgery (Лупа 2.2x и УФ-лампа — режимы 'doc' | 'lock')
+  // MINIGAME 2: doc_forgery (3-phase 2.2x loupe, clearing, decoys & Phase 3)
   // ============================================================================
 
-  var DEFAULT_DOC_DEFECTS = [
+  var DOC_EXTRA_STYLE_ID = 'minigames-f2-doc-extra';
+
+  var DOC_EXTRA_CSS = [
+    '.mg-df-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 3px; }',
+    '.mg-df-stat { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; font-weight: 600; color: var(--case-accent, #c98a2e); }',
+    '.mg-df-err { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; font-weight: 600; color: #9ca3af; }',
+    '.mg-df-err.is-warn { color: #f87171; }',
+    '.mg-df-inspector { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; background: #12151d; border: 1px solid #2b3140; border-radius: 7px; }',
+    '.mg-df-ins-info { flex: 1; min-width: 0; }',
+    '.mg-df-ins-title { font-family: "IBM Plex Mono", monospace; font-size: 9.8px; font-weight: 700; color: var(--case-accent, #f59e0b); text-transform: uppercase; margin-bottom: 2px; }',
+    '.mg-df-ins-title.is-ok { color: #4ade80; }',
+    '.mg-df-ins-title.is-err { color: #f87171; }',
+    '.mg-df-ins-title.is-uv { color: #818cf8; }',
+    '.mg-df-ins-desc { font-size: 11.2px; line-height: 1.34; color: #d6d3cb; }',
+    '.mg-df-fix-btn { flex-shrink: 0; width: auto; padding: 8px 11px; font-size: 12px; }',
+    '.mg-df-deduce { display: flex; flex-direction: column; gap: 9px; padding: 12px; background: #14171f; border: 1px solid #353b4a; border-top: 3px solid var(--case-accent, #c98a2e); border-radius: 8px; }',
+    '.mg-df-dkicker { font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 700; color: var(--case-accent, #c98a2e); text-transform: uppercase; }',
+    '.mg-df-dfacts { padding: 8px 9px; background: #0d1016; border: 1px solid #262b36; border-radius: 6px; font-family: "IBM Plex Mono", monospace; font-size: 10px; line-height: 1.4; color: #c2cad8; display: flex; flex-direction: column; gap: 3px; }',
+    '.mg-df-dq { font-size: 12.8px; line-height: 1.4; color: #f3efe6; font-weight: 500; }',
+    '.mg-df-dopts { display: flex; flex-direction: column; gap: 6px; }',
+    '.mg-df-dopt { width: 100%; text-align: left; padding: 9px 10px; background: #1b202b; border: 1px solid #353d4e; border-radius: 6px; color: #e4e0d8; font-size: 12px; line-height: 1.36; cursor: pointer; }',
+    '.mg-df-dopt.is-wrong { border-color: #ef4444; background: rgba(153, 27, 27, 0.25); color: #fecaca; }',
+    '.mg-df-dopt.is-correct { border-color: #22c55e; background: rgba(34, 197, 94, 0.2); color: #bbf7d0; }',
+    '.mg-df-dfb { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; line-height: 1.38; min-height: 16px; color: #fca5a5; }',
+    '.mg-df-dfb.is-ok { color: #86efac; }',
+    '.mg-df-stamp-box { padding: 24px 14px; background: #0d1016; border: 1px solid #2a2e38; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }',
+    '.mg-df-stamp { padding: 8px 14px; font-family: "Oswald", sans-serif; font-size: 18px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #ef4444; border: 3px double #ef4444; border-radius: 4px; transform: rotate(-5deg); line-height: 1.25; }',
+    '.mg-df-stamp.is-ok { color: #4ade80; border-color: #22c55e; background: rgba(34, 197, 94, 0.12); }'
+  ].join('\n');
+
+  function injectDocStyles() {
+    if (document.getElementById(DOC_EXTRA_STYLE_ID)) return;
+    var el = document.createElement('style');
+    el.id = DOC_EXTRA_STYLE_ID;
+    el.textContent = DOC_EXTRA_CSS;
+    document.head.appendChild(el);
+  }
+
+  var DEFAULT_DOC_SPOTS = [
     {
-      id: 'date_etch',
-      label: 'Химическое травление в графе даты',
+      id: 'date_etch', isEvidence: true, requiredLight: 'uv', cover: 1.0, coverLabel: 'Стикер реестра',
+      x: 0.27, y: 0.26, radius: 0.10,
       shortLabel: 'УФ: Травление даты',
-      x: 0.27,
-      y: 0.26,
-      requiredLight: 'uv',
-      radius: 0.095
+      label: 'Химическое травление даты (09.10 → 14.10)',
+      readings: {
+        white: 'В графе даты «14.10.2024» бумага чуть матовая. Проверьте на химическое травление в УФ 365 нм!',
+        oblique: 'КОСОЙ: волокна бумаги слегка взъерошены — состав травления подтверждается в УФ 365 нм.',
+        uv: 'УФ 365 нм: яркое голубое пятно кислоты/хлора и проступающая старая дата «09.10.2024»!'
+      },
+      wrongModeMsg: 'МЕТОДИКА: химическое травление бумаги доказывается в режиме 3. УФ 365 нм!'
     },
     {
-      id: 'sig_indent',
-      label: 'Продавленный след обводки на подписи',
+      id: 'sig_indent', isEvidence: true, requiredLight: 'oblique', cover: 1.0, coverLabel: 'Налёт пыли / калька',
+      x: 0.72, y: 0.74, radius: 0.105,
       shortLabel: 'Косой: Обводка подписи',
-      x: 0.72,
-      y: 0.74,
-      requiredLight: 'oblique',
-      radius: 0.10
+      label: 'Продавленный след сухой обводки подписи',
+      readings: {
+        white: 'Синяя шариковая подпись Сафонова выглядит правдоподобно. Проверьте рельеф нажима в КОСОМ СВЕТЕ!',
+        oblique: 'КОСОЙ СВЕТ: чёткая двойная продавленная борозда стилуса и пыль копирки рядом с чернилами!',
+        uv: 'УФ 365 нм: обычные шариковые чернила не флуоресцируют — рельеф обводки виден в КОСОМ СВЕТЕ!'
+      },
+      wrongModeMsg: 'МЕТОДИКА: продавленная борозда обводки выявляется в режиме 2. КОСОЙ СВЕТ!'
     },
     {
-      id: 'seal_micro',
-      label: 'Подмена шрифта и микротекста печати',
-      shortLabel: 'Белый: Шрифт/печать',
-      x: 0.30,
-      y: 0.74,
-      requiredLight: 'white',
-      radius: 0.10
+      id: 'seal_micro', isEvidence: true, requiredLight: 'white', cover: 0, coverLabel: '',
+      x: 0.30, y: 0.74, radius: 0.105,
+      shortLabel: 'Белый: Брак печати',
+      label: 'Струйный растр печати и чужой шрифт реестра',
+      readings: {
+        white: 'БЕЛЫЙ 2.2×: вокруг ободка печати точки струйного принтера, внутри «КОПИЯ #00», шрифт реестра чужой!',
+        oblique: 'КОСОЙ: краска плоская, рельефа мокрого клише нет — растр и микротекст чётче в БЕЛОМ СВЕТЕ 2.2×.',
+        uv: 'УФ 365 нм: печать тёмная — подмену шрифта и струйный растр фиксируйте в БЕЛОМ СВЕТЕ 2.2×!'
+      },
+      wrongModeMsg: 'МЕТОДИКА: подмену шрифта и струйный растр микротекста фиксируйте в 1. БЕЛОМ СВЕТЕ!'
+    },
+    {
+      id: 'decoy_fold', isEvidence: false, requiredLight: 'none', cover: 0, coverLabel: '',
+      x: 0.54, y: 0.45, radius: 0.09,
+      shortLabel: '', label: 'Поперечный сгиб листа',
+      readings: {
+        white: 'Обычная линия сгиба посередине нотариального бланка.',
+        oblique: 'КОСОЙ: ровная складка от хранения бумаги сложенной пополам в папке.',
+        uv: 'УФ 365 нм: защитные волокна бланка целые, травления на сгибе нет.'
+      },
+      falseReason: 'ЛОЖНЫЙ СЛЕД: обычный бытовой сгиб листа от хранения в папке — не признак подделки.'
+    },
+    {
+      id: 'decoy_coffee', isEvidence: false, requiredLight: 'none', cover: 0, coverLabel: '',
+      x: 0.82, y: 0.28, radius: 0.09,
+      shortLabel: '', label: 'Желтоватое пятно на полях',
+      readings: {
+        white: 'Бледный бурый развод у правого края бланка.',
+        oblique: 'КОСОЙ: поверхность бумаги гладкая, механического соскабливания нет.',
+        uv: 'УФ 365 нм: тусклое пятно бытового кофе/чая без свечения хлора и кислот.'
+      },
+      falseReason: 'ЛОЖНЫЙ СЛЕД: бытовое пятно кофе на полях — в УФ нет реакции на химикаты.'
+    },
+    {
+      id: 'decoy_header', isEvidence: false, requiredLight: 'none', cover: 0, coverLabel: '',
+      x: 0.52, y: 0.14, radius: 0.09,
+      shortLabel: '', label: 'Типографская шапка бланка',
+      readings: {
+        white: 'Серия 77 АГ — чёткая офсетная типографская печать государственного бланка.',
+        oblique: 'КОСОЙ: гильошная рамка заводского исполнения без правок.',
+        uv: 'УФ 365 нм: подлинные люминесцентные защитные волокна бумаги присутствуют.'
+      },
+      falseReason: 'ЛОЖНЫЙ СЛЕД: сам бланк серии 77 АГ подлинный — подделаны дата, подпись и печать.'
     }
   ];
 
-  var DEFAULT_LOCK_DEFECTS = [
+  var DEFAULT_LOCK_SPOTS = [
     {
-      id: 'tension_scratch',
-      label: 'Поперечные царапины от натяжителя',
+      id: 'tension_scratch', isEvidence: true, requiredLight: 'oblique', cover: 1.0, coverLabel: 'Мазут и грязь у скважины',
+      x: 0.24, y: 0.65, radius: 0.10,
       shortLabel: 'Косой: Натяжитель',
-      x: 0.24,
-      y: 0.65,
-      requiredLight: 'oblique',
-      radius: 0.095
+      label: 'Свежие поперечные царапины от натяжителя',
+      readings: {
+        white: 'В нижней части скважины заметны мелкие потёртости. Проверьте глубину и блеск в КОСОМ СВЕТЕ!',
+        oblique: 'КОСОЙ СВЕТ: свежие яркие поперечные задиры латуни с резкой тенью от стального натяжителя!',
+        uv: 'УФ 365 нм: металл не светится — рельефные задиры натяжителя фиксируйте в КОСОМ СВЕТЕ!'
+      },
+      wrongModeMsg: 'МЕТОДИКА: свежие задиры от натяжителя доказываются в режиме 2. КОСОЙ СВЕТ!'
     },
     {
-      id: 'pin3_burr',
-      label: 'Заусенец на 3-м пине от отмычки',
+      id: 'pin3_burr', isEvidence: true, requiredLight: 'oblique', cover: 1.0, coverLabel: 'Слой старой смазки/стружки',
+      x: 0.65, y: 0.45, radius: 0.10,
       shortLabel: 'Косой: Заусенец пина #3',
-      x: 0.65,
-      y: 0.45,
-      requiredLight: 'oblique',
-      radius: 0.095
+      label: 'Свежий заусенец на 3-м пине от отмычки',
+      readings: {
+        white: 'На 3-м пине у линии разъёма неровная кромка. Высветите микрорельеф в КОСОМ СВЕТЕ!',
+        oblique: 'КОСОЙ СВЕТ: острый вывернутый заусенец и диагональные риски прочёсывающей отмычки на пине #3!',
+        uv: 'УФ 365 нм: металлический заусенец не флуоресцирует — переключитесь в КОСОЙ СВЕТ!'
+      },
+      wrongModeMsg: 'МЕТОДИКА: заусенец на 3-м пине от отмычки фиксируется в режиме 2. КОСОЙ СВЕТ!'
     },
     {
-      id: 'graphite_uv',
-      label: 'Следы графитовой смазки на торце',
-      shortLabel: 'УФ: Графитовая смазка',
-      x: 0.24,
-      y: 0.29,
-      requiredLight: 'uv',
-      radius: 0.095
+      id: 'graphite_uv', isEvidence: true, requiredLight: 'uv', cover: 0, coverLabel: '',
+      x: 0.24, y: 0.29, radius: 0.10,
+      shortLabel: 'УФ: Графит. смазка',
+      label: 'Следы чужой графитовой смазки на торце',
+      readings: {
+        white: 'Едва заметный тёмный мазок на верхнем торце личинки. Проверьте состав в УФ 365 нм!',
+        oblique: 'КОСОЙ: царапин на торце нет — для опознания смазки включите УФ 365 нм!',
+        uv: 'УФ 365 нм: яркая сине-голубая флуоресценция синтетической графитовой смазки взломщика!'
+      },
+      wrongModeMsg: 'МЕТОДИКА: флуоресцентная графитовая смазка доказывается в режиме 3. УФ 365 нм!'
+    },
+    {
+      id: 'decoy_keywear', isEvidence: false, requiredLight: 'none', cover: 0, coverLabel: '',
+      x: 0.24, y: 0.46, radius: 0.085,
+      shortLabel: '', label: 'Выработка у входа ключа',
+      readings: {
+        white: 'Заполированный до блеска вход в замочную скважину.',
+        oblique: 'КОСОЙ: старые сглаженные продольные дорожки от многолетнего входа родного ключа.',
+        uv: 'УФ 365 нм: посторонних смазок в этой зоне нет.'
+      },
+      falseReason: 'ЛОЖНЫЙ СЛЕД: старая гладкая выработка от родного ключа Белова — не след отмычки.'
+    },
+    {
+      id: 'decoy_pin1', isEvidence: false, requiredLight: 'none', cover: 0, coverLabel: '',
+      x: 0.54, y: 0.46, radius: 0.085,
+      shortLabel: '', label: 'Первый пин (штатный износ)',
+      readings: {
+        white: 'Первый кодовый пин на линии разъёма.',
+        oblique: 'КОСОЙ: равномерный естественный износ кончика от обычного ключа, заусенцев нет.',
+        uv: 'УФ 365 нм: посторонних следов не выявлено.'
+      },
+      falseReason: 'ЛОЖНЫЙ СЛЕД: естественный износ 1-го пина без свежих задиров отмычки.'
+    },
+    {
+      id: 'decoy_rust', isEvidence: false, requiredLight: 'none', cover: 0, coverLabel: '',
+      x: 0.11, y: 0.56, radius: 0.085,
+      shortLabel: '', label: 'Коррозия стального кольца',
+      readings: {
+        white: 'Бурое пятно ржавчины на внешнем корпусе цилиндра.',
+        oblique: 'КОСОЙ: рыхлый старый окисел от влаги на уличных воротах гаража.',
+        uv: 'УФ 365 нм: свечения смазки или реагентов нет.'
+      },
+      falseReason: 'ЛОЖНЫЙ СЛЕД: обычная атмосферная ржавчина на стальном корпусе замка.'
     }
   ];
 
-  function buildDocCanvases(defects) {
-    var W = 960;
-    var H = 720;
+  function resolveDocScenario(config) {
+    var cfg = config || {};
+    var mode = cfg.mode === 'lock' ? 'lock' : 'doc';
+    var caseId = String(window.ACTIVE_CASE_ID || '').toLowerCase();
+    var isCase418 = !caseId || caseId === 'case418';
+
+    if (mode === 'lock') {
+      return {
+        id: isCase418 ? 'case418_act3_lock' : 'generic_lock',
+        mode: 'lock',
+        title: cfg.title || 'ТРАСОЛОГИЯ ЗАМКА ГАРАЖА',
+        stampWin: 'ВСКРЫТИЕ ОТМЫЧКОЙ ДОКАЗАНО',
+        spots: Array.isArray(cfg.defects) && cfg.defects.length > 0 ? cfg.defects : DEFAULT_LOCK_SPOTS,
+        conclusion: cfg.conclusion || (isCase418
+          ? {
+              question: 'На замке гаража Белова — свежие задиры натяжителя, заусенец на 3-м пине от отмычки и чужая графитовая смазка в УФ. Вывод:',
+              options: [
+                {
+                  id: 'belov_own',
+                  text: 'Белов сам открыл гараж родным ключом и взял свой старый пистолет — следы вызваны ржавчиной.',
+                  isCorrect: false,
+                  reason: 'Противоречие: родной ключ не оставляет поперечных задиров натяжителя и свежего заусенца на 3-м пине.'
+                },
+                {
+                  id: 'picked_framing',
+                  text: 'Гараж Белова бесшумно вскрыл профессиональный взломщик отмычками, чтобы похитить ствол ЛРО-207 и подставить Белова.',
+                  isCorrect: true,
+                  reason: 'Верно: следы натяжителя, прочёсывания 3-го пина и графитовой смазки полностью подтверждают тайный взлом.'
+                },
+                {
+                  id: 'crowbar',
+                  text: 'Ворота грубо выломали ломом, сорвав все пять пинов цилиндра.',
+                  isCorrect: false,
+                  reason: 'Противоречие: корпус и остальные пины целы — замок открыли тихо и чисто инструментом.'
+                }
+              ]
+            }
+          : {
+              question: 'Трасология выявила следы натяжителя, заусенец на пине и графитовую смазку. Вывод:',
+              options: [
+                { id: 'wear', text: 'Это обычный износ замка от родного ключа.', isCorrect: false, reason: 'Противоречие: поперечные задиры и заусенец характерны именно для отмычки.' },
+                { id: 'picked', text: 'Замок был криминально вскрыт отмычкой с применением смазки.', isCorrect: true, reason: 'Верно: криминальное вскрытие подтверждено.' },
+                { id: 'rust', text: 'Замок заклинило из-за ржавчины.', isCorrect: false, reason: 'Противоречие: выявлены свежие следы стального инструмента.' }
+              ]
+            })
+      };
+    }
+
+    return {
+      id: isCase418 ? 'case418_act5_doc' : 'generic_doc',
+      mode: 'doc',
+      title: cfg.title || 'ЭКСПЕРТИЗА ДОВЕРЕННОСТИ',
+      stampWin: 'ПОДДЕЛКА ДОКУМЕНТА ДОКАЗАНА',
+      spots: Array.isArray(cfg.defects) && cfg.defects.length > 0 ? cfg.defects : DEFAULT_DOC_SPOTS,
+      conclusion: cfg.conclusion || (isCase418
+        ? {
+            question: 'На доверенности Зуева: УФ-травление даты (09.10→14.10), продавленная обводка подписи Сафонова и струйный растр печати. Вывод:',
+            options: [
+              {
+                id: 'valid_poa',
+                text: 'Бланк серии 77 АГ подлинный, поэтому доверенность юридически действительна — мелкие дефекты допустимы.',
+                isCorrect: false,
+                reason: 'Противоречие: настоящий бланк использовали как основу, вытравив дату и подделав подпись с печатью.'
+              },
+              {
+                id: 'zuev_forgery',
+                text: 'Аркадий Зуев сфабриковал доверенность задним числом на украденном/старом бланке, чтобы захватить активы ООО «Север-Лес» после убийства.',
+                isCorrect: true,
+                reason: 'Верно: химическое травление даты, обводка подписи и поддельный микротекст печати неопровержимо доказывают подлог.'
+              },
+              {
+                id: 'coffee_damage',
+                text: 'Следы на дате и печати появились из-за пролитого кофе и сгиба бланка в папке.',
+                isCorrect: false,
+                reason: 'Противоречие: кофе не даёт УФ-травления даты 09.10 и не создаёт продавленную борозду обводки подписи.'
+              }
+            ]
+          }
+        : {
+            question: 'Установлены УФ-травление даты, след обводки подписи и подмена микротекста печати. Вывод:',
+            options: [
+              { id: 'real', text: 'Документ подлинный.', isCorrect: false, reason: 'Противоречие: выявлены три независимых признака фальсификации.' },
+              { id: 'fake', text: 'Документ является криминальной подделкой с изменёнными реквизитами.', isCorrect: true, reason: 'Верно: подделка доказана.' },
+              { id: 'printer', text: 'Это заводской брак типографии.', isCorrect: false, reason: 'Противоречие: типография не оставляет следов ручной обводки подписи и травления.' }
+            ]
+          })
+    };
+  }
+
+  function buildDocCanvases(spots) {
+    var W = 960, H = 720;
     var cWhite = document.createElement('canvas');
     var cOblique = document.createElement('canvas');
     var cUv = document.createElement('canvas');
     cWhite.width = cOblique.width = cUv.width = W;
     cWhite.height = cOblique.height = cUv.height = H;
 
-    function getDefect(id, fx, fy) {
-      for (var k = 0; k < defects.length; k++) {
-        if (defects[k].id === id) return { x: defects[k].x * W, y: defects[k].y * H };
+    function getPt(id, fx, fy) {
+      for (var k = 0; k < spots.length; k++) {
+        if (spots[k].id === id) return { x: spots[k].x * W, y: spots[k].y * H };
       }
       return { x: fx * W, y: fy * H };
     }
 
-    var ptDate = getDefect('date_etch', 0.27, 0.26);
-    var ptSig = getDefect('sig_indent', 0.72, 0.74);
-    var ptSeal = getDefect('seal_micro', 0.30, 0.74);
+    var ptDate = getPt('date_etch', 0.27, 0.26);
+    var ptSig = getPt('sig_indent', 0.72, 0.74);
+    var ptSeal = getPt('seal_micro', 0.30, 0.74);
+    var ptCoffee = getPt('decoy_coffee', 0.82, 0.28);
 
-    function drawBaseDocument(ctx, mode) {
-      var rand = mulberry32(41855);
-      var i;
-
-      // Desk matte
+    function drawBase(ctx, mode) {
+      var rand = mulberry32(41855), i;
       ctx.fillStyle = mode === 'uv' ? '#070614' : mode === 'oblique' ? '#0d0c0b' : '#121318';
       ctx.fillRect(0, 0, W, H);
 
-      // Paper sheet geometry
-      var px = 56;
-      var py = 36;
-      var pw = W - 112;
-      var ph = H - 72;
-
+      var px = 56, py = 36, pw = W - 112, ph = H - 72;
       if (mode === 'uv') {
         ctx.fillStyle = '#141133';
-        ctx.fillRect(px, py, pw, ph);
       } else if (mode === 'oblique') {
-        var obGrad = ctx.createLinearGradient(px, py, px + pw, py + ph);
-        obGrad.addColorStop(0, '#c8b693');
-        obGrad.addColorStop(0.5, '#a89674');
-        obGrad.addColorStop(1, '#7c6d51');
-        ctx.fillStyle = obGrad;
-        ctx.fillRect(px, py, pw, ph);
+        var og = ctx.createLinearGradient(px, py, px + pw, py + ph);
+        og.addColorStop(0, '#c8b693'); og.addColorStop(0.5, '#a89674'); og.addColorStop(1, '#7c6d51');
+        ctx.fillStyle = og;
       } else {
-        var wGrad = ctx.createLinearGradient(px, py, px, py + ph);
-        wGrad.addColorStop(0, '#ece4d0');
-        wGrad.addColorStop(1, '#dfd4bb');
-        ctx.fillStyle = wGrad;
-        ctx.fillRect(px, py, pw, ph);
+        var wg = ctx.createLinearGradient(px, py, px, py + ph);
+        wg.addColorStop(0, '#ece4d0'); wg.addColorStop(1, '#dfd4bb');
+        ctx.fillStyle = wg;
       }
+      ctx.fillRect(px, py, pw, ph);
 
-      // Subtle paper fiber grain (strong relief shadows in oblique, glowing security fibers in UV)
-      for (i = 0; i < 240; i++) {
-        var fx = px + rand() * pw;
-        var fy = py + rand() * ph;
-        var fl = 6 + rand() * 14;
-        var fa = rand() * Math.PI;
-        if (mode === 'uv') {
-          if (i % 5 === 0) {
-            ctx.strokeStyle = i % 10 === 0 ? 'rgba(99, 102, 241, 0.45)' : 'rgba(56, 189, 248, 0.35)';
-            ctx.lineWidth = 1.1;
-            ctx.beginPath();
-            ctx.moveTo(fx, fy);
-            ctx.lineTo(fx + Math.cos(fa) * fl, fy + Math.sin(fa) * fl);
-            ctx.stroke();
-          }
+      for (i = 0; i < 200; i++) {
+        var fx = px + rand() * pw, fy = py + rand() * ph, fl = 6 + rand() * 14, fa = rand() * Math.PI;
+        if (mode === 'uv' && i % 5 === 0) {
+          ctx.strokeStyle = i % 10 === 0 ? 'rgba(99, 102, 241, 0.45)' : 'rgba(56, 189, 248, 0.35)';
+          ctx.lineWidth = 1.1;
+          ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx + Math.cos(fa) * fl, fy + Math.sin(fa) * fl); ctx.stroke();
         } else if (mode === 'oblique') {
-          ctx.strokeStyle = i % 2 === 0 ? 'rgba(255, 245, 220, 0.14)' : 'rgba(30, 22, 12, 0.18)';
+          ctx.strokeStyle = i % 2 === 0 ? 'rgba(255,245,220,0.14)' : 'rgba(30,22,12,0.18)';
           ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(fx, fy);
-          ctx.lineTo(fx + fl * 0.7, fy + 1.2);
-          ctx.stroke();
-        } else {
-          ctx.fillStyle = 'rgba(90, 75, 55, 0.045)';
-          ctx.fillRect(fx, fy, 2, 2);
+          ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx + fl * 0.7, fy + 1.2); ctx.stroke();
         }
       }
 
-      // Guilloché official notarial border
-      var borderCol = mode === 'uv' ? 'rgba(129, 140, 248, 0.42)' : mode === 'oblique' ? '#4a3d28' : '#574a35';
-      ctx.strokeStyle = borderCol;
-      ctx.lineWidth = 3;
-      ctx.strokeRect(px + 18, py + 18, pw - 36, ph - 36);
-      ctx.lineWidth = 1;
-      ctx.strokeRect(px + 25, py + 25, pw - 50, ph - 50);
+      // Decoy horizontal fold crease across middle
+      ctx.strokeStyle = mode === 'oblique' ? 'rgba(20, 14, 8, 0.38)' : 'rgba(90, 75, 55, 0.22)';
+      ctx.lineWidth = mode === 'oblique' ? 2.4 : 1.4;
+      ctx.beginPath(); ctx.moveTo(px, H * 0.45); ctx.lineTo(px + pw, H * 0.45); ctx.stroke();
 
-      // Header
+      // Decoy faint coffee ring stain on right margin
+      ctx.strokeStyle = mode === 'uv' ? 'rgba(65, 55, 110, 0.22)' : 'rgba(130, 88, 40, 0.24)';
+      ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.arc(ptCoffee.x, ptCoffee.y, 34, 0, Math.PI * 2); ctx.stroke();
+
+      var borderCol = mode === 'uv' ? 'rgba(129, 140, 248, 0.42)' : mode === 'oblique' ? '#4a3d28' : '#574a35';
+      ctx.strokeStyle = borderCol; ctx.lineWidth = 3;
+      ctx.strokeRect(px + 18, py + 18, pw - 36, ph - 36);
+      ctx.lineWidth = 1; ctx.strokeRect(px + 25, py + 25, pw - 50, ph - 50);
+
       var inkCol = mode === 'uv' ? 'rgba(165, 180, 252, 0.38)' : mode === 'oblique' ? '#261e14' : '#18181b';
       var inkSub = mode === 'uv' ? 'rgba(129, 140, 248, 0.32)' : mode === 'oblique' ? '#3d3020' : '#3f3f46';
-      ctx.fillStyle = inkCol;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
+      ctx.fillStyle = inkCol; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
       ctx.font = '700 22px "Oswald", sans-serif';
       ctx.fillText('РОССИЙСКАЯ ФЕДЕРАЦИЯ • НОТАРИАЛЬНАЯ ДОВЕРЕННОСТЬ', W / 2, py + 40);
-
-      ctx.font = '600 13px "IBM Plex Mono", monospace';
-      ctx.fillStyle = inkSub;
+      ctx.font = '600 13px "IBM Plex Mono", monospace'; ctx.fillStyle = inkSub;
       ctx.fillText('БЛАНК СЕРИИ 77 АГ № 4918204 • Г. МОСКВА', W / 2, py + 72);
 
-      // Date line (location of Defect 1: chemical etching under UV)
-      ctx.textAlign = 'left';
-      ctx.font = '600 17px "IBM Plex Mono", monospace';
-      ctx.fillStyle = inkCol;
+      // Date line (Defect 1: UV chemical etching)
+      ctx.textAlign = 'left'; ctx.font = '600 17px "IBM Plex Mono", monospace'; ctx.fillStyle = inkCol;
       ctx.fillText('Дата выдачи:  14.10.2024 г.', ptDate.x - 140, ptDate.y - 10);
-
-      // UV Defect 1: Chemical etching bleach blotch + ghost previous date "09.10.2024"
       if (mode === 'uv') {
-        var etchGrad = ctx.createRadialGradient(ptDate.x + 25, ptDate.y, 12, ptDate.x + 25, ptDate.y, 92);
-        etchGrad.addColorStop(0, 'rgba(129, 140, 248, 0.92)');
-        etchGrad.addColorStop(0.45, 'rgba(56, 189, 248, 0.62)');
-        etchGrad.addColorStop(0.8, 'rgba(99, 102, 241, 0.24)');
-        etchGrad.addColorStop(1, 'rgba(99, 102, 241, 0)');
-        ctx.fillStyle = etchGrad;
-        ctx.beginPath();
-        ctx.ellipse(ptDate.x + 25, ptDate.y, 96, 38, -0.06, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Residual leached fibers & ghostly previous date beneath fresh ink
-        ctx.fillStyle = 'rgba(224, 242, 254, 0.88)';
-        ctx.font = '700 18px "IBM Plex Mono", monospace';
+        var eg = ctx.createRadialGradient(ptDate.x + 25, ptDate.y, 12, ptDate.x + 25, ptDate.y, 92);
+        eg.addColorStop(0, 'rgba(129, 140, 248, 0.92)');
+        eg.addColorStop(0.5, 'rgba(56, 189, 248, 0.58)');
+        eg.addColorStop(1, 'rgba(99, 102, 241, 0)');
+        ctx.fillStyle = eg;
+        ctx.beginPath(); ctx.ellipse(ptDate.x + 25, ptDate.y, 96, 38, -0.06, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#e0f2fe'; ctx.font = '700 18px "IBM Plex Mono", monospace';
         ctx.fillText('09.10.2024', ptDate.x - 2, ptDate.y - 16);
-        ctx.strokeStyle = 'rgba(199, 210, 254, 0.85)';
-        ctx.lineWidth = 1.4;
-        ctx.setLineDash([5, 3]);
-        ctx.strokeRect(ptDate.x - 14, ptDate.y - 24, 142, 36);
-        ctx.setLineDash([]);
         ctx.font = '600 11px "IBM Plex Mono", monospace';
-        ctx.fillStyle = '#e0e7ff';
-        ctx.fillText('СЛЕД ТРАВЛЕНИЯ (ХЛОР/КИСЛОТА)', ptDate.x - 28, ptDate.y + 18);
+        ctx.fillText('СЛЕД ТРАВЛЕНИЯ (ХЛОР/КИСЛОТА)', ptDate.x - 26, ptDate.y + 18);
       }
 
-      // Legal body text paragraphs
       var bodyLines = [
         'Я, гр. Сафонов Олег Викторович, 1974 г.р., паспорт 45 18 № 704921,',
         'настоящей доверенностью уполномочиваю гр. Зуева Аркадия Павловича',
@@ -1930,100 +2098,50 @@
         'подписывать договоры отчуждения и получать наличные средства без ограничений.',
         'Доверенность выдана сроком на три года с правом передоверия третьим лицам.'
       ];
-      ctx.font = '400 17px "Inter", sans-serif';
-      ctx.fillStyle = inkCol;
-      for (i = 0; i < bodyLines.length; i++) {
-        ctx.fillText(bodyLines[i], px + 54, py + 215 + i * 36);
-      }
+      ctx.font = '400 17px "Inter", sans-serif'; ctx.fillStyle = inkCol;
+      for (i = 0; i < bodyLines.length; i++) ctx.fillText(bodyLines[i], px + 54, py + 215 + i * 36);
 
-      // Subtle divider line above seal & signature
-      ctx.strokeStyle = borderCol;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(px + 54, py + 412);
-      ctx.lineTo(px + pw - 54, py + 412);
-      ctx.stroke();
+      ctx.strokeStyle = borderCol; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(px + 54, py + 412); ctx.lineTo(px + pw - 54, py + 412); ctx.stroke();
 
-      // Defect 3: Notary Seal + Font Mismatch & Microtext (sharp & unmistakable in WHITE light)
+      // Defect 3: Seal & counterfeit font/raster (sharp in WHITE light)
       ctx.save();
       ctx.translate(ptSeal.x, ptSeal.y);
-
-      var sealCol =
-        mode === 'uv'
-          ? 'rgba(99, 102, 241, 0.32)'
-          : mode === 'oblique'
-          ? 'rgba(42, 54, 92, 0.55)'
-          : '#1d4ed8';
-
-      ctx.strokeStyle = sealCol;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(0, 0, 68, 0, Math.PI * 2);
-      ctx.stroke();
-
+      var sealCol = mode === 'uv' ? 'rgba(99, 102, 241, 0.32)' : mode === 'oblique' ? 'rgba(42, 54, 92, 0.55)' : '#1d4ed8';
+      ctx.strokeStyle = sealCol; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(0, 0, 68, 0, Math.PI * 2); ctx.stroke();
       ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.arc(0, 0, 56, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // Inner seal emblem
-      ctx.fillStyle = sealCol;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font = '700 11px "IBM Plex Mono", monospace';
-      ctx.fillText('НОТАРИАЛЬНЫЙ ОКРУГ', 0, -24);
-      ctx.font = '700 14px "Oswald", sans-serif';
-      ctx.fillText('Г. МОСКВА', 0, 0);
-
+      ctx.beginPath(); ctx.arc(0, 0, 56, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = sealCol; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = '700 11px "IBM Plex Mono", monospace'; ctx.fillText('НОТАРИАЛЬНЫЙ ОКРУГ', 0, -24);
+      ctx.font = '700 14px "Oswald", sans-serif'; ctx.fillText('Г. МОСКВА', 0, 0);
       if (mode === 'white') {
-        // High-CRI 2.2x white light reveals mismatched counterfeit sans font & inkjet dots + broken microtext!
-        ctx.fillStyle = '#1e3a8a';
-        ctx.font = '700 11px "Arial", sans-serif';
+        ctx.fillStyle = '#1e3a8a'; ctx.font = '700 11px "Arial", sans-serif';
         ctx.fillText('НОТАРIУС • КОПИЯ #00', 0, 22);
-
-        // Inkjet raster halftone scatter around counterfeit stamp rim
         ctx.fillStyle = 'rgba(29, 78, 216, 0.45)';
         for (i = 0; i < 42; i++) {
-          var a = (i / 42) * Math.PI * 2;
-          var rDot = 59 + (i % 3) * 3.5;
+          var a = (i / 42) * Math.PI * 2, rDot = 59 + (i % 3) * 3.5;
           ctx.fillRect(Math.cos(a) * rDot, Math.sin(a) * rDot, 2.2, 2.2);
         }
-
-        // Font mismatch line directly beneath seal ("Реестр" printed in different grotesque weight/kerning)
-        ctx.fillStyle = '#0f172a';
-        ctx.font = '400 13px "Georgia", serif';
-        ctx.fillText('Зарегистрировано в реестре:', -28, 86);
-        ctx.fillStyle = '#b91c1c';
-        ctx.font = '700 15px "Courier New", monospace';
-        ctx.fillText('№77-99/Ф', 92, 86);
+        ctx.fillStyle = '#0f172a'; ctx.font = '400 13px "Georgia", serif';
+        ctx.fillText('Реестр:', -42, 86);
+        ctx.fillStyle = '#b91c1c'; ctx.font = '700 15px "Courier New", monospace';
+        ctx.fillText('№77-99/Ф', 44, 86);
       } else {
-        ctx.font = '600 10px "IBM Plex Mono", monospace';
-        ctx.fillText('РЕЕСТР № 77-99', 0, 22);
+        ctx.font = '600 10px "IBM Plex Mono", monospace'; ctx.fillText('РЕЕСТР № 77-99', 0, 22);
       }
       ctx.restore();
 
-      // Defect 2: Signature block (pressed tracing indentation visible under OBLIQUE side-light)
+      // Defect 2: Signature tracing groove (visible in OBLIQUE light)
       ctx.save();
       ctx.translate(ptSig.x, ptSig.y);
-
-      ctx.fillStyle = inkSub;
-      ctx.font = '600 14px "IBM Plex Mono", monospace';
-      ctx.textAlign = 'center';
+      ctx.fillStyle = inkSub; ctx.font = '600 14px "IBM Plex Mono", monospace'; ctx.textAlign = 'center';
       ctx.fillText('Подпись доверителя:', 0, -54);
+      ctx.strokeStyle = borderCol; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(-110, 22); ctx.lineTo(110, 22); ctx.stroke();
+      ctx.font = '500 14px "Inter", sans-serif'; ctx.fillText('/ Сафонов О.В. /', 0, 42);
 
-      // Baseline rule
-      ctx.strokeStyle = borderCol;
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.moveTo(-110, 22);
-      ctx.lineTo(110, 22);
-      ctx.stroke();
-
-      ctx.font = '500 14px "Inter", sans-serif';
-      ctx.fillText('/ Сафонов О.В. /', 0, 42);
-
-      // Helper to trace signature curve
-      function traceSigPath(ox, oy) {
+      function traceSig(ox, oy) {
         ctx.beginPath();
         ctx.moveTo(-88 + ox, 10 + oy);
         ctx.bezierCurveTo(-72 + ox, -42 + oy, -44 + ox, -38 + oy, -38 + ox, 8 + oy);
@@ -2031,405 +2149,231 @@
         ctx.bezierCurveTo(22 + ox, -32 + oy, 50 + ox, -14 + oy, 38 + ox, 12 + oy);
         ctx.bezierCurveTo(56 + ox, -8 + oy, 78 + ox, -22 + oy, 92 + ox, 4 + oy);
       }
-
       if (mode === 'oblique') {
-        // Dramatic raking light: deep embossed double stylus groove + bright paper ridge + carbon dust specks
-        ctx.strokeStyle = 'rgba(18, 12, 6, 0.85)';
-        ctx.lineWidth = 4.2;
-        traceSigPath(-6, -4);
-        ctx.stroke();
-
-        ctx.strokeStyle = 'rgba(255, 240, 195, 0.92)';
-        ctx.lineWidth = 2.2;
-        traceSigPath(-3, -2);
-        ctx.stroke();
-
-        // Second dry stylus trial pass (un-inked indentation beside actual ink!)
-        ctx.strokeStyle = 'rgba(20, 12, 4, 0.75)';
-        ctx.lineWidth = 2.5;
-        traceSigPath(8, 7);
-        ctx.stroke();
-        ctx.strokeStyle = 'rgba(255, 232, 168, 0.85)';
-        ctx.lineWidth = 1.3;
-        traceSigPath(10, 8);
-        ctx.stroke();
-
-        // Carbon-paper transfer dots along groove
-        ctx.fillStyle = 'rgba(30, 41, 82, 0.72)';
-        for (i = 0; i < 28; i++) {
-          ctx.fillRect(-82 + i * 6 + (i % 3), -16 + Math.sin(i) * 18, 2.2, 2.2);
-        }
+        ctx.strokeStyle = 'rgba(18, 12, 6, 0.85)'; ctx.lineWidth = 4.2; traceSig(-6, -4); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255, 240, 195, 0.92)'; ctx.lineWidth = 2.2; traceSig(-3, -2); ctx.stroke();
+        ctx.strokeStyle = 'rgba(20, 12, 4, 0.75)'; ctx.lineWidth = 2.5; traceSig(8, 7); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255, 232, 168, 0.85)'; ctx.lineWidth = 1.3; traceSig(10, 8); ctx.stroke();
       }
-
-      // Main blue ballpoint signature stroke
       ctx.strokeStyle = mode === 'uv' ? 'rgba(99, 102, 241, 0.35)' : '#1e3a8a';
-      ctx.lineWidth = 3.2;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      traceSigPath(0, 0);
-      ctx.stroke();
-
+      ctx.lineWidth = 3.2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      traceSig(0, 0); ctx.stroke();
       ctx.restore();
     }
 
-    drawBaseDocument(cWhite.getContext('2d'), 'white');
-    drawBaseDocument(cOblique.getContext('2d'), 'oblique');
-    drawBaseDocument(cUv.getContext('2d'), 'uv');
-
+    drawBase(cWhite.getContext('2d'), 'white');
+    drawBase(cOblique.getContext('2d'), 'oblique');
+    drawBase(cUv.getContext('2d'), 'uv');
     return { white: cWhite, oblique: cOblique, uv: cUv };
   }
 
-  function buildLockCanvases(defects) {
-    var W = 960;
-    var H = 720;
+  function buildLockCanvases(spots) {
+    var W = 960, H = 720;
     var cWhite = document.createElement('canvas');
     var cOblique = document.createElement('canvas');
     var cUv = document.createElement('canvas');
     cWhite.width = cOblique.width = cUv.width = W;
     cWhite.height = cOblique.height = cUv.height = H;
 
-    function getDefect(id, fx, fy) {
-      for (var k = 0; k < defects.length; k++) {
-        if (defects[k].id === id) return { x: defects[k].x * W, y: defects[k].y * H };
+    function getPt(id, fx, fy) {
+      for (var k = 0; k < spots.length; k++) {
+        if (spots[k].id === id) return { x: spots[k].x * W, y: spots[k].y * H };
       }
       return { x: fx * W, y: fy * H };
     }
 
-    var ptTension = getDefect('tension_scratch', 0.24, 0.65);
-    var ptPin3 = getDefect('pin3_burr', 0.65, 0.45);
-    var ptGraphite = getDefect('graphite_uv', 0.24, 0.29);
+    var ptTension = getPt('tension_scratch', 0.24, 0.65);
+    var ptPin3 = getPt('pin3_burr', 0.65, 0.45);
+    var ptGraphite = getPt('graphite_uv', 0.24, 0.29);
+    var ptRust = getPt('decoy_rust', 0.11, 0.56);
 
-    function drawLockScene(ctx, mode) {
+    function drawLock(ctx, mode) {
       var i;
-      // Macro steel bench surface
       ctx.fillStyle = mode === 'uv' ? '#070614' : '#0c0e13';
       ctx.fillRect(0, 0, W, H);
-
-      // Subtle technical grid
-      ctx.strokeStyle = mode === 'uv' ? 'rgba(99, 102, 241, 0.08)' : 'rgba(148, 163, 184, 0.07)';
+      ctx.strokeStyle = mode === 'uv' ? 'rgba(99,102,241,0.08)' : 'rgba(148,163,184,0.07)';
       ctx.lineWidth = 1;
-      for (i = 0; i < W; i += 32) {
-        ctx.beginPath();
-        ctx.moveTo(i, 0);
-        ctx.lineTo(i, H);
-        ctx.stroke();
-      }
-      for (i = 0; i < H; i += 32) {
-        ctx.beginPath();
-        ctx.moveTo(0, i);
-        ctx.lineTo(W, i);
-        ctx.stroke();
-      }
+      for (i = 0; i < W; i += 32) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, H); ctx.stroke(); }
+      for (i = 0; i < H; i += 32) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(W, i); ctx.stroke(); }
 
-      // Header text
       ctx.fillStyle = mode === 'uv' ? 'rgba(165, 180, 252, 0.55)' : '#94a3b8';
-      ctx.font = '600 16px "IBM Plex Mono", monospace';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
+      ctx.font = '600 16px "IBM Plex Mono", monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
       ctx.fillText('ТРАСОЛОГИЯ ЛИЧИНКИ ЗАМКА • ГАРАЖ БЕЛОВА (#418-З)', 36, 26);
 
-      // === LEFT: FRONT MACRO FACE OF CYLINDER PLUG ===
-      var faceCx = W * 0.24;
-      var faceCy = H * 0.48;
-      var outerR = 165;
-      var plugR = 112;
+      // Cylinder front face
+      var faceCx = W * 0.24, faceCy = H * 0.48, outerR = 165, plugR = 112;
+      ctx.fillStyle = mode === 'uv' ? '#171538' : mode === 'oblique' ? '#334155' : '#3b4452';
+      ctx.beginPath(); ctx.arc(faceCx, faceCy, outerR, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = mode === 'uv' ? '#4338ca' : '#64748b'; ctx.lineWidth = 3; ctx.stroke();
 
-      // Outer steel housing ring
-      var ringGrad = ctx.createLinearGradient(faceCx - outerR, faceCy - outerR, faceCx + outerR, faceCy + outerR);
-      if (mode === 'uv') {
-        ringGrad.addColorStop(0, '#1e1b4b');
-        ringGrad.addColorStop(0.5, '#13112b');
-        ringGrad.addColorStop(1, '#090817');
-      } else if (mode === 'oblique') {
-        ringGrad.addColorStop(0, '#64748b');
-        ringGrad.addColorStop(0.45, '#1e293b');
-        ringGrad.addColorStop(1, '#0f172a');
-      } else {
-        ringGrad.addColorStop(0, '#475569');
-        ringGrad.addColorStop(0.5, '#334155');
-        ringGrad.addColorStop(1, '#1e293b');
-      }
-      ctx.fillStyle = ringGrad;
-      ctx.beginPath();
-      ctx.arc(faceCx, faceCy, outerR, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = mode === 'uv' ? '#4338ca' : '#64748b';
-      ctx.lineWidth = 3;
-      ctx.stroke();
+      // Decoy rust patch on outer steel ring
+      ctx.fillStyle = mode === 'uv' ? 'rgba(55, 40, 80, 0.4)' : 'rgba(146, 64, 14, 0.55)';
+      ctx.beginPath(); ctx.ellipse(ptRust.x, ptRust.y, 26, 36, -0.3, 0, Math.PI * 2); ctx.fill();
 
-      // Inner brass cylinder core face
-      var brassGrad = ctx.createLinearGradient(faceCx - plugR, faceCy - plugR, faceCx + plugR, faceCy + plugR);
-      if (mode === 'uv') {
-        brassGrad.addColorStop(0, '#2e274f');
-        brassGrad.addColorStop(1, '#16122e');
-      } else if (mode === 'oblique') {
-        brassGrad.addColorStop(0, '#e5b963');
-        brassGrad.addColorStop(0.45, '#8a6220');
-        brassGrad.addColorStop(1, '#3b2609');
-      } else {
-        brassGrad.addColorStop(0, '#c89b46');
-        brassGrad.addColorStop(0.5, '#9d742c');
-        brassGrad.addColorStop(1, '#5e4314');
-      }
-      ctx.fillStyle = brassGrad;
-      ctx.beginPath();
-      ctx.arc(faceCx, faceCy, plugR, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#0b0c0e';
-      ctx.lineWidth = 4;
-      ctx.stroke();
+      // Brass core face
+      ctx.fillStyle = mode === 'uv' ? '#241e44' : mode === 'oblique' ? '#b07e28' : '#9d742c';
+      ctx.beginPath(); ctx.arc(faceCx, faceCy, plugR, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#0b0c0e'; ctx.lineWidth = 4; ctx.stroke();
 
-      // Keyway notched vertical slot
+      // Keyway slot
       ctx.fillStyle = '#050608';
       ctx.beginPath();
-      ctx.moveTo(faceCx - 16, faceCy - 72);
-      ctx.lineTo(faceCx + 16, faceCy - 72);
-      ctx.lineTo(faceCx + 16, faceCy - 20);
-      ctx.lineTo(faceCx + 28, faceCy - 6);
-      ctx.lineTo(faceCx + 14, faceCy + 14);
-      ctx.lineTo(faceCx + 18, faceCy + 84);
-      ctx.lineTo(faceCx - 18, faceCy + 84);
-      ctx.lineTo(faceCx - 18, faceCy + 24);
-      ctx.lineTo(faceCx - 28, faceCy + 6);
-      ctx.lineTo(faceCx - 16, faceCy - 12);
-      ctx.closePath();
+      ctx.moveTo(faceCx - 16, faceCy - 72); ctx.lineTo(faceCx + 16, faceCy - 72);
+      ctx.lineTo(faceCx + 16, faceCy - 20); ctx.lineTo(faceCx + 28, faceCy - 6);
+      ctx.lineTo(faceCx + 14, faceCy + 14); ctx.lineTo(faceCx + 18, faceCy + 84);
+      ctx.lineTo(faceCx - 18, faceCy + 84); ctx.lineTo(faceCx - 18, faceCy + 24);
+      ctx.lineTo(faceCx - 28, faceCy + 6); ctx.lineTo(faceCx - 16, faceCy - 12); ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = mode === 'oblique' ? '#fde68a' : '#334155';
-      ctx.lineWidth = 2;
-      ctx.stroke();
 
-      // UV Defect 3: Fluorescent synthetic graphite/lubricant smears on upper rim
+      // UV Defect 3: Fluorescent graphite lubricant
       if (mode === 'uv') {
-        var smGrad = ctx.createRadialGradient(ptGraphite.x, ptGraphite.y, 10, ptGraphite.x, ptGraphite.y, 76);
-        smGrad.addColorStop(0, 'rgba(129, 140, 248, 0.92)');
-        smGrad.addColorStop(0.45, 'rgba(56, 189, 248, 0.65)');
-        smGrad.addColorStop(0.85, 'rgba(99, 102, 241, 0.18)');
-        smGrad.addColorStop(1, 'rgba(99, 102, 241, 0)');
-        ctx.fillStyle = smGrad;
-        ctx.beginPath();
-        ctx.ellipse(ptGraphite.x, ptGraphite.y, 72, 42, 0.25, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Swirling oily UV streaks
-        ctx.strokeStyle = 'rgba(224, 242, 254, 0.85)';
-        ctx.lineWidth = 2.4;
-        for (i = 0; i < 6; i++) {
-          ctx.beginPath();
-          ctx.arc(ptGraphite.x - 16 + i * 8, ptGraphite.y - 6 + (i % 3) * 8, 12 + i * 3, 0.2, 2.2);
-          ctx.stroke();
-        }
+        var sg = ctx.createRadialGradient(ptGraphite.x, ptGraphite.y, 10, ptGraphite.x, ptGraphite.y, 76);
+        sg.addColorStop(0, 'rgba(129, 140, 248, 0.92)');
+        sg.addColorStop(0.5, 'rgba(56, 189, 248, 0.65)');
+        sg.addColorStop(1, 'rgba(99, 102, 241, 0)');
+        ctx.fillStyle = sg;
+        ctx.beginPath(); ctx.ellipse(ptGraphite.x, ptGraphite.y, 72, 42, 0.25, 0, Math.PI * 2); ctx.fill();
       } else {
-        // Very subtle dark smudge barely noticeable in white/oblique
         ctx.fillStyle = 'rgba(12, 12, 15, 0.24)';
-        ctx.beginPath();
-        ctx.ellipse(ptGraphite.x, ptGraphite.y, 44, 22, 0.2, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.ellipse(ptGraphite.x, ptGraphite.y, 44, 22, 0.2, 0, Math.PI * 2); ctx.fill();
       }
 
-      // Oblique Defect 1: Fresh transverse tension wrench scratches at bottom of keyway
+      // Oblique Defect 1: Transverse tension wrench scratches
       if (mode === 'oblique') {
-        ctx.save();
-        ctx.strokeStyle = '#fef08a';
-        ctx.lineWidth = 3.2;
         for (i = 0; i < 7; i++) {
           var sy = ptTension.y - 26 + i * 8.5;
-          ctx.beginPath();
-          ctx.moveTo(ptTension.x - 38 + (i % 2) * 8, sy);
-          ctx.lineTo(ptTension.x + 38 - (i % 3) * 6, sy + 2.5);
-          ctx.stroke();
-
-          // Dark raking shadow under each fresh metal scratch
-          ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
-          ctx.lineWidth = 1.8;
-          ctx.beginPath();
-          ctx.moveTo(ptTension.x - 36 + (i % 2) * 8, sy + 3);
-          ctx.lineTo(ptTension.x + 36 - (i % 3) * 6, sy + 5.5);
-          ctx.stroke();
-          ctx.strokeStyle = '#fef08a';
-          ctx.lineWidth = 2.6;
+          ctx.strokeStyle = '#fef08a'; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.moveTo(ptTension.x - 38, sy); ctx.lineTo(ptTension.x + 38, sy + 2.5); ctx.stroke();
+          ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.lineWidth = 1.6;
+          ctx.beginPath(); ctx.moveTo(ptTension.x - 36, sy + 3); ctx.lineTo(ptTension.x + 36, sy + 5.5); ctx.stroke();
         }
-        ctx.restore();
       }
 
-      // === RIGHT: LONGITUDINAL CUTAWAY OF 5 PINS ALONG SHEAR LINE ===
-      var cutX = W * 0.48;
-      var cutY = H * 0.16;
-      var cutW = W * 0.46;
-      var cutH = H * 0.66;
-      var shearY = H * 0.46;
-
-      // Cylinder body block
+      // Right cutaway: 5 pins along shear line
+      var cutX = W * 0.48, cutY = H * 0.16, cutW = W * 0.46, cutH = H * 0.66, shearY = H * 0.46;
       ctx.fillStyle = mode === 'uv' ? '#13112a' : '#1e2430';
       ctx.fillRect(cutX, cutY, cutW, cutH);
-      ctx.strokeStyle = mode === 'uv' ? '#4338ca' : '#475569';
-      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = mode === 'uv' ? '#4338ca' : '#475569'; ctx.lineWidth = 2.5;
       ctx.strokeRect(cutX, cutY, cutW, cutH);
-
-      // Lower rotating brass plug cutaway
-      ctx.fillStyle = mode === 'uv' ? '#1f1a3d' : mode === 'oblique' ? '#6c4d1a' : '#856022';
+      ctx.fillStyle = mode === 'uv' ? '#1f1a3d' : '#7b581e';
       ctx.fillRect(cutX + 4, shearY, cutW - 8, cutY + cutH - shearY - 4);
 
-      // Shear line dashed indicator
-      ctx.strokeStyle = '#f59e0b';
-      ctx.lineWidth = 1.6;
-      ctx.setLineDash([8, 5]);
-      ctx.beginPath();
-      ctx.moveTo(cutX - 8, shearY);
-      ctx.lineTo(cutX + cutW + 8, shearY);
-      ctx.stroke();
+      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 1.6; ctx.setLineDash([8, 5]);
+      ctx.beginPath(); ctx.moveTo(cutX - 8, shearY); ctx.lineTo(cutX + cutW + 8, shearY); ctx.stroke();
       ctx.setLineDash([]);
 
-      ctx.fillStyle = '#f59e0b';
-      ctx.font = '600 12px "IBM Plex Mono", monospace';
-      ctx.textAlign = 'right';
-      ctx.fillText('ЛИНИЯ РАЗЪЁМА', cutX + cutW - 8, shearY - 18);
-
-      // 5 Pin chambers + springs + driver pins + key pins
-      var pinSpacing = cutW / 5.4;
-      var pinW = 34;
+      var pinSpacing = cutW / 5.4, pinW = 34;
       for (var p = 0; p < 5; p++) {
         var pcx = cutX + pinSpacing * (p + 0.7);
-        var chamberTop = cutY + 26;
-        var chamberBot = shearY + 135;
-
-        // Chamber shaft hollow
+        var chamberTop = cutY + 26, chamberBot = shearY + 135;
         ctx.fillStyle = '#090b10';
         ctx.fillRect(pcx - pinW / 2 - 4, chamberTop, pinW + 8, chamberBot - chamberTop);
 
-        // Coiled spring on top
-        ctx.strokeStyle = mode === 'uv' ? '#6366f1' : '#94a3b8';
-        ctx.lineWidth = 2.2;
+        ctx.strokeStyle = mode === 'uv' ? '#6366f1' : '#94a3b8'; ctx.lineWidth = 2.2;
         ctx.beginPath();
         for (var sp = 0; sp < 6; sp++) {
           var y1 = chamberTop + 8 + sp * 11;
-          ctx.moveTo(pcx - pinW * 0.42, y1);
-          ctx.lineTo(pcx + pinW * 0.42, y1 + 5.5);
-          ctx.lineTo(pcx - pinW * 0.42, y1 + 11);
+          ctx.moveTo(pcx - pinW * 0.42, y1); ctx.lineTo(pcx + pinW * 0.42, y1 + 5.5); ctx.lineTo(pcx - pinW * 0.42, y1 + 11);
         }
         ctx.stroke();
 
-        // Driver pin (upper) & key pin (lower) meeting near shear line
-        var splitOffset = p === 2 ? -12 : (p % 2 === 0 ? 18 : -22);
-        var splitY = shearY + splitOffset;
-
-        var pGrad = ctx.createLinearGradient(pcx - pinW / 2, 0, pcx + pinW / 2, 0);
-        if (mode === 'uv') {
-          pGrad.addColorStop(0, '#312e81');
-          pGrad.addColorStop(0.5, '#4f46e5');
-          pGrad.addColorStop(1, '#1e1b4b');
-        } else {
-          pGrad.addColorStop(0, '#785014');
-          pGrad.addColorStop(0.42, '#f5d07a');
-          pGrad.addColorStop(1, '#5c3b0e');
-        }
-
-        // Driver pin
-        ctx.fillStyle = pGrad;
+        var splitY = shearY + (p === 2 ? -12 : p % 2 === 0 ? 18 : -22);
+        ctx.fillStyle = mode === 'uv' ? '#4338ca' : '#d6a44e';
         ctx.fillRect(pcx - pinW / 2, chamberTop + 76, pinW, Math.max(24, splitY - (chamberTop + 76) - 2));
-        // Key pin (conical tip at bottom)
         ctx.beginPath();
-        ctx.moveTo(pcx - pinW / 2, splitY + 2);
-        ctx.lineTo(pcx + pinW / 2, splitY + 2);
-        ctx.lineTo(pcx + pinW / 2, chamberBot - 22);
-        ctx.lineTo(pcx, chamberBot - 4);
-        ctx.lineTo(pcx - pinW / 2, chamberBot - 22);
-        ctx.closePath();
-        ctx.fill();
+        ctx.moveTo(pcx - pinW / 2, splitY + 2); ctx.lineTo(pcx + pinW / 2, splitY + 2);
+        ctx.lineTo(pcx + pinW / 2, chamberBot - 22); ctx.lineTo(pcx, chamberBot - 4);
+        ctx.lineTo(pcx - pinW / 2, chamberBot - 22); ctx.closePath(); ctx.fill();
 
-        // Pin number label
         ctx.fillStyle = mode === 'uv' ? '#818cf8' : '#cbd5e1';
-        ctx.font = '600 13px "IBM Plex Mono", monospace';
-        ctx.textAlign = 'center';
+        ctx.font = '600 13px "IBM Plex Mono", monospace'; ctx.textAlign = 'center';
         ctx.fillText('#' + (p + 1), pcx, chamberBot + 16);
 
-        // Oblique Defect 2: Sharp displaced lockpick burr & rake scratches on Pin #3 (index 2)
+        // Oblique Defect 2: Sharp burr & rake scratches on Pin #3
         if (p === 2 && mode === 'oblique') {
-          ctx.save();
-          // Displaced jagged brass burr jutting out along shear bevel
           ctx.fillStyle = '#fef08a';
           ctx.beginPath();
-          ctx.moveTo(ptPin3.x - 16, ptPin3.y - 6);
-          ctx.lineTo(ptPin3.x - 24, ptPin3.y + 4);
-          ctx.lineTo(ptPin3.x - 12, ptPin3.y + 12);
-          ctx.closePath();
-          ctx.fill();
-
-          // Deep diagonal rake-pick scoring lines catching oblique light
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 2.6;
+          ctx.moveTo(ptPin3.x - 16, ptPin3.y - 6); ctx.lineTo(ptPin3.x - 24, ptPin3.y + 4); ctx.lineTo(ptPin3.x - 12, ptPin3.y + 12);
+          ctx.closePath(); ctx.fill();
           for (var sc = 0; sc < 5; sc++) {
-            ctx.beginPath();
-            ctx.moveTo(ptPin3.x - 18, ptPin3.y - 16 + sc * 9);
-            ctx.lineTo(ptPin3.x + 18, ptPin3.y - 4 + sc * 9);
-            ctx.stroke();
+            ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.4;
+            ctx.beginPath(); ctx.moveTo(ptPin3.x - 18, ptPin3.y - 16 + sc * 9); ctx.lineTo(ptPin3.x + 18, ptPin3.y - 4 + sc * 9); ctx.stroke();
           }
-          ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
-          ctx.lineWidth = 1.6;
-          for (sc = 0; sc < 5; sc++) {
-            ctx.beginPath();
-            ctx.moveTo(ptPin3.x - 16, ptPin3.y - 13 + sc * 9);
-            ctx.lineTo(ptPin3.x + 18, ptPin3.y - 1 + sc * 9);
-            ctx.stroke();
-          }
-          ctx.restore();
         }
       }
     }
 
-    drawLockScene(cWhite.getContext('2d'), 'white');
-    drawLockScene(cOblique.getContext('2d'), 'oblique');
-    drawLockScene(cUv.getContext('2d'), 'uv');
-
+    drawLock(cWhite.getContext('2d'), 'white');
+    drawLock(cOblique.getContext('2d'), 'oblique');
+    drawLock(cUv.getContext('2d'), 'uv');
     return { white: cWhite, oblique: cOblique, uv: cUv };
   }
 
+
   function initDocForgery(containerEl, config, callbacks) {
     config = config || {};
-    var mode = config.mode === 'lock' ? 'lock' : 'doc';
+    injectDocStyles();
+
     var timers = createTimerBag();
     var listeners = createListenerBag();
     var triggerWin = createWinTrigger(callbacks);
-    var finished = false;
+    var failFired = false;
+    function triggerDocFail(res) {
+      if (failFired) return;
+      failFired = true;
+      if (callbacks && typeof callbacks.onFail === 'function') {
+        callbacks.onFail(res || { success: false });
+      }
+    }
 
-    var rawDefects =
-      Array.isArray(config.defects) && config.defects.length > 0
-        ? config.defects
-        : mode === 'lock'
-        ? DEFAULT_LOCK_DEFECTS
-        : DEFAULT_DOC_DEFECTS;
+    var scenario = resolveDocScenario(config);
+    var mode = scenario.mode;
+    var maxErrors = typeof config.maxErrors === 'number' && config.maxErrors > 0 ? config.maxErrors : 4;
 
-    var defects = rawDefects.map(function (d, idx) {
+    var spots = scenario.spots.map(function (d, idx) {
       return {
-        id: d.id || 'def_' + idx,
-        label: d.label || 'Дефект #' + (idx + 1),
-        shortLabel: d.shortLabel || 'Улика #' + (idx + 1),
-        x: clamp(typeof d.x === 'number' ? d.x : 0.25 + idx * 0.25, 0.1, 0.9),
-        y: clamp(typeof d.y === 'number' ? d.y : 0.5, 0.12, 0.88),
+        id: d.id || ('def_' + idx),
+        isEvidence: typeof d.isEvidence === 'boolean' ? d.isEvidence : true,
         requiredLight: d.requiredLight || 'uv',
+        cover: typeof d.cover === 'number' ? d.cover : 0,
+        coverLabel: d.coverLabel || 'Загрязнение',
+        x: clamp(typeof d.x === 'number' ? d.x : 0.25 + idx * 0.2, 0.08, 0.92),
+        y: clamp(typeof d.y === 'number' ? d.y : 0.5, 0.10, 0.90),
         radius: typeof d.radius === 'number' ? d.radius : 0.095,
+        shortLabel: d.shortLabel || ('Улика #' + (idx + 1)),
+        label: d.label || ('Участок #' + (idx + 1)),
+        readings: d.readings || { white: d.label || '', oblique: d.label || '', uv: d.label || '' },
+        wrongModeMsg: d.wrongModeMsg || 'Проверьте этот участок в другом спектре света!',
+        falseReason: d.falseReason || 'ЛОЖНЫЙ СЛЕД: бытовой дефект без признаков фальсификации.',
         found: false
       };
     });
 
+    var evidenceSpots = spots.filter(function (s) { return s.isEvidence; });
+    var totalEvidence = evidenceSpots.length || 3;
+
     var shell = createShell(containerEl, {
-      title:
-        config.title ||
-        (mode === 'lock' ? 'Трасология замка гаража' : 'Экспертиза доверенности'),
-      subtitle:
-        config.subtitle ||
-        (mode === 'lock'
-          ? 'ДЕЛО №418 • АКТ 3 • ЛУПА И УФ-ЛАМПА'
-          : 'ДЕЛО №418 • АКТ 5 • ЛУПА 2.2× И УФ 365 НМ'),
+      title: scenario.title,
+      subtitle: '',
       extraClass: 'mg-doc-wrap'
     });
 
+    shell.subEl.style.display = 'none';
+    var metaRow = document.createElement('div');
+    metaRow.className = 'mg-df-meta';
+    var statFound = document.createElement('span');
+    statFound.className = 'mg-df-stat';
+    var statErr = document.createElement('span');
+    statErr.className = 'mg-df-err';
+    metaRow.appendChild(statFound);
+    metaRow.appendChild(statErr);
+    shell.subEl.parentNode.appendChild(metaRow);
+
     listeners.on(shell.cancelBtn, 'click', function () {
-      haptic('light');
-      sfx('click');
+      haptic('light'); sfx('click');
       triggerCancel(callbacks);
     });
 
-    // Canvas stage
     var stage = document.createElement('div');
     stage.className = 'mg-f2-stage mg-doc-stage';
     var canvas = document.createElement('canvas');
@@ -2437,37 +2381,105 @@
     stage.appendChild(canvas);
     shell.body.appendChild(stage);
 
-    // Status line
-    var statusEl = document.createElement('div');
-    statusEl.className = 'mg-f2-status';
-    var statusText = document.createElement('span');
-    statusText.textContent = 'Водите лупой и переключайте свет, чтобы найти ' + defects.length + ' следа';
-    var countVal = document.createElement('span');
-    countVal.className = 'mg-f2-value';
-    countVal.textContent = '0 / ' + defects.length;
-    statusEl.appendChild(statusText);
-    statusEl.appendChild(countVal);
-    shell.body.appendChild(statusEl);
+    // Inspector dock
+    var inspectorEl = document.createElement('div');
+    inspectorEl.className = 'mg-df-inspector';
+    var insInfo = document.createElement('div');
+    insInfo.className = 'mg-df-ins-info';
+    var insTitle = document.createElement('div');
+    insTitle.className = 'mg-df-ins-title';
+    var insDesc = document.createElement('div');
+    insDesc.className = 'mg-df-ins-desc';
+    insInfo.appendChild(insTitle);
+    insInfo.appendChild(insDesc);
 
-    // Controls panel
+    var fixBtn = document.createElement('button');
+    fixBtn.type = 'button';
+    fixBtn.className = 'mg-f2-btn mg-df-fix-btn';
+    fixBtn.textContent = 'ЗАФИКСИРОВАТЬ';
+    fixBtn.disabled = true;
+
+    inspectorEl.appendChild(insInfo);
+    inspectorEl.appendChild(fixBtn);
+    shell.body.appendChild(inspectorEl);
+
     var panel = document.createElement('div');
     panel.className = 'mg-f2-panel';
 
     var lightsRow = document.createElement('div');
     lightsRow.className = 'mg-doc-lights';
     var lightDefs = [
-      { id: 'white', label: 'БЕЛЫЙ СВЕТ' },
-      { id: 'oblique', label: 'КОСОЙ СВЕТ' },
-      { id: 'uv', label: 'УФ 365 нм' }
+      { id: 'white', label: '1. БЕЛЫЙ / ЧИСТКА' },
+      { id: 'oblique', label: '2. КОСОЙ СВЕТ' },
+      { id: 'uv', label: '3. УФ 365 НМ' }
     ];
     var lightBtns = {};
     var activeLight = 'white';
 
-    function updateLightUI() {
+    for (var li = 0; li < lightDefs.length; li++) {
+      (function (ld) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'mg-f2-btn-sec';
+        btn.textContent = ld.label;
+        listeners.on(btn, 'click', function () {
+          if (phase !== 'inspect' || activeLight === ld.id) return;
+          activeLight = ld.id;
+          tempFlash = null;
+          haptic('light'); sfx('click');
+          syncLightUI();
+          syncInspector();
+        });
+        lightsRow.appendChild(btn);
+        lightBtns[ld.id] = btn;
+      })(lightDefs[li]);
+    }
+    panel.appendChild(lightsRow);
+
+    var cluesRow = document.createElement('div');
+    cluesRow.className = 'mg-doc-clues';
+    cluesRow.style.gridTemplateColumns = 'repeat(' + Math.min(totalEvidence, 3) + ', 1fr)';
+    var cluePills = [];
+    for (var pi = 0; pi < totalEvidence; pi++) {
+      var pill = document.createElement('div');
+      pill.className = 'mg-f2-pill';
+      pill.textContent = 'УЛИКА #' + (pi + 1);
+      cluesRow.appendChild(pill);
+      cluePills.push(pill);
+    }
+    panel.appendChild(cluesRow);
+    shell.body.appendChild(panel);
+
+    var layers = mode === 'lock' ? buildLockCanvases(spots) : buildDocCanvases(spots);
+    var canvasMgr = setupResponsiveCanvas(canvas, stage);
+
+    var phase = 'inspect'; // 'inspect' | 'deduce' | 'fail'
+    var loupeX = 0.5;
+    var loupeY = 0.5;
+    var targetX = 0.5;
+    var targetY = 0.5;
+    var lastDragX = 0.5;
+    var lastDragY = 0.5;
+    var dragging = false;
+    var currentSpot = null;
+    var foundCount = 0;
+    var errorsCount = 0;
+    var captureFlash = 0;
+    var errFlash = 0;
+    var coverParticles = [];
+    var tempFlash = null;
+    var lastTs = performance.now();
+
+    function syncHeaderMeta() {
+      statFound.textContent = 'УЛИКИ: ' + foundCount + ' / ' + totalEvidence;
+      statErr.textContent = 'ОШИБКИ: ' + errorsCount + ' / ' + maxErrors;
+      statErr.classList.toggle('is-warn', errorsCount >= maxErrors - 1);
+    }
+
+    function syncLightUI() {
       for (var k in lightBtns) {
         if (Object.prototype.hasOwnProperty.call(lightBtns, k)) {
-          lightBtns[k].classList.remove('is-active');
-          lightBtns[k].classList.remove('is-uv');
+          lightBtns[k].classList.remove('is-active', 'is-uv');
           if (k === activeLight) {
             lightBtns[k].classList.add(k === 'uv' ? 'is-uv' : 'is-active');
           }
@@ -2475,363 +2487,405 @@
       }
     }
 
-    for (var i = 0; i < lightDefs.length; i++) {
-      (function (ld) {
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'mg-f2-btn-sec';
-        btn.textContent = ld.label;
-        listeners.on(btn, 'click', function () {
-          if (finished) return;
-          activeLight = ld.id;
-          haptic('light');
-          sfx('click');
-          updateLightUI();
-        });
-        lightsRow.appendChild(btn);
-        lightBtns[ld.id] = btn;
-      })(lightDefs[i]);
+    function setTempFlash(title, desc, tone, ms) {
+      tempFlash = { title: title, desc: desc, tone: tone || 'err', until: performance.now() + (ms || 1800) };
+      syncInspector();
     }
-    updateLightUI();
-    panel.appendChild(lightsRow);
 
-    var fixBtn = document.createElement('button');
-    fixBtn.type = 'button';
-    fixBtn.className = 'mg-f2-btn';
-    fixBtn.textContent = 'ЗАФИКСИРОВАТЬ УЛИКУ';
-    fixBtn.disabled = true;
-    panel.appendChild(fixBtn);
+    function syncInspector() {
+      var now = performance.now();
+      if (tempFlash && now < tempFlash.until) {
+        insTitle.textContent = tempFlash.title;
+        insTitle.className = 'mg-df-ins-title ' + (tempFlash.tone === 'ok' ? 'is-ok' : 'is-err');
+        insDesc.textContent = tempFlash.desc;
+        fixBtn.disabled = !currentSpot || currentSpot.found || currentSpot.cover > 0.02 || phase !== 'inspect';
+        return;
+      }
+      tempFlash = null;
 
-    var cluesRow = document.createElement('div');
-    cluesRow.className = 'mg-doc-clues';
-    cluesRow.style.gridTemplateColumns = 'repeat(' + Math.min(defects.length, 3) + ', 1fr)';
-    var cluePills = [];
-    for (i = 0; i < defects.length; i++) {
-      var pill = document.createElement('div');
-      pill.className = 'mg-f2-pill';
-      pill.textContent = 'УЛИКА #' + (i + 1);
-      cluesRow.appendChild(pill);
-      cluePills.push(pill);
+      if (!currentSpot) {
+        insTitle.className = 'mg-df-ins-title' + (activeLight === 'uv' ? ' is-uv' : '');
+        insTitle.textContent = activeLight === 'uv' ? 'УФ 365 НМ // СПЕКТРАЛЬНЫЙ ОСМОТР' : activeLight === 'oblique' ? 'КОСОЙ СВЕТ // РЕЛЬЕФ И БОРОЗДЫ' : 'БЕЛЫЙ СВЕТ 2.2× // ОЧИСТКА';
+        insDesc.textContent = 'Водите лупой по зонам, счищайте помехи в 1. БЕЛОМ СВЕТЕ и сверяйте детали.';
+        fixBtn.disabled = true;
+        return;
+      }
+
+      if (currentSpot.found) {
+        insTitle.className = 'mg-df-ins-title is-ok';
+        insTitle.textContent = 'ЗАФИКСИРОВАНО // ' + currentSpot.shortLabel;
+        insDesc.textContent = currentSpot.label;
+        fixBtn.disabled = true;
+        return;
+      }
+
+      if (currentSpot.cover > 0.02) {
+        insTitle.className = 'mg-df-ins-title';
+        insTitle.textContent = 'ПЕРЕКРЫТИЕ // ' + currentSpot.coverLabel;
+        insDesc.textContent = activeLight === 'white'
+          ? 'Потрите лупой поверх этого участка, чтобы снять накладку/грязь.'
+          : 'Переключитесь в 1. БЕЛЫЙ / ЧИСТКА, чтобы очистить этот участок.';
+        fixBtn.disabled = true;
+        return;
+      }
+
+      insTitle.className = 'mg-df-ins-title' + (activeLight === 'uv' ? ' is-uv' : '');
+      insTitle.textContent = currentSpot.label;
+      insDesc.textContent = currentSpot.readings[activeLight] || currentSpot.readings.white;
+      fixBtn.disabled = false;
     }
-    panel.appendChild(cluesRow);
-    shell.body.appendChild(panel);
 
-    // Pre-render the 3 spectral offscreen canvases
-    var layers = mode === 'lock' ? buildLockCanvases(defects) : buildDocCanvases(defects);
-    var canvasMgr = setupResponsiveCanvas(canvas, stage);
+    function showFailScreen(reason, msg) {
+      phase = 'fail';
+      stage.style.display = 'none';
+      inspectorEl.style.display = 'none';
+      panel.style.display = 'none';
+      var box = document.createElement('div');
+      box.className = 'mg-df-stamp-box';
+      var st = document.createElement('div');
+      st.className = 'mg-df-stamp';
+      st.textContent = 'ЭКСПЕРТИЗА ОТКЛОНЕНА';
+      var txt = document.createElement('div');
+      txt.className = 'mg-df-dq';
+      txt.textContent = msg || 'Превышен лимит ошибочных отметок экспертизы.';
+      box.appendChild(st);
+      box.appendChild(txt);
+      shell.body.appendChild(box);
+      timers.setTimeout(function () {
+        triggerDocFail({ minigame: 'doc_forgery', mode: mode, reason: reason, errors: errorsCount });
+      }, 950);
+    }
 
-    var loupeX = 0.5;
-    var loupeY = 0.5;
-    var targetX = 0.5;
-    var targetY = 0.5;
-    var dragging = false;
-    var lockedDefect = null;
-    var wasLocked = false;
-    var foundCount = 0;
-    var captureFlash = 0;
-    var lastTs = performance.now();
+    function openDeductionPhase() {
+      phase = 'deduce';
+      stage.style.display = 'none';
+      inspectorEl.style.display = 'none';
+      panel.style.display = 'none';
+
+      var card = document.createElement('div');
+      card.className = 'mg-df-deduce';
+      var kicker = document.createElement('div');
+      kicker.className = 'mg-df-dkicker';
+      kicker.textContent = 'ФАЗА 3 // КРИМИНАЛИСТИЧЕСКИЙ ВЫВОД';
+      card.appendChild(kicker);
+
+      var facts = document.createElement('div');
+      facts.className = 'mg-df-dfacts';
+      for (var i = 0; i < evidenceSpots.length; i++) {
+        var row = document.createElement('div');
+        row.textContent = '• ' + evidenceSpots[i].label;
+        facts.appendChild(row);
+      }
+      card.appendChild(facts);
+
+      var q = document.createElement('div');
+      q.className = 'mg-df-dq';
+      q.textContent = scenario.conclusion.question;
+      card.appendChild(q);
+
+      var optsWrap = document.createElement('div');
+      optsWrap.className = 'mg-df-dopts';
+      var fb = document.createElement('div');
+      fb.className = 'mg-df-dfb';
+
+      var settled = false;
+      var opts = scenario.conclusion.options || [];
+      for (var oi = 0; oi < opts.length; oi++) {
+        (function (opt) {
+          var ob = document.createElement('button');
+          ob.type = 'button';
+          ob.className = 'mg-df-dopt';
+          ob.textContent = opt.text;
+          listeners.on(ob, 'click', function () {
+            if (settled || phase !== 'deduce') return;
+            if (opt.isCorrect) {
+              settled = true;
+              ob.classList.add('is-correct');
+              fb.className = 'mg-df-dfb is-ok';
+              fb.textContent = opt.reason;
+              haptic('success'); sfx('stamp');
+              timers.setTimeout(function () {
+                card.innerHTML = '';
+                var box = document.createElement('div');
+                box.className = 'mg-df-stamp-box';
+                var st = document.createElement('div');
+                st.className = 'mg-df-stamp is-ok';
+                st.textContent = scenario.stampWin;
+                var btnDone = document.createElement('button');
+                btnDone.type = 'button';
+                btnDone.className = 'mg-f2-btn is-ready';
+                btnDone.textContent = 'ПРИОБЩИТЬ К ДЕЛУ';
+                listeners.on(btnDone, 'click', function () {
+                  haptic('success'); sfx('success');
+                  triggerWin({
+                    minigame: 'doc_forgery',
+                    mode: mode,
+                    scenarioId: scenario.id,
+                    errors: errorsCount,
+                    deduced: opt.id,
+                    found: evidenceSpots.map(function (it) { return { id: it.id, label: it.label }; })
+                  });
+                });
+                box.appendChild(st);
+                box.appendChild(btnDone);
+                card.appendChild(box);
+              }, 550);
+            } else {
+              errorsCount += 1;
+              syncHeaderMeta();
+              ob.classList.add('is-wrong');
+              fb.className = 'mg-df-dfb';
+              fb.textContent = opt.reason;
+              haptic('error'); sfx('alert');
+              flashShake(card);
+              if (errorsCount >= maxErrors) {
+                settled = true;
+                timers.setTimeout(function () {
+                  showFailScreen('wrong_deduction', 'Лимит ошибок исчерпан — криминалистический вывод отклонён.');
+                }, 700);
+              }
+            }
+          });
+          optsWrap.appendChild(ob);
+        })(opts[oi]);
+      }
+
+      card.appendChild(optsWrap);
+      card.appendChild(fb);
+      shell.body.appendChild(card);
+    }
+
+    function triggerDocError(title, desc) {
+      errorsCount += 1;
+      errFlash = 0.85;
+      syncHeaderMeta();
+      haptic('error'); sfx('alert');
+      flashShake(stage);
+      if (errorsCount >= maxErrors) {
+        timers.setTimeout(function () { showFailScreen('too_many_errors', desc); }, 520);
+        return;
+      }
+      setTempFlash(title, desc, 'err', 1900);
+    }
+
+    listeners.on(fixBtn, 'click', function () {
+      if (phase !== 'inspect' || !currentSpot || currentSpot.found || currentSpot.cover > 0.02) return;
+
+      if (!currentSpot.isEvidence) {
+        triggerDocError('ЛОЖНЫЙ СЛЕД (+1 ОШИБКА)', currentSpot.falseReason);
+        return;
+      }
+      if (currentSpot.requiredLight !== 'none' && activeLight !== currentSpot.requiredLight) {
+        triggerDocError('НАРУШЕНА МЕТОДИКА (+1)', currentSpot.wrongModeMsg);
+        return;
+      }
+
+      currentSpot.found = true;
+      foundCount += 1;
+      captureFlash = 1;
+      haptic('success'); sfx('stamp');
+
+      if (cluePills[foundCount - 1]) {
+        cluePills[foundCount - 1].classList.add('is-found');
+        cluePills[foundCount - 1].textContent = currentSpot.shortLabel;
+      }
+      syncHeaderMeta();
+      setTempFlash('УЛИКА ЗАФИКСИРОВАНА', currentSpot.label, 'ok', 1500);
+
+      if (foundCount >= totalEvidence) {
+        timers.setTimeout(function () {
+          if (phase === 'inspect') openDeductionPhase();
+        }, 720);
+      }
+    });
+
+    function scrubCoverAt(nx, ny, distNorm) {
+      if (activeLight !== 'white') return;
+      for (var k = 0; k < spots.length; k++) {
+        var sp = spots[k];
+        if (sp.cover <= 0) continue;
+        if (Math.hypot(sp.x - nx, sp.y - ny) <= sp.radius + 0.04) {
+          sp.cover = Math.max(0, sp.cover - Math.max(0.14, distNorm * 2.8));
+          for (var p = 0; p < 3; p++) {
+            coverParticles.push({
+              x: sp.x + (Math.random() - 0.5) * 0.06,
+              y: sp.y + (Math.random() - 0.5) * 0.05,
+              vx: (Math.random() - 0.5) * 0.24,
+              vy: (Math.random() - 0.2) * 0.2 + 0.05,
+              r: 1.4 + Math.random() * 2,
+              alpha: 0.9
+            });
+          }
+          if (sp.cover <= 0.14) {
+            sp.cover = 0;
+            haptic('medium'); sfx('paper');
+            setTempFlash('СЛОЙ СНЯТ', 'Участок очищен — изучите его в БЕЛОМ, КОСОМ или УФ-свете.', 'ok', 1450);
+          }
+        }
+      }
+    }
 
     function moveLoupe(ev) {
       var rect = canvas.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
-      targetX = clamp((ev.clientX - rect.left) / rect.width, 0.08, 0.92);
-      targetY = clamp((ev.clientY - rect.top) / rect.height, 0.10, 0.90);
+      var nx = clamp((ev.clientX - rect.left) / rect.width, 0.08, 0.92);
+      var ny = clamp((ev.clientY - rect.top) / rect.height, 0.10, 0.90);
+      var dist = Math.hypot(nx - lastDragX, ny - lastDragY);
+      lastDragX = nx; lastDragY = ny;
+      targetX = nx; targetY = ny;
+      scrubCoverAt(nx, ny, dist);
     }
 
     listeners.on(canvas, 'pointerdown', function (ev) {
-      if (finished) return;
+      if (phase !== 'inspect') return;
       dragging = true;
-      try {
-        canvas.setPointerCapture(ev.pointerId);
-      } catch (e) {}
+      try { canvas.setPointerCapture(ev.pointerId); } catch (e) {}
+      var rect = canvas.getBoundingClientRect();
+      if (rect.width && rect.height) {
+        lastDragX = clamp((ev.clientX - rect.left) / rect.width, 0.08, 0.92);
+        lastDragY = clamp((ev.clientY - rect.top) / rect.height, 0.10, 0.90);
+      }
       moveLoupe(ev);
     });
-
     listeners.on(canvas, 'pointermove', function (ev) {
-      if (!dragging || finished) return;
+      if (!dragging || phase !== 'inspect') return;
       moveLoupe(ev);
     });
+    listeners.on(canvas, 'pointerup', function () { dragging = false; });
+    listeners.on(canvas, 'pointercancel', function () { dragging = false; });
 
-    listeners.on(canvas, 'pointerup', function () {
-      dragging = false;
-    });
-    listeners.on(canvas, 'pointercancel', function () {
-      dragging = false;
-    });
-
-    function evaluateLoupe() {
-      var hit = null;
-      for (var k = 0; k < defects.length; k++) {
-        var d = defects[k];
-        if (d.found) continue;
-        var dist = Math.hypot(d.x - loupeX, d.y - loupeY);
-        if (dist <= d.radius && activeLight === d.requiredLight) {
-          hit = d;
-          break;
+    function findSpotUnderLoupe() {
+      var best = null, bestDist = 999;
+      for (var k = 0; k < spots.length; k++) {
+        var d = Math.hypot(spots[k].x - loupeX, spots[k].y - loupeY);
+        if (d <= spots[k].radius && d < bestDist) {
+          bestDist = d;
+          best = spots[k];
         }
       }
-
-      lockedDefect = hit;
-      var ready = !!(hit && !finished);
-
-      if (ready && !wasLocked) {
-        haptic('light');
-        sfx('scan');
-      }
-      wasLocked = ready;
-
-      fixBtn.disabled = !ready;
-      if (ready) {
-        fixBtn.classList.add('is-ready');
-        statusEl.className = activeLight === 'uv' ? 'mg-f2-status is-uv' : 'mg-f2-status is-ok';
-        statusText.textContent = 'Обнаружен признак фальсификации — нажмите «ЗАФИКСИРОВАТЬ»';
-      } else if (!finished) {
-        fixBtn.classList.remove('is-ready');
-        statusEl.className = activeLight === 'uv' ? 'mg-f2-status is-uv' : 'mg-f2-status';
-        statusText.textContent =
-          activeLight === 'uv'
-            ? 'УФ 365 нм: ищите флуоресцентные следы травления или смазки'
-            : activeLight === 'oblique'
-            ? 'Косой свет: ищите рельефные царапины, заусенцы и продавливания'
-            : 'Белый свет 2.2×: проверяйте шрифты, микротекст и общие детали';
-      }
+      return best;
     }
 
-    listeners.on(fixBtn, 'click', function () {
-      if (finished || !lockedDefect || lockedDefect.found) return;
-      var def = lockedDefect;
-      def.found = true;
-      foundCount++;
-      captureFlash = 1;
-      haptic('medium');
-      sfx('click');
-
-      if (cluePills[foundCount - 1]) {
-        cluePills[foundCount - 1].classList.add('is-found');
-        cluePills[foundCount - 1].textContent = def.shortLabel;
-        cluePills[foundCount - 1].title = def.label;
-      }
-
-      countVal.textContent = foundCount + ' / ' + defects.length;
-
-      if (foundCount >= defects.length) {
-        finished = true;
-        countVal.classList.add('is-ok');
-        fixBtn.disabled = true;
-        fixBtn.classList.remove('is-ready');
-        statusEl.className = 'mg-f2-status is-ok';
-        statusText.textContent =
-          mode === 'lock'
-            ? 'КРИМИНАЛЬНОЕ ВСКРЫТИЕ ОТМЫЧКОЙ ПОДТВЕРЖДЕНО!'
-            : 'ПОДДЕЛКА ДОВЕРЕННОСТИ ДОКАЗАНА!';
-        timers.setTimeout(function () {
-          haptic('success');
-          sfx('success');
-          triggerWin({
-            minigame: 'doc_forgery',
-            mode: mode,
-            found: defects.map(function (item) {
-              return { id: item.id, label: item.label };
-            })
-          });
-        }, 950);
-      } else {
-        statusEl.className = 'mg-f2-status is-ok';
-        statusText.textContent = 'Зафиксировано: ' + def.label;
-      }
-    });
+    syncHeaderMeta();
+    syncLightUI();
+    syncInspector();
 
     function render(now) {
       var dt = Math.min((now - lastTs) / 1000, 0.05);
       lastTs = now;
 
-      loupeX = lerp(loupeX, targetX, Math.min(1, dt * 18));
-      loupeY = lerp(loupeY, targetY, Math.min(1, dt * 18));
+      if (phase === 'inspect') {
+        loupeX = lerp(loupeX, targetX, Math.min(1, dt * 18));
+        loupeY = lerp(loupeY, targetY, Math.min(1, dt * 18));
 
-      evaluateLoupe();
-
-      var metrics = canvasMgr.getMetrics();
-      var w = metrics.width;
-      var h = metrics.height;
-      var dpr = metrics.dpr;
-      var ctx = canvas.getContext('2d');
-
-      ctx.save();
-      ctx.scale(dpr, dpr);
-
-      // 1. Base object outside the magnifying loupe (dimmed white light for orientation)
-      ctx.drawImage(layers.white, 0, 0, w, h);
-      ctx.fillStyle =
-        activeLight === 'uv'
-          ? 'rgba(10, 8, 28, 0.64)'
-          : activeLight === 'oblique'
-          ? 'rgba(14, 11, 8, 0.50)'
-          : 'rgba(8, 10, 14, 0.36)';
-      ctx.fillRect(0, 0, w, h);
-
-      // Show subtle green check pins on already captured defects
-      for (var k = 0; k < defects.length; k++) {
-        var df = defects[k];
-        if (df.found) {
-          var fx = df.x * w;
-          var fy = df.y * h;
-          ctx.fillStyle = 'rgba(34, 197, 94, 0.25)';
-          ctx.beginPath();
-          ctx.arc(fx, fy, 12, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = '#22c55e';
-          ctx.lineWidth = 1.8;
-          ctx.stroke();
-          ctx.fillStyle = '#4ade80';
-          ctx.beginPath();
-          ctx.arc(fx, fy, 3, 0, Math.PI * 2);
-          ctx.fill();
+        var hit = findSpotUnderLoupe();
+        if (hit !== currentSpot) {
+          currentSpot = hit;
+          syncInspector();
         }
-      }
 
-      // 2. Circular 2.2x Magnifying Loupe with active spectral light layer
-      var lx = loupeX * w;
-      var ly = loupeY * h;
-      var loupeR = clamp(Math.min(w, h) * 0.24, 48, 72);
-      var mag = 2.2;
-      var srcLayer = layers[activeLight] || layers.white;
+        var metrics = canvasMgr.getMetrics();
+        var w = metrics.width, h = metrics.height, dpr = metrics.dpr;
+        var ctx = canvas.getContext('2d');
 
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(lx, ly, loupeR, 0, Math.PI * 2);
-      ctx.clip();
-
-      var srcW = ((loupeR * 2) / w) * srcLayer.width / mag;
-      var srcH = ((loupeR * 2) / h) * srcLayer.height / mag;
-      var srcX = loupeX * srcLayer.width - srcW / 2;
-      var srcY = loupeY * srcLayer.height - srcH / 2;
-
-      ctx.fillStyle = activeLight === 'uv' ? '#070614' : '#0b0c0e';
-      ctx.fillRect(lx - loupeR, ly - loupeR, loupeR * 2, loupeR * 2);
-      ctx.drawImage(srcLayer, srcX, srcY, srcW, srcH, lx - loupeR, ly - loupeR, loupeR * 2, loupeR * 2);
-
-      // Subtle spectral glass tint & glare arc inside lens
-      if (activeLight === 'uv') {
-        var uvGlow = ctx.createRadialGradient(lx, ly, loupeR * 0.2, lx, ly, loupeR);
-        uvGlow.addColorStop(0, 'rgba(99, 102, 241, 0.06)');
-        uvGlow.addColorStop(1, 'rgba(79, 70, 229, 0.32)');
-        ctx.fillStyle = uvGlow;
-        ctx.fillRect(lx - loupeR, ly - loupeR, loupeR * 2, loupeR * 2);
-      } else if (activeLight === 'oblique') {
-        var obShine = ctx.createLinearGradient(lx - loupeR, ly - loupeR, lx + loupeR, ly + loupeR);
-        obShine.addColorStop(0, 'rgba(251, 191, 36, 0.16)');
-        obShine.addColorStop(0.5, 'rgba(0, 0, 0, 0)');
-        obShine.addColorStop(1, 'rgba(0, 0, 0, 0.22)');
-        ctx.fillStyle = obShine;
-        ctx.fillRect(lx - loupeR, ly - loupeR, loupeR * 2, loupeR * 2);
-      }
-
-      // Curved optical glass highlight
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(lx, ly, loupeR - 5, -Math.PI * 0.78, -Math.PI * 0.34);
-      ctx.stroke();
-
-      // Center precision reticle inside lens
-      var retCol = lockedDefect
-        ? '#22c55e'
-        : activeLight === 'uv'
-        ? 'rgba(165, 180, 252, 0.75)'
-        : 'rgba(245, 158, 11, 0.75)';
-      ctx.strokeStyle = retCol;
-      ctx.lineWidth = lockedDefect ? 1.8 : 1.1;
-      ctx.beginPath();
-      ctx.moveTo(lx - 11, ly);
-      ctx.lineTo(lx - 4, ly);
-      ctx.moveTo(lx + 4, ly);
-      ctx.lineTo(lx + 11, ly);
-      ctx.moveTo(lx, ly - 11);
-      ctx.lineTo(lx, ly - 4);
-      ctx.moveTo(lx, ly + 4);
-      ctx.lineTo(lx, ly + 11);
-      ctx.stroke();
-
-      if (lockedDefect) {
-        var pulseR = 17 + Math.sin(now * 0.012) * 3;
-        ctx.strokeStyle = 'rgba(34, 197, 94, 0.9)';
-        ctx.lineWidth = 1.8;
-        ctx.setLineDash([5, 4]);
-        ctx.beginPath();
-        ctx.arc(lx, ly, pulseR, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-      }
-
-      ctx.restore();
-
-      // 3. Metallic Loupe Bezel Ring
-      var bezelCol = lockedDefect
-        ? '#22c55e'
-        : activeLight === 'uv'
-        ? '#6366f1'
-        : activeLight === 'oblique'
-        ? '#f59e0b'
-        : '#cbd5e1';
-
-      ctx.strokeStyle = '#0b0c0e';
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.arc(lx, ly, loupeR + 1.5, 0, Math.PI * 2);
-      ctx.stroke();
-
-      ctx.strokeStyle = bezelCol;
-      ctx.lineWidth = 2.4;
-      ctx.beginPath();
-      ctx.arc(lx, ly, loupeR, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // Small magnification tag attached to loupe rim
-      var tagY = ly + loupeR + 10 > h - 12 ? ly - loupeR - 12 : ly + loupeR + 11;
-      ctx.font = '700 9.5px "IBM Plex Mono", monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = bezelCol;
-      var modeTag =
-        activeLight === 'uv' ? 'UV 365nm • 2.2×' : activeLight === 'oblique' ? 'OBLIQUE • 2.2×' : 'WHITE • 2.2×';
-      ctx.fillText(modeTag, clamp(lx, 56, w - 56), tagY);
-
-      if (captureFlash > 0.01) {
-        ctx.fillStyle = 'rgba(34, 197, 94, ' + (captureFlash * 0.34).toFixed(3) + ')';
-        ctx.fillRect(0, 0, w, h);
-        captureFlash = Math.max(0, captureFlash - dt * 3.2);
-      }
-
-      if (finished) {
-        ctx.fillStyle = 'rgba(8, 10, 14, 0.62)';
-        ctx.fillRect(0, 0, w, h);
         ctx.save();
-        ctx.translate(w / 2, h / 2);
-        ctx.rotate(-0.07);
-        var stW = Math.min(w - 28, 300);
-        ctx.fillStyle = 'rgba(5, 46, 22, 0.93)';
-        ctx.fillRect(-stW / 2, -24, stW, 48);
-        ctx.strokeStyle = '#22c55e';
-        ctx.lineWidth = 2.2;
-        ctx.strokeRect(-stW / 2, -24, stW, 48);
-        ctx.fillStyle = '#86efac';
-        ctx.font = '700 14px "Oswald", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(
-          mode === 'lock' ? 'ВСКРЫТИЕ ОТМЫЧКОЙ ДОКАЗАНО' : 'ПОДДЕЛКА ДОКУМЕНТА ДОКАЗАНА',
-          0,
-          0
-        );
+        ctx.scale(dpr, dpr);
+
+        ctx.drawImage(layers.white, 0, 0, w, h);
+        ctx.fillStyle = activeLight === 'uv' ? 'rgba(10, 8, 28, 0.66)' : activeLight === 'oblique' ? 'rgba(14, 11, 8, 0.52)' : 'rgba(8, 10, 14, 0.36)';
+        ctx.fillRect(0, 0, w, h);
+
+        // Draw obstructions & captured badges on base scene
+        for (var k = 0; k < spots.length; k++) {
+          var sp = spots[k], sx = sp.x * w, sy = sp.y * h;
+          if (sp.cover > 0.02) {
+            ctx.save();
+            ctx.globalAlpha = clamp(sp.cover, 0.18, 0.94);
+            ctx.fillStyle = mode === 'lock' ? '#2c2520' : '#e6d79c';
+            ctx.beginPath(); ctx.ellipse(sx, sy, 26, 17, -0.08, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = mode === 'lock' ? '#c98a2e' : '#991b1b'; ctx.lineWidth = 1.2; ctx.setLineDash([3, 2]); ctx.stroke(); ctx.setLineDash([]);
+            ctx.fillStyle = mode === 'lock' ? '#fde68a' : '#231e14';
+            ctx.font = '700 8px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('ПОТРИТЕ', sx, sy);
+            ctx.restore();
+          }
+          if (sp.found) {
+            ctx.fillStyle = 'rgba(34, 197, 94, 0.24)';
+            ctx.beginPath(); ctx.arc(sx, sy, 12, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 1.8; ctx.stroke();
+          }
+        }
+
+        // Flying cover wipe particles
+        for (var p = coverParticles.length - 1; p >= 0; p--) {
+          var cp = coverParticles[p];
+          cp.x += cp.vx * dt; cp.y += cp.vy * dt; cp.alpha -= dt * 1.9;
+          if (cp.alpha <= 0) { coverParticles.splice(p, 1); continue; }
+          ctx.fillStyle = mode === 'lock' ? ('rgba(70, 58, 48, ' + cp.alpha.toFixed(2) + ')') : ('rgba(230, 215, 156, ' + cp.alpha.toFixed(2) + ')');
+          ctx.beginPath(); ctx.arc(cp.x * w, cp.y * h, cp.r, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // 2.2x Optical Magnifying Loupe
+        var lx = loupeX * w, ly = loupeY * h;
+        var loupeR = clamp(Math.min(w, h) * 0.24, 48, 72);
+        var mag = 2.2;
+        var srcLayer = layers[activeLight] || layers.white;
+
+        ctx.save();
+        ctx.beginPath(); ctx.arc(lx, ly, loupeR, 0, Math.PI * 2); ctx.clip();
+        var srcW = ((loupeR * 2) / w) * srcLayer.width / mag;
+        var srcH = ((loupeR * 2) / h) * srcLayer.height / mag;
+        ctx.fillStyle = activeLight === 'uv' ? '#070614' : '#0b0c0e';
+        ctx.fillRect(lx - loupeR, ly - loupeR, loupeR * 2, loupeR * 2);
+        ctx.drawImage(srcLayer, loupeX * srcLayer.width - srcW / 2, loupeY * srcLayer.height - srcH / 2, srcW, srcH, lx - loupeR, ly - loupeR, loupeR * 2, loupeR * 2);
+
+        if (currentSpot && currentSpot.cover > 0.02) {
+          ctx.fillStyle = 'rgba(12, 12, 16, ' + (currentSpot.cover * 0.82).toFixed(2) + ')';
+          ctx.fillRect(lx - loupeR, ly - loupeR, loupeR * 2, loupeR * 2);
+          ctx.fillStyle = '#fde68a'; ctx.font = '700 9.5px "IBM Plex Mono", monospace';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText('СНИМИТЕ СЛОЙ', lx, ly);
+        }
+
+        // Neutral optical crosshair (no free spoiler!)
+        ctx.strokeStyle = activeLight === 'uv' ? 'rgba(165, 180, 252, 0.78)' : 'rgba(245, 158, 11, 0.78)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(lx - 10, ly); ctx.lineTo(lx - 4, ly);
+        ctx.moveTo(lx + 4, ly); ctx.lineTo(lx + 10, ly);
+        ctx.moveTo(lx, ly - 10); ctx.lineTo(lx, ly - 4);
+        ctx.moveTo(lx, ly + 4); ctx.lineTo(lx, ly + 10);
+        ctx.stroke();
+        ctx.restore();
+
+        // Loupe bezel
+        var bezelCol = activeLight === 'uv' ? '#6366f1' : activeLight === 'oblique' ? '#f59e0b' : '#cbd5e1';
+        ctx.strokeStyle = '#0b0c0e'; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.arc(lx, ly, loupeR + 1.5, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = bezelCol; ctx.lineWidth = 2.4;
+        ctx.beginPath(); ctx.arc(lx, ly, loupeR, 0, Math.PI * 2); ctx.stroke();
+
+        var tagY = ly + loupeR + 10 > h - 12 ? ly - loupeR - 12 : ly + loupeR + 11;
+        ctx.font = '700 9.5px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = bezelCol;
+        ctx.fillText(activeLight === 'uv' ? 'UV 365nm • 2.2×' : activeLight === 'oblique' ? 'OBLIQUE • 2.2×' : 'WHITE • 2.2×', clamp(lx, 56, w - 56), tagY);
+
+        if (captureFlash > 0.01) {
+          ctx.fillStyle = 'rgba(34, 197, 94, ' + (captureFlash * 0.34).toFixed(3) + ')';
+          ctx.fillRect(0, 0, w, h);
+          captureFlash = Math.max(0, captureFlash - dt * 3.2);
+        }
+        if (errFlash > 0.01) {
+          ctx.fillStyle = 'rgba(220, 38, 38, ' + (errFlash * 0.34).toFixed(3) + ')';
+          ctx.fillRect(0, 0, w, h);
+          errFlash = Math.max(0, errFlash - dt * 2.5);
+        }
         ctx.restore();
       }
-
-      ctx.restore();
       timers.raf(render);
     }
 
     timers.raf(render);
-
     return function cleanup() {
       timers.clearAll();
       listeners.clearAll();
