@@ -1643,90 +1643,307 @@
   });
 
   /* ==========================================================================
-     MINIGAME 2: 'blood_lab' (Лабораторный анализ крови с реагентами)
+     MINIGAME 2: 'blood_lab' (Multi-scenario case409 + case412 + 3-phase)
      ========================================================================== */
+
+  var BLOOD_EXTRA_STYLE_ID = 'minigames-lab-blood-extra';
+
+  var BLOOD_EXTRA_CSS =
+    '.mgl-bl-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }' +
+    '.mgl-bl-err { font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 600; color: #9ba0ab; }' +
+    '.mgl-bl-err.is-warn { color: #f87171; }' +
+    '.mgl-pipette-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; width: 100%; }' +
+    '.mgl-pipette-grid.is-six { grid-template-columns: repeat(3, 1fr); }' +
+    '.mgl-pipette-grid .mgl-pipette { padding: 7px 4px; font-size: 10px; gap: 4px; }' +
+    '.mgl-drop-saline { background: radial-gradient(circle at 35% 35%, #a7f3d0, #0d9488); }' +
+    '.mgl-drop-fuji { background: radial-gradient(circle at 35% 35%, #f472b6, #be185d); }' +
+    '.mgl-drop-sudan { background: radial-gradient(circle at 35% 35%, #fb923c, #c2410c); }' +
+    '.mgl-drop-acet { background: radial-gradient(circle at 35% 35%, #c4b5fd, #6d28d9); }' +
+    '.mgl-bl-deduce { width: 100%; max-width: 356px; background: #14171f; border: 1px solid #353b4a; border-top: 3px solid var(--case-accent, #c98a2e); border-radius: 7px; padding: 12px; display: flex; flex-direction: column; gap: 8px; text-align: left; }' +
+    '.mgl-bl-dkicker { font-family: "IBM Plex Mono", monospace; font-size: 9.8px; font-weight: 700; color: var(--case-accent, #c98a2e); text-transform: uppercase; }' +
+    '.mgl-bl-dfacts { padding: 7px 8px; background: #0d1016; border: 1px solid #262b36; border-radius: 5px; font-family: "IBM Plex Mono", monospace; font-size: 9.8px; line-height: 1.4; color: #c2cad8; display: flex; flex-direction: column; gap: 3px; }' +
+    '.mgl-bl-dq { font-size: 12.4px; line-height: 1.38; color: #f3efe6; font-weight: 500; }' +
+    '.mgl-bl-dopts { display: flex; flex-direction: column; gap: 6px; }' +
+    '.mgl-bl-dopt { width: 100%; text-align: left; padding: 8px 9px; background: #1b202b; border: 1px solid #353d4e; border-radius: 5px; color: #e4e0d8; font-size: 11.6px; line-height: 1.34; cursor: pointer; }' +
+    '.mgl-bl-dopt.is-wrong { border-color: #ef4444; background: rgba(153, 27, 27, 0.25); color: #fecaca; }' +
+    '.mgl-bl-dopt.is-correct { border-color: #22c55e; background: rgba(34, 197, 94, 0.2); color: #bbf7d0; }' +
+    '.mgl-bl-dfb { font-family: "IBM Plex Mono", monospace; font-size: 10.2px; line-height: 1.35; min-height: 15px; color: #fca5a5; }' +
+    '.mgl-bl-dfb.is-ok { color: #86efac; }';
+
+  function injectBloodExtraStyles() {
+    if (document.getElementById(BLOOD_EXTRA_STYLE_ID)) return;
+    var el = document.createElement('style');
+    el.id = BLOOD_EXTRA_STYLE_ID;
+    el.textContent = BLOOD_EXTRA_CSS;
+    document.head.appendChild(el);
+  }
+
+  var BLOOD_REAGENTS = {
+    antiA: { key: 'antiA', label: 'Анти-А', dropColor: '#3b82f6', dotClass: 'mgl-drop-a' },
+    antiB: { key: 'antiB', label: 'Анти-В', dropColor: '#eab308', dotClass: 'mgl-drop-b' },
+    antiD: { key: 'antiD', label: 'Анти-D', dropColor: '#e2e8f0', dotClass: 'mgl-drop-d' },
+    saline: { key: 'saline', label: 'Физраств.', dropColor: '#14b8a6', dotClass: 'mgl-drop-saline', isDecoy: true },
+    fuji: { key: 'fuji', label: 'Фудживара', dropColor: '#ec4899', dotClass: 'mgl-drop-fuji' },
+    sudan: { key: 'sudan', label: 'Судан-III', dropColor: '#f97316', dotClass: 'mgl-drop-sudan' },
+    acet: { key: 'acet', label: 'Ацетон', dropColor: '#8b5cf6', dotClass: 'mgl-drop-acet' }
+  };
+
+  function resolveBloodScenario(config) {
+    var cfg = config || {};
+    var caseId = String(window.ACTIVE_CASE_ID || '').toLowerCase();
+    var nodeId = '';
+    try {
+      if (window.GameEngine && typeof window.GameEngine.getState === 'function') {
+        var st = window.GameEngine.getState();
+        if (st && st.nodeId) nodeId = String(st.nodeId);
+      }
+    } catch (e) {}
+    var storyNode = null;
+    try {
+      if (window.GameStory && window.GameStory.nodes && nodeId) {
+        storyNode = window.GameStory.nodes[nodeId] || null;
+      }
+    } catch (e) {}
+
+    var hint = String(cfg.title || (storyNode && storyNode.title) || '');
+    if (cfg.preset === 'case412' || caseId === 'case412' || nodeId === 'act4_mg_blood' || /ветош|хлороформ|канав/i.test(hint)) {
+      return {
+        id: 'case412_act4_blood',
+        title: cfg.title || 'ХИМ-БИО АНАЛИЗ ВЕТОШИ // №412',
+        expectedGroup: 'II',
+        expectedRh: 'Rh+',
+        conclusionTitle: 'ЗАКЛЮЧЕНИЕ: КРОВЬ НА ВЕТОШИ (СТЕКЛО №2)',
+        stampWin: 'ХЛОРОФОРМ + КРОВЬ II(A) Rh+',
+        pipettes: ['fuji', 'sudan', 'acet', 'antiA', 'antiB', 'antiD'],
+        refExtraHtml:
+          '<div class="mgl-ref-legend">' +
+            '<strong>Хим-пробы (Стекло №1):</strong> Фудживара (+) малиновая — <strong>хлороформ</strong> · ' +
+            'Судан-III (+) оранжевые капли — <strong>минеральное масло</strong> · Ацетон (–) прозрачный — <strong>отсутствует</strong>.' +
+          '</div>',
+        slides: [
+          {
+            id: 'chem_rag',
+            title: 'СТЕКЛО №1: ПРОПИТКА ВЕТОШИ (ХИМ-ПРОБА)',
+            film: 0,
+            filmLabel: '',
+            wells: [
+              { reagent: 'fuji', label: 'Фудживара', positive: true, visualKind: 'chem_magenta' },
+              { reagent: 'sudan', label: 'Судан-III', positive: true, visualKind: 'chem_oil' },
+              { reagent: 'acet', label: 'Ацетон', positive: false, visualKind: 'chem_clear' }
+            ]
+          },
+          {
+            id: 'blood_rag',
+            title: 'СТЕКЛО №2: МИКРОСЛЕДЫ КРОВИ НА ВЕТОШИ',
+            film: 1.0,
+            filmLabel: 'МАСЛЯНАЯ ГРЯЗЬ — ПРОТРИТЕ ПАЛЬЦЕМ',
+            wells: [
+              { reagent: 'antiA', label: 'Анти-А', positive: true, visualKind: 'blood' },
+              { reagent: 'antiB', label: 'Анти-В', positive: false, visualKind: 'blood' },
+              { reagent: 'antiD', label: 'Анти-D', positive: true, visualKind: 'blood' }
+            ]
+          }
+        ],
+        facts: [
+          '• Реактив Фудживары (+): ярко-малиновая реакция на технический хлороформ',
+          '• Реактив Судан-III (+): примесь старого минерального масла (как на ногте у калитки)',
+          '• Серология крови на ветоши: II(A) Rh+ — полностью совпадает с группой Алины Соколовой'
+        ],
+        conclusion: {
+          question: 'На ветоши из канавы за участком №14 — технический хлороформ, старое минеральное масло и кровь II(A) Rh+ Алины. Вывод:',
+          options: [
+            {
+              id: 'paint_rag',
+              text: 'Обычная тряпка с ацетоном из мастерской — следы крови не связаны с Алиной.',
+              isCorrect: false,
+              reason: 'Противоречие: проба на ацетон отрицательная, выявлен хлороформ и кровь II(A) Rh+ Алины.'
+            },
+            {
+              id: 'chloroform_attack',
+              text: 'Показания Беляева верны: Кравцов усыпил Алину хлороформом прямо у забора, поэтому на Садовой никто не услышал крика.',
+              isCorrect: true,
+              reason: 'Верно: хлороформ, то же масло с ногтя и группа II(A) Rh+ наглухо связывают ветошь с похищением.'
+            },
+            {
+              id: 'self_injury',
+              text: 'Алина случайно порезалась о забор и сама протёрла рану тряпкой с антисептиком.',
+              isCorrect: false,
+              reason: 'Противоречие: на ветоши не антисептик, а усыпляющий технический хлороформ с минеральным маслом.'
+            }
+          ]
+        }
+      };
+    }
+
+    if (cfg.preset === 'case409' || caseId === 'case409' || nodeId === 'act2_blood_game') {
+      return {
+        id: 'case409_act2_blood',
+        title: cfg.title || 'ЛАБОРАТОРИЯ КРОВИ // ДЕЛО №409',
+        expectedGroup: 'IV',
+        expectedRh: 'Rh+',
+        conclusionTitle: 'ЗАКЛЮЧЕНИЕ: ОБРАЗЕЦ №2 (РУКОЯТЬ НОЖА)',
+        stampWin: 'УСТАНОВЛЕНО: IV (AB) Rh+',
+        pipettes: ['antiA', 'antiB', 'antiD', 'saline'],
+        refExtraHtml:
+          '<div class="mgl-ref-legend"><strong>Внимание:</strong> Физраствор (NaCl) — контрольный буфер; добавление его вместо сыворотки портит лунку!</div>',
+        slides: [
+          {
+            id: 'sample1',
+            title: 'ОБРАЗЕЦ №1 (Одежда жертвы Савельевой)',
+            film: 0,
+            filmLabel: '',
+            wells: [
+              { reagent: 'antiA', label: 'Анти-А', positive: true, visualKind: 'blood' },
+              { reagent: 'antiB', label: 'Анти-В', positive: false, visualKind: 'blood' },
+              { reagent: 'antiD', label: 'Анти-D', positive: true, visualKind: 'blood' }
+            ]
+          },
+          {
+            id: 'sample2',
+            title: 'ОБРАЗЕЦ №2 (Мазок с рукояти ножа)',
+            film: 1.0,
+            filmLabel: 'ПЛЁНКА ИЛА/АНТИСЕПТИКА — ПРОТРИТЕ',
+            wells: [
+              { reagent: 'antiA', label: 'Анти-А', positive: true, visualKind: 'blood' },
+              { reagent: 'antiB', label: 'Анти-В', positive: true, visualKind: 'blood' },
+              { reagent: 'antiD', label: 'Анти-D', positive: true, visualKind: 'blood' }
+            ]
+          }
+        ],
+        facts: [
+          '• Образец №1 (жертва, Савельева А.В.): II(A) Rh+ (Анти-А +, Анти-В –, Анти-D +)',
+          '• Образец №2 (кровь убийцы с рукояти ножа): редкая IV(AB) Rh+ (все три реакции +)',
+          '• Медкарта подозреваемого Громова В.И.: группа крови I(0) Rh+'
+        ],
+        conclusion: {
+          question: 'У жертвы II(A) Rh+, на рукояти ножа кровь убийцы редкой группы IV(AB) Rh+, а у Громова по тюремной карте I(0) Rh+. Вывод:',
+          options: [
+            {
+              id: 'gromov_mixed',
+              text: 'На рукояти смешалась кровь Громова I(0) и жертвы II(A), что случайно дало реакцию IV(AB).',
+              isCorrect: false,
+              reason: 'Противоречие: смесь I(0) и II(A) физически не содержит антиген B и никогда не даст агглютинацию с Анти-В!'
+            },
+            {
+              id: 'not_gromov_ab',
+              text: 'Нападавший — точно НЕ Громов В.И.; убийца порезался при ударе и имеет редкую группу крови IV(AB) Rh+.',
+              isCorrect: true,
+              reason: 'Верно: наличие антигенов A и B на рукояти полностью исключает Громова и даёт важнейший маркер убийцы.'
+            },
+            {
+              id: 'victim_blood',
+              text: 'Вся кровь на ноже принадлежит самой потерпевшей Савельевой.',
+              isCorrect: false,
+              reason: 'Противоречие: у потерпевшей группа II(A) Rh+ (Анти-В отрицательный), а на рукояти — IV(AB) Rh+.'
+            }
+          ]
+        }
+      };
+    }
+
+    return {
+      id: 'generic_blood_lab',
+      title: cfg.title || 'СЕРОЛОГИЧЕСКАЯ ЛАБОРАТОРИЯ',
+      expectedGroup: cfg.expectedGroup || 'IV',
+      expectedRh: cfg.expectedRh || 'Rh+',
+      conclusionTitle: 'ЗАКЛЮЧЕНИЕ ПО ОБРАЗЦУ №2',
+      stampWin: 'АНАЛИЗ ПОДТВЕРЖДЁН',
+      pipettes: ['antiA', 'antiB', 'antiD', 'saline'],
+      refExtraHtml: '',
+      slides: [
+        {
+          id: 'g_s1',
+          title: 'ОБРАЗЕЦ №1 (Контрольная проба)',
+          film: 0,
+          filmLabel: '',
+          wells: [
+            { reagent: 'antiA', label: 'Анти-А', positive: true, visualKind: 'blood' },
+            { reagent: 'antiB', label: 'Анти-В', positive: false, visualKind: 'blood' },
+            { reagent: 'antiD', label: 'Анти-D', positive: true, visualKind: 'blood' }
+          ]
+        },
+        {
+          id: 'g_s2',
+          title: 'ОБРАЗЕЦ №2 (Смыв с вещдока)',
+          film: 1.0,
+          filmLabel: 'ЗАГРЯЗНЕНИЕ — ПРОТРИТЕ ПАЛЬЦЕМ',
+          wells: [
+            { reagent: 'antiA', label: 'Анти-А', positive: true, visualKind: 'blood' },
+            { reagent: 'antiB', label: 'Анти-В', positive: true, visualKind: 'blood' },
+            { reagent: 'antiD', label: 'Анти-D', positive: true, visualKind: 'blood' }
+          ]
+        }
+      ],
+      facts: [
+        '• Стекло №2 очищено от постороннего загрязнения',
+        '• Реакции агглютинации по всем 6 лункам завершены',
+        '• Группа крови и резус-фактор Образца №2 подтверждены'
+      ],
+      conclusion: cfg.conclusion || {
+        question: 'Серологический анализ образцов завершён. Подтвердите вывод протокола:',
+        options: [
+          { id: 'err', text: 'Реакции не состоялись из-за загрязнения.', isCorrect: false, reason: 'Противоречие: все 6 лунок отработали чисто.' },
+          { id: 'ok', text: 'Группа крови и резус-фактор вещдока достоверно установлены.', isCorrect: true, reason: 'Верно: лабораторное заключение готово.' },
+          { id: 'same', text: 'Оба образца полностью идентичны.', isCorrect: false, reason: 'Противоречие: реакции с сывороткой Анти-В различаются.' }
+        ]
+      }
+    };
+  }
+
 
   window.GameMinigames.register('blood_lab', function (containerEl, config, callbacks) {
     injectLabStyles();
+    injectBloodExtraStyles();
 
-    var REAGENTS = {
-      antiA: { key: 'antiA', label: 'Анти-А', dropColor: '#3b82f6', glowColor: 'rgba(59, 130, 246, 0.55)' },
-      antiB: { key: 'antiB', label: 'Анти-В', dropColor: '#eab308', glowColor: 'rgba(234, 179, 8, 0.55)' },
-      antiD: { key: 'antiD', label: 'Анти-D', dropColor: '#e2e8f0', glowColor: 'rgba(226, 232, 240, 0.55)' }
-    };
+    var cfg = config || {};
+    var scenario = resolveBloodScenario(cfg);
+    var maxErrors = typeof cfg.maxErrors === 'number' && cfg.maxErrors > 0 ? cfg.maxErrors : 4;
 
-    var slides = [
-      {
-        id: 'sample1',
-        title: 'ОБРАЗЕЦ №1 (Одежда жертвы)',
-        wells: [
-          { reagent: 'antiA', label: 'Анти-А', positive: true },
-          { reagent: 'antiB', label: 'Анти-В', positive: false },
-          { reagent: 'antiD', label: 'Анти-D', positive: true }
-        ]
-      },
-      {
-        id: 'sample2',
-        title: 'ОБРАЗЕЦ №2 (Мазок с рукояти ножа)',
-        wells: [
-          { reagent: 'antiA', label: 'Анти-А', positive: true },
-          { reagent: 'antiB', label: 'Анти-В', positive: true },
-          { reagent: 'antiD', label: 'Анти-D', positive: true }
-        ]
-      }
-    ];
-
-    // Pre-generate deterministic agglutination clumps per well
-    for (var si = 0; si < slides.length; si++) {
-      for (var wi = 0; wi < slides[si].wells.length; wi++) {
-        var well = slides[si].wells[wi];
-        well.reacted = false;
-        well.reactionTime = 0;
-        well.errorFlashUntil = 0;
-        well.cx = 0;
-        well.cy = 0;
-        well.r = 24;
-
+    var slides = scenario.slides.map(function (sl, si) {
+      var wells = sl.wells.map(function (w, wi) {
         var prng = createPrng(4090 + si * 100 + wi * 17);
         var clumps = [];
-        var clumpCount = 22;
-        for (var ci = 0; ci < clumpCount; ci++) {
+        for (var ci = 0; ci < 22; ci++) {
           var ang = prng() * Math.PI * 2;
-          var startDist = 0.12 + prng() * 0.72;
-          // Target cluster centers pull positive clumps into distinct grainy islands
-          var clusterAng = (Math.floor(prng() * 6) / 6) * Math.PI * 2 + (prng() - 0.5) * 0.45;
-          var endDist = 0.14 + prng() * 0.56;
+          var sDist = 0.12 + prng() * 0.72;
+          var cAng = (Math.floor(prng() * 6) / 6) * Math.PI * 2 + (prng() - 0.5) * 0.45;
+          var eDist = 0.14 + prng() * 0.56;
           clumps.push({
-            sx: Math.cos(ang) * startDist,
-            sy: Math.sin(ang) * startDist,
-            ex: Math.cos(clusterAng) * endDist,
-            ey: Math.sin(clusterAng) * endDist,
-            rad: 0.085 + prng() * 0.095,
-            rot: prng() * Math.PI,
+            sx: Math.cos(ang) * sDist, sy: Math.sin(ang) * sDist,
+            ex: Math.cos(cAng) * eDist, ey: Math.sin(cAng) * eDist,
+            rad: 0.085 + prng() * 0.095, rot: prng() * Math.PI,
             shade: prng() > 0.45 ? '#3a0408' : '#580910'
           });
         }
-        well.clumps = clumps;
-      }
-    }
+        return {
+          reagent: w.reagent, label: w.label, positive: Boolean(w.positive),
+          visualKind: w.visualKind || 'blood',
+          reacted: false, reactionTime: 0, errorFlashUntil: 0,
+          cx: 0, cy: 0, r: 24, clumps: clumps
+        };
+      });
+      return {
+        id: sl.id, title: sl.title,
+        film: typeof sl.film === 'number' ? sl.film : 0,
+        filmLabel: sl.filmLabel || '',
+        wells: wells, x: 0, y: 0, w: 0, h: 0
+      };
+    });
 
     var selectedReagent = null;
     var reactedCount = 0;
     var selectedGroup = null;
     var selectedRh = null;
-    var attemptsUsed = 0;
-    var maxAttempts = 2;
+    var errorsCount = 0;
+    var phase = 'lab'; // 'lab' | 'formula' | 'deduce' | 'win' | 'fail'
     var refOpen = false;
-    var settled = false;
     var destroyed = false;
 
-    var rafId = null;
-    var toastTimer = null;
-    var endTimer = null;
-    var resizeObserver = null;
+    var rafId = null, toastTimer = null, endTimer = null, resizeObserver = null;
     var lastFrameTime = performance.now();
+    var filmParticles = [];
+    var pointerDown = false, lastPx = 0, lastPy = 0;
 
-    // Build DOM
     var wrap = document.createElement('div');
     wrap.className = 'mg-wrap';
 
@@ -1738,14 +1955,23 @@
 
     var titleEl = document.createElement('div');
     titleEl.className = 'mg-header-title';
-    titleEl.textContent = config.title || 'ЛАБОРАТОРИЯ КРОВИ';
+    titleEl.textContent = scenario.title;
 
-    var counterEl = document.createElement('div');
+    var metaRow = document.createElement('div');
+    metaRow.className = 'mgl-bl-meta';
+
+    var counterEl = document.createElement('span');
     counterEl.className = 'mg-counter';
-    counterEl.textContent = 'ЛУНОК ОБРАБОТАНО: 0 / 6';
+    counterEl.textContent = 'ЛУНОК: 0 / 6';
 
+    var errEl = document.createElement('span');
+    errEl.className = 'mgl-bl-err';
+    errEl.textContent = 'ОШИБКИ: 0 / ' + maxErrors;
+
+    metaRow.appendChild(counterEl);
+    metaRow.appendChild(errEl);
     headInfo.appendChild(titleEl);
-    headInfo.appendChild(counterEl);
+    headInfo.appendChild(metaRow);
 
     var headActions = document.createElement('div');
     headActions.className = 'mgl-head-actions';
@@ -1753,21 +1979,19 @@
     var btnRef = document.createElement('button');
     btnRef.type = 'button';
     btnRef.className = 'mg-btn mgl-btn-ref';
-    btnRef.textContent = 'СПРАВОЧНИК';
+    btnRef.textContent = 'СПРАВКА';
 
     var btnBack = document.createElement('button');
     btnBack.type = 'button';
     btnBack.className = 'mg-btn mg-btn-cancel';
     btnBack.textContent = 'НАЗАД';
     btnBack.addEventListener('click', function () {
-      sfx('sfxClick');
-      haptic('light');
+      sfx('sfxClick'); haptic('light');
       callbacks.onCancel();
     });
 
     headActions.appendChild(btnRef);
     headActions.appendChild(btnBack);
-
     header.appendChild(headInfo);
     header.appendChild(headActions);
 
@@ -1790,19 +2014,19 @@
 
     stage.appendChild(canvasWrap);
 
-    // Conclusion form (activated after all 6 wells are done)
+    var overlaySlot = document.createElement('div');
+    body.appendChild(stage);
+    body.appendChild(overlaySlot);
+
+    // Phase 2: Blood group formula selector
     var conclusionEl = document.createElement('div');
     conclusionEl.className = 'mgl-conclusion hidden';
 
     var concHead = document.createElement('div');
     concHead.className = 'mgl-conclusion-head';
     var concTitle = document.createElement('span');
-    concTitle.textContent = 'ЗАКЛЮЧЕНИЕ: ОБРАЗЕЦ №2 (НОЖ)';
-    var concAttempts = document.createElement('span');
-    concAttempts.className = 'mgl-conclusion-attempts';
-    concAttempts.textContent = 'ПОПЫТКА 1 / 2';
+    concTitle.textContent = scenario.conclusionTitle;
     concHead.appendChild(concTitle);
-    concHead.appendChild(concAttempts);
 
     var groupGrid = document.createElement('div');
     groupGrid.className = 'mgl-choice-grid-4';
@@ -1820,15 +2044,10 @@
         b.className = 'mgl-sel-btn';
         b.textContent = g.label;
         b.addEventListener('click', function () {
-          if (settled) {
-            return;
-          }
+          if (phase !== 'formula') return;
           selectedGroup = g.id;
-          for (var k = 0; k < groupBtns.length; k++) {
-            groupBtns[k].classList.toggle('is-selected', groupBtns[k] === b);
-          }
-          sfx('sfxClick');
-          haptic('light');
+          for (var k = 0; k < groupBtns.length; k++) groupBtns[k].classList.toggle('is-selected', groupBtns[k] === b);
+          sfx('sfxClick'); haptic('light');
         });
         groupGrid.appendChild(b);
         groupBtns.push(b);
@@ -1846,15 +2065,10 @@
         b.className = 'mgl-sel-btn';
         b.textContent = rhVal;
         b.addEventListener('click', function () {
-          if (settled) {
-            return;
-          }
+          if (phase !== 'formula') return;
           selectedRh = rhVal;
-          for (var k = 0; k < rhBtns.length; k++) {
-            rhBtns[k].classList.toggle('is-selected', rhBtns[k] === b);
-          }
-          sfx('sfxClick');
-          haptic('light');
+          for (var k = 0; k < rhBtns.length; k++) rhBtns[k].classList.toggle('is-selected', rhBtns[k] === b);
+          sfx('sfxClick'); haptic('light');
         });
         rhGrid.appendChild(b);
         rhBtns.push(b);
@@ -1864,42 +2078,23 @@
     var btnSubmit = document.createElement('button');
     btnSubmit.type = 'button';
     btnSubmit.className = 'mg-btn mg-btn-primary';
-    btnSubmit.textContent = 'ПОДПИСАТЬ ЗАКЛЮЧЕНИЕ';
+    btnSubmit.textContent = 'ПОДТВЕРДИТЬ ФОРМУЛУ';
     btnSubmit.addEventListener('click', function () {
-      if (settled) {
-        return;
-      }
+      if (phase !== 'formula') return;
       if (!selectedGroup || !selectedRh) {
         haptic('warning');
-        showLabToast('Выберите группу крови и резус-фактор для Образца №2', false, 1200);
+        showLabToast('Выберите группу крови и резус-фактор.', false, 1200);
         return;
       }
-
-      if (selectedGroup === 'IV' && selectedRh === 'Rh+') {
-        settled = true;
-        sfx('sfxStamp');
-        haptic('success');
-        showLabToast('ЗАКЛЮЧЕНИЕ ПОДПИСАНО: IV (AB) Rh+', true, 1200);
+      if (selectedGroup === scenario.expectedGroup && selectedRh === scenario.expectedRh) {
+        sfx('sfxSuccess'); haptic('success');
+        showLabToast('Формула подтверждена: ' + selectedGroup + ' ' + selectedRh, true, 1200);
         endTimer = window.setTimeout(function () {
           endTimer = null;
-          callbacks.onSuccess({ bloodType: 'AB+' });
-        }, 620);
+          openPhase3Deduction();
+        }, 560);
       } else {
-        attemptsUsed += 1;
-        sfx('sfxAlert');
-        haptic('error');
-
-        if (attemptsUsed >= maxAttempts) {
-          settled = true;
-          showLabToast('ОШИБКА В ЗАКЛЮЧЕНИИ — ПРОТОКОЛ АННУЛИРОВАН', false, 1400);
-          endTimer = window.setTimeout(function () {
-            endTimer = null;
-            callbacks.onFail({ reason: 'wrong_analysis' });
-          }, 950);
-        } else {
-          concAttempts.textContent = 'ПОПЫТКА ' + (attemptsUsed + 1) + ' / ' + maxAttempts;
-          showLabToast('ОШИБКА В ЗАКЛЮЧЕНИИ (осталась 1 попытка)', false, 1500);
-        }
+        registerLabError('Неверная формула крови (+1 ошибка) — сверьте хлопья агглютинации со СПРАВКОЙ!', 'wrong_analysis');
       }
     });
 
@@ -1909,15 +2104,15 @@
     conclusionEl.appendChild(btnSubmit);
     stage.appendChild(conclusionEl);
 
-    // Reference overlay (no auto-hints!)
+    // Reference sheet
     var refOverlay = document.createElement('div');
     refOverlay.className = 'mgl-ref-overlay hidden';
     refOverlay.innerHTML =
       '<div class="mgl-ref-paper">' +
-        '<div class="mgl-ref-title">СПРАВОЧНИК АГГЛЮТИНАЦИИ (AB0 / Rh)</div>' +
+        '<div class="mgl-ref-title">СПРАВОЧНИК ЛАБОРАТОРИИ (AB0 / Rh)</div>' +
         '<div class="mgl-ref-legend">' +
-          '<strong>(+) Агглютинация есть:</strong> тёмные хлопья/зернистость, просветление краёв капли.<br>' +
-          '<strong>(–) Агглютинации нет:</strong> гладкая, равномерно мутно-красная капля.' +
+          '<strong>(+) Агглютинация:</strong> тёмные хлопья и просветление краёв.<br>' +
+          '<strong>(–) Нет реакции:</strong> гладкая равномерная капля.' +
         '</div>' +
         '<table class="mgl-ref-table">' +
           '<thead><tr><th>ГРУППА</th><th>Анти-А</th><th>Анти-В</th></tr></thead>' +
@@ -1928,117 +2123,224 @@
             '<tr><td>IV (AB)</td><td>+</td><td>+</td></tr>' +
           '</tbody>' +
         '</table>' +
-        '<div class="mgl-ref-legend">' +
-          '<strong>Резус-фактор:</strong> Анти-D (+) → <strong>Rh+</strong> · Анти-D (–) → <strong>Rh–</strong>' +
-        '</div>' +
+        '<div class="mgl-ref-legend"><strong>Резус:</strong> Анти-D (+) → <strong>Rh+</strong> · Анти-D (–) → <strong>Rh–</strong></div>' +
+        (scenario.refExtraHtml || '') +
         '<button type="button" class="mgl-ref-close">ЗАКРЫТЬ СПРАВОЧНИК</button>' +
       '</div>';
 
     var btnRefClose = refOverlay.querySelector('.mgl-ref-close');
-
-    function toggleReference(forceState) {
-      refOpen = typeof forceState === 'boolean' ? forceState : !refOpen;
+    function toggleReference(force) {
+      refOpen = typeof force === 'boolean' ? force : !refOpen;
       refOverlay.classList.toggle('hidden', !refOpen);
       btnRef.classList.toggle('is-open', refOpen);
-      sfx('sfxPaper');
-      haptic('light');
+      sfx('sfxPaper'); haptic('light');
     }
-
-    btnRef.addEventListener('click', function () {
-      toggleReference();
-    });
-    btnRefClose.addEventListener('click', function () {
-      toggleReference(false);
-    });
-
-    body.appendChild(stage);
+    btnRef.addEventListener('click', function () { toggleReference(); });
+    btnRefClose.addEventListener('click', function () { toggleReference(false); });
     body.appendChild(refOverlay);
 
-    // Footer with 3 reagent pipettes
+    // Footer with reagent pipettes
     var footer = document.createElement('div');
     footer.className = 'mg-footer';
-
-    var pipetteRow = document.createElement('div');
-    pipetteRow.className = 'mgl-pipette-row';
-
-    var pipetteSpecs = [
-      { key: 'antiA', label: 'Анти-А', dotClass: 'mgl-drop-a' },
-      { key: 'antiB', label: 'Анти-В', dotClass: 'mgl-drop-b' },
-      { key: 'antiD', label: 'Анти-D (Rh)', dotClass: 'mgl-drop-d' }
-    ];
-
+    var pipetteGrid = document.createElement('div');
+    pipetteGrid.className = 'mgl-pipette-grid' + (scenario.pipettes.length >= 6 ? ' is-six' : '');
     var pipetteBtns = [];
-    for (var pi = 0; pi < pipetteSpecs.length; pi++) {
-      (function (spec) {
+
+    for (var pi = 0; pi < scenario.pipettes.length; pi++) {
+      (function (rKey) {
+        var rSpec = BLOOD_REAGENTS[rKey];
+        if (!rSpec) return;
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'mgl-pipette';
-        btn.innerHTML =
-          '<span class="mgl-drop-dot ' + spec.dotClass + '"></span>' +
-          '<span>' + spec.label + '</span>';
+        btn.innerHTML = '<span class="mgl-drop-dot ' + rSpec.dotClass + '"></span><span>' + rSpec.label + '</span>';
         btn.addEventListener('click', function () {
-          if (settled) {
-            return;
-          }
-          selectedReagent = spec.key;
-          for (var j = 0; j < pipetteBtns.length; j++) {
-            pipetteBtns[j].classList.toggle('is-selected', pipetteBtns[j] === btn);
-          }
-          sfx('sfxClick');
-          haptic('light');
+          if (phase !== 'lab') return;
+          selectedReagent = rSpec.key;
+          for (var j = 0; j < pipetteBtns.length; j++) pipetteBtns[j].classList.toggle('is-selected', pipetteBtns[j] === btn);
+          sfx('sfxClick'); haptic('light');
         });
-        pipetteRow.appendChild(btn);
+        pipetteGrid.appendChild(btn);
         pipetteBtns.push(btn);
-      })(pipetteSpecs[pi]);
+      })(scenario.pipettes[pi]);
     }
-
-    footer.appendChild(pipetteRow);
+    footer.appendChild(pipetteGrid);
 
     wrap.appendChild(header);
     wrap.appendChild(body);
     wrap.appendChild(footer);
     containerEl.appendChild(wrap);
 
-    // Canvas setup
     var ctx = canvas.getContext('2d');
-    var cssW = 320;
-    var cssH = 380;
-    var dpr = 1;
+    var cssW = 320, cssH = 380, dpr = 1;
+
+    function syncErrHeader() {
+      errEl.textContent = 'ОШИБКИ: ' + errorsCount + ' / ' + maxErrors;
+      errEl.classList.toggle('is-warn', errorsCount >= maxErrors - 1);
+    }
 
     function showLabToast(text, isOk, durationMs) {
-      if (toastTimer !== null) {
-        window.clearTimeout(toastTimer);
-        toastTimer = null;
-      }
+      if (toastTimer !== null) { window.clearTimeout(toastTimer); toastTimer = null; }
       warnBanner.textContent = text;
       warnBanner.classList.toggle('is-ok', Boolean(isOk));
       warnBanner.classList.add('is-visible');
       toastTimer = window.setTimeout(function () {
         toastTimer = null;
         warnBanner.classList.remove('is-visible');
-      }, durationMs || 1100);
+      }, durationMs || 1300);
+    }
+
+    function showFailOverlay(reason, msg) {
+      phase = 'fail';
+      footer.classList.add('hidden');
+      conclusionEl.classList.add('hidden');
+      overlaySlot.innerHTML = '';
+      var panel = document.createElement('div');
+      panel.className = 'mgl-overlay-panel';
+      var card = document.createElement('div');
+      card.className = 'mgl-overlay-card is-alert';
+      var st = document.createElement('div');
+      st.className = 'mgl-stamp';
+      st.textContent = 'ПРОТОКОЛ АННУЛИРОВАН';
+      var txt = document.createElement('div');
+      txt.className = 'mgl-card-text';
+      txt.textContent = msg || 'Превышен лимит ошибок лабораторного анализа.';
+      card.appendChild(st); card.appendChild(txt);
+      panel.appendChild(card); overlaySlot.appendChild(panel);
+      endTimer = window.setTimeout(function () {
+        endTimer = null;
+        callbacks.onFail({ reason: reason, errors: errorsCount, scenarioId: scenario.id });
+      }, 950);
+    }
+
+    function registerLabError(msg, reason) {
+      errorsCount += 1;
+      syncErrHeader();
+      sfx('sfxAlert'); haptic('error');
+      showLabToast(msg, false, 1500);
+      if (errorsCount >= maxErrors) {
+        endTimer = window.setTimeout(function () {
+          endTimer = null;
+          showFailOverlay(reason || 'too_many_errors', msg);
+        }, 620);
+      }
+    }
+
+    function openPhase3Deduction() {
+      phase = 'deduce';
+      counterEl.textContent = 'ФАЗА 3 // ВЫВОД';
+      conclusionEl.classList.add('hidden');
+      footer.classList.add('hidden');
+      overlaySlot.innerHTML = '';
+
+      var panel = document.createElement('div');
+      panel.className = 'mgl-overlay-panel';
+      var card = document.createElement('div');
+      card.className = 'mgl-bl-deduce';
+
+      var kicker = document.createElement('div');
+      kicker.className = 'mgl-bl-dkicker';
+      kicker.textContent = 'ФАЗА 3 // ЛАБОРАТОРНЫЙ ВЫВОД';
+      card.appendChild(kicker);
+
+      var facts = document.createElement('div');
+      facts.className = 'mgl-bl-dfacts';
+      for (var fi = 0; fi < scenario.facts.length; fi++) {
+        var row = document.createElement('div');
+        row.textContent = scenario.facts[fi];
+        facts.appendChild(row);
+      }
+      card.appendChild(facts);
+
+      var q = document.createElement('div');
+      q.className = 'mgl-bl-dq';
+      q.textContent = scenario.conclusion.question;
+      card.appendChild(q);
+
+      var optsEl = document.createElement('div');
+      optsEl.className = 'mgl-bl-dopts';
+      var fb = document.createElement('div');
+      fb.className = 'mgl-bl-dfb';
+
+      var settled = false;
+      var opts = scenario.conclusion.options || [];
+      for (var oi = 0; oi < opts.length; oi++) {
+        (function (opt) {
+          var ob = document.createElement('button');
+          ob.type = 'button';
+          ob.className = 'mgl-bl-dopt';
+          ob.textContent = opt.text;
+          ob.addEventListener('click', function () {
+            if (settled || destroyed) return;
+            if (opt.isCorrect) {
+              settled = true;
+              ob.classList.add('is-correct');
+              fb.className = 'mgl-bl-dfb is-ok';
+              fb.textContent = opt.reason;
+              sfx('sfxStamp'); haptic('success');
+              endTimer = window.setTimeout(function () {
+                endTimer = null;
+                card.innerHTML = '';
+                var st = document.createElement('div');
+                st.className = 'mgl-stamp';
+                st.style.color = '#4ade80';
+                st.style.borderColor = '#22c55e';
+                st.textContent = scenario.stampWin;
+                var btnDone = document.createElement('button');
+                btnDone.type = 'button';
+                btnDone.className = 'mg-btn mg-btn-primary';
+                btnDone.textContent = 'ПРИОБЩИТЬ ПРОТОКОЛ К ДЕЛУ';
+                btnDone.addEventListener('click', function () {
+                  sfx('sfxStamp'); haptic('success');
+                  callbacks.onSuccess({
+                    bloodType: scenario.expectedGroup + scenario.expectedRh,
+                    scenarioId: scenario.id,
+                    errors: errorsCount,
+                    deduced: opt.id
+                  });
+                });
+                card.style.alignItems = 'center';
+                card.style.gap = '14px';
+                card.appendChild(st);
+                card.appendChild(btnDone);
+              }, 550);
+            } else {
+              errorsCount += 1;
+              syncErrHeader();
+              ob.classList.add('is-wrong');
+              fb.className = 'mgl-bl-dfb';
+              fb.textContent = opt.reason;
+              sfx('sfxAlert'); haptic('error');
+              if (errorsCount >= maxErrors) {
+                settled = true;
+                endTimer = window.setTimeout(function () {
+                  endTimer = null;
+                  showFailOverlay('wrong_deduction', 'Превышен лимит ошибок — протокол лаборатории аннулирован.');
+                }, 680);
+              }
+            }
+          });
+          optsEl.appendChild(ob);
+        })(opts[oi]);
+      }
+
+      card.appendChild(optsEl);
+      card.appendChild(fb);
+      panel.appendChild(card);
+      overlaySlot.appendChild(panel);
     }
 
     function computeSlideLayout() {
-      var padX = 12;
-      var padY = 10;
-      var gap = Math.max(10, Math.min(18, cssH * 0.045));
+      var padX = 12, padY = 10, gap = Math.max(10, Math.min(18, cssH * 0.045));
       var slideW = cssW - padX * 2;
-      var maxSlideH = (cssH - padY * 2 - gap) * 0.5;
-      var slideH = Math.max(88, Math.min(168, maxSlideH));
-      var totalH = slideH * 2 + gap;
-      var startY = Math.max(padY, (cssH - totalH) * 0.5);
-
-      var wellR = Math.max(19, Math.min(31, (slideH - 36) * 0.43, (slideW - 44) / 7.2));
+      var slideH = Math.max(88, Math.min(168, (cssH - padY * 2 - gap) * 0.5));
+      var startY = Math.max(padY, (cssH - (slideH * 2 + gap)) * 0.5);
+      var wellR = Math.max(19, Math.min(30, (slideH - 36) * 0.42, (slideW - 44) / 7.2));
       var spacing = slideW / 3;
 
       for (var s = 0; s < slides.length; s++) {
         var sy = startY + s * (slideH + gap);
-        slides[s].x = padX;
-        slides[s].y = sy;
-        slides[s].w = slideW;
-        slides[s].h = slideH;
-
+        slides[s].x = padX; slides[s].y = sy; slides[s].w = slideW; slides[s].h = slideH;
         var wellCy = sy + 24 + (slideH - 28) * 0.52;
         for (var w = 0; w < slides[s].wells.length; w++) {
           slides[s].wells[w].cx = padX + spacing * (w + 0.5);
@@ -2049,349 +2351,280 @@
     }
 
     function resizeCanvas() {
-      if (destroyed) {
-        return;
-      }
+      if (destroyed) return;
       var rect = canvasWrap.getBoundingClientRect();
-      var nextW = Math.max(180, Math.floor(rect.width));
-      var nextH = Math.max(180, Math.floor(rect.height));
-
+      cssW = Math.max(180, Math.floor(rect.width));
+      cssH = Math.max(180, Math.floor(rect.height));
       dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-      cssW = nextW;
-      cssH = nextH;
-
-      var physW = Math.floor(cssW * dpr);
-      var physH = Math.floor(cssH * dpr);
-
-      if (canvas.width !== physW || canvas.height !== physH) {
-        canvas.width = physW;
-        canvas.height = physH;
-      }
+      var pw = Math.floor(cssW * dpr), ph = Math.floor(cssH * dpr);
+      if (canvas.width !== pw || canvas.height !== ph) { canvas.width = pw; canvas.height = ph; }
       computeSlideLayout();
     }
 
     function drawWell(well, now) {
-      var x = well.cx;
-      var y = well.cy;
-      var r = well.r;
-      var isErrorFlash = now < well.errorFlashUntil;
+      var x = well.cx, y = well.cy, r = well.r;
+      var isErr = now < well.errorFlashUntil;
+      ctx.save();
+      ctx.beginPath(); ctx.arc(x, y, r + 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#0c0e13'; ctx.fill();
+      ctx.strokeStyle = isErr ? '#ef4444' : well.reacted ? 'rgba(201,138,46,0.7)' : 'rgba(180,196,214,0.25)';
+      ctx.lineWidth = isErr ? 2.2 : 1.3; ctx.stroke();
 
       ctx.save();
-
-      // Recessed glass well socket
-      ctx.beginPath();
-      ctx.arc(x, y, r + 3.5, 0, Math.PI * 2);
-      ctx.fillStyle = '#0c0e13';
-      ctx.fill();
-      ctx.strokeStyle = isErrorFlash
-        ? '#ef4444'
-        : well.reacted
-          ? 'rgba(201, 138, 46, 0.65)'
-          : 'rgba(180, 196, 214, 0.25)';
-      ctx.lineWidth = isErrorFlash ? 2.2 : 1.3;
-      ctx.stroke();
-
-      // Clip interior of blood drop
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.clip();
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.clip();
 
       if (!well.reacted) {
-        // Untreated glossy raw blood sample
-        var rawGrad = ctx.createRadialGradient(x - r * 0.25, y - r * 0.25, r * 0.1, x, y, r);
-        rawGrad.addColorStop(0, '#9e1c22');
-        rawGrad.addColorStop(0.65, '#6e1116');
-        rawGrad.addColorStop(1, '#46080c');
-        ctx.fillStyle = rawGrad;
+        if (well.visualKind === 'blood') {
+          var rawG = ctx.createRadialGradient(x - r * 0.25, y - r * 0.25, r * 0.1, x, y, r);
+          rawG.addColorStop(0, '#9e1c22'); rawG.addColorStop(0.65, '#6e1116'); rawG.addColorStop(1, '#46080c');
+          ctx.fillStyle = rawG;
+        } else {
+          // Raw colorless-amber rag extract before chemical reagent
+          var extG = ctx.createRadialGradient(x, y, r * 0.1, x, y, r);
+          extG.addColorStop(0, '#6b6a5e'); extG.addColorStop(1, '#2b2d30');
+          ctx.fillStyle = extG;
+        }
         ctx.fillRect(x - r, y - r, r * 2, r * 2);
       } else {
-        var t = well.reactionTime; // seconds since drop
-        var dropPhase = Math.min(1, t / 0.32);
-        var reactPhase = Math.max(0, Math.min(1, (t - 0.25) / 1.35));
-
-        if (well.positive) {
-          // Positive agglutination (+): serum clarifies at edges while dark red flakes clump tightly
-          var clearAlpha = reactPhase;
-          var serumGrad = ctx.createRadialGradient(x, y, r * 0.15, x, y, r);
-          var rOuter = Math.round(70 + clearAlpha * 118);
-          var gOuter = Math.round(8 + clearAlpha * 116);
-          var bOuter = Math.round(12 + clearAlpha * 108);
-          serumGrad.addColorStop(
-            0,
-            'rgba(' + Math.round(145 + clearAlpha * 38) + ',' + Math.round(32 + clearAlpha * 68) + ',' + Math.round(34 + clearAlpha * 62) + ',0.9)'
-          );
-          serumGrad.addColorStop(0.68, 'rgba(' + rOuter + ',' + gOuter + ',' + bOuter + ',0.55)');
-          serumGrad.addColorStop(1, 'rgba(218, 178, 166, ' + (0.28 + clearAlpha * 0.25).toFixed(2) + ')');
-          ctx.fillStyle = serumGrad;
-          ctx.fillRect(x - r, y - r, r * 2, r * 2);
-
-          // Distinct clumping dark flakes/granules
+        var t = well.reactionTime;
+        var reactPhase = Math.max(0, Math.min(1, (t - 0.2) / 1.1));
+        if (well.visualKind === 'chem_magenta') {
+          // Fujiwara (+) bright crimson-magenta chloroform reaction!
+          var mgG = ctx.createRadialGradient(x, y, 2, x, y, r);
+          mgG.addColorStop(0, 'rgba(244, 63, 94, ' + (0.4 + reactPhase * 0.6).toFixed(2) + ')');
+          mgG.addColorStop(0.6, 'rgba(190, 24, 93, 0.92)');
+          mgG.addColorStop(1, '#500724');
+          ctx.fillStyle = mgG; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+        } else if (well.visualKind === 'chem_oil') {
+          // Sudan-III (+) bright orange-red oil droplets
+          ctx.fillStyle = '#36261a'; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+          for (var oc = 0; oc < 10; oc++) {
+            var clO = well.clumps[oc];
+            ctx.fillStyle = 'rgba(249, 115, 22, ' + (0.35 + reactPhase * 0.65).toFixed(2) + ')';
+            ctx.beginPath();
+            ctx.arc(x + clO.ex * r * 0.9, y + clO.ey * r * 0.9, clO.rad * r * 1.45 * (0.4 + 0.6 * reactPhase), 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else if (well.visualKind === 'chem_clear') {
+          // Negative acetone test: pale clear-grey liquid
+          ctx.fillStyle = '#475569'; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+        } else if (well.positive) {
+          var sGrad = ctx.createRadialGradient(x, y, r * 0.15, x, y, r);
+          sGrad.addColorStop(0, 'rgba(165, 65, 65, 0.88)');
+          sGrad.addColorStop(0.7, 'rgba(160, 105, 98, 0.55)');
+          sGrad.addColorStop(1, 'rgba(218, 178, 166, 0.45)');
+          ctx.fillStyle = sGrad; ctx.fillRect(x - r, y - r, r * 2, r * 2);
           var ease = 1 - Math.pow(1 - reactPhase, 2.2);
           for (var c = 0; c < well.clumps.length; c++) {
             var cl = well.clumps[c];
-            var px = x + (cl.sx + (cl.ex - cl.sx) * ease) * r;
-            var py = y + (cl.sy + (cl.ey - cl.sy) * ease) * r;
-            var cRad = cl.rad * r * (0.45 + 0.72 * ease);
-
             ctx.save();
-            ctx.translate(px, py);
+            ctx.translate(x + (cl.sx + (cl.ex - cl.sx) * ease) * r, y + (cl.sy + (cl.ey - cl.sy) * ease) * r);
             ctx.rotate(cl.rot);
             ctx.fillStyle = cl.shade;
-            ctx.globalAlpha = 0.25 + 0.75 * ease;
             ctx.beginPath();
-            ctx.ellipse(0, 0, cRad * 1.25, cRad * 0.85, 0, 0, Math.PI * 2);
+            ctx.ellipse(0, 0, cl.rad * r * 1.15, cl.rad * r * 0.8, 0, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
           }
         } else {
-          // Negative reaction (-): smooth homogeneous cloudy red drop, zero flakes
-          var smoothGrad = ctx.createRadialGradient(x - r * 0.18, y - r * 0.18, r * 0.12, x, y, r);
-          smoothGrad.addColorStop(0, '#9c2228');
-          smoothGrad.addColorStop(0.68, '#7a161b');
-          smoothGrad.addColorStop(1, '#580e13');
-          ctx.fillStyle = smoothGrad;
-          ctx.fillRect(x - r, y - r, r * 2, r * 2);
-
-          // Subtle silky cloudy sheen
-          ctx.fillStyle = 'rgba(215, 130, 130, ' + (0.12 * reactPhase).toFixed(2) + ')';
-          ctx.beginPath();
-          ctx.arc(x, y, r * 0.88, 0, Math.PI * 2);
-          ctx.fill();
+          var smG = ctx.createRadialGradient(x - r * 0.18, y - r * 0.18, r * 0.12, x, y, r);
+          smG.addColorStop(0, '#9c2228'); smG.addColorStop(0.7, '#7a161b'); smG.addColorStop(1, '#580e13');
+          ctx.fillStyle = smG; ctx.fillRect(x - r, y - r, r * 2, r * 2);
         }
 
-        // Falling & splashing reagent droplet animation in first ~0.55s
-        var reagentInfo = REAGENTS[well.reagent];
-        if (t < 0.65 && reagentInfo) {
-          var splashAlpha = Math.max(0, 1 - t / 0.65);
-          var dropR = r * (0.18 + dropPhase * 0.72);
-          ctx.strokeStyle = reagentInfo.dropColor;
-          ctx.globalAlpha = splashAlpha * 0.85;
+        if (t < 0.55 && BLOOD_REAGENTS[well.reagent]) {
+          ctx.strokeStyle = BLOOD_REAGENTS[well.reagent].dropColor;
+          ctx.globalAlpha = Math.max(0, 1 - t / 0.55);
           ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(x, y, dropR, 0, Math.PI * 2);
-          ctx.stroke();
-
-          if (dropPhase < 1) {
-            ctx.fillStyle = reagentInfo.dropColor;
-            ctx.globalAlpha = (1 - dropPhase) * 0.9;
-            ctx.beginPath();
-            ctx.arc(x, y - (1 - dropPhase) * 14, 5.5 * (1 - dropPhase * 0.35), 0, Math.PI * 2);
-            ctx.fill();
-          }
+          ctx.beginPath(); ctx.arc(x, y, r * (0.2 + t * 1.1), 0, Math.PI * 2); ctx.stroke();
           ctx.globalAlpha = 1;
         }
       }
 
-      // Glossy liquid highlight arc on every well
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.17)';
-      ctx.beginPath();
-      ctx.ellipse(x - r * 0.32, y - r * 0.34, r * 0.28, r * 0.13, -0.65, 0, Math.PI * 2);
-      ctx.fill();
-
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
+      ctx.beginPath(); ctx.ellipse(x - r * 0.32, y - r * 0.34, r * 0.28, r * 0.13, -0.65, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
 
-      // Well reagent label below well
       ctx.fillStyle = well.reacted ? '#c98a2e' : '#a2a7b4';
-      ctx.font = '600 10px "IBM Plex Mono", monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      ctx.fillText(well.label, x, y + r + 5);
-
+      ctx.font = '600 9.5px "IBM Plex Mono", monospace';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillText(well.label, x, y + r + 4);
       ctx.restore();
     }
 
-    function renderLab(now) {
+    function renderLab(now, dt) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.fillStyle = '#0c0e13'; ctx.fillRect(0, 0, cssW, cssH);
 
-      // Dark lab slate bench
-      var benchGrad = ctx.createLinearGradient(0, 0, 0, cssH);
-      benchGrad.addColorStop(0, '#101217');
-      benchGrad.addColorStop(1, '#090a0d');
-      ctx.fillStyle = benchGrad;
-      ctx.fillRect(0, 0, cssW, cssH);
-
-      // Subtle laboratory bench grid
-      ctx.strokeStyle = 'rgba(212, 202, 180, 0.03)';
-      ctx.lineWidth = 1;
-      for (var gx = 0; gx < cssW; gx += 22) {
-        ctx.beginPath();
-        ctx.moveTo(gx, 0);
-        ctx.lineTo(gx, cssH);
-        ctx.stroke();
-      }
-      for (var gy = 0; gy < cssH; gy += 22) {
-        ctx.beginPath();
-        ctx.moveTo(0, gy);
-        ctx.lineTo(cssW, gy);
-        ctx.stroke();
-      }
-
-      // Draw both microscope glass slides
       for (var s = 0; s < slides.length; s++) {
         var sl = slides[s];
         ctx.save();
-
-        // Frosted microscope glass slide body
-        var glassGrad = ctx.createLinearGradient(sl.x, sl.y, sl.x + sl.w, sl.y + sl.h);
-        glassGrad.addColorStop(0, 'rgba(38, 46, 58, 0.56)');
-        glassGrad.addColorStop(0.5, 'rgba(24, 29, 36, 0.74)');
-        glassGrad.addColorStop(1, 'rgba(34, 42, 52, 0.58)');
-
-        ctx.fillStyle = glassGrad;
-        ctx.strokeStyle = s === 1 ? 'rgba(201, 138, 46, 0.42)' : 'rgba(130, 150, 174, 0.34)';
+        ctx.fillStyle = 'rgba(26, 31, 40, 0.78)';
+        ctx.strokeStyle = s === 1 ? 'rgba(201, 138, 46, 0.45)' : 'rgba(130, 150, 174, 0.35)';
         ctx.lineWidth = 1.2;
-
-        ctx.beginPath();
-        ctx.roundRect ? ctx.roundRect(sl.x, sl.y, sl.w, sl.h, 4) : ctx.rect(sl.x, sl.y, sl.w, sl.h);
-        ctx.fill();
-        ctx.stroke();
-
-        // Top paper label strip on slide
+        ctx.fillRect(sl.x, sl.y, sl.w, sl.h);
+        ctx.strokeRect(sl.x, sl.y, sl.w, sl.h);
         ctx.fillStyle = 'rgba(212, 202, 180, 0.12)';
-        ctx.fillRect(sl.x + 1, sl.y + 1, sl.w - 2, 21);
-
+        ctx.fillRect(sl.x + 1, sl.y + 1, sl.w - 2, 20);
         ctx.fillStyle = s === 1 ? '#e2c288' : '#d4cab4';
-        ctx.font = '600 10.5px "IBM Plex Mono", monospace';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(sl.title, sl.x + 9, sl.y + 11.5);
-
+        ctx.font = '600 10px "IBM Plex Mono", monospace';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.fillText(sl.title, sl.x + 8, sl.y + 11);
         ctx.restore();
 
-        for (var w = 0; w < sl.wells.length; w++) {
-          drawWell(sl.wells[w], now);
+        for (var w = 0; w < sl.wells.length; w++) drawWell(sl.wells[w], now);
+
+        // Physical grime/oil film covering Slide #2 before wiping
+        if (sl.film > 0.02) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0.18, Math.min(0.92, sl.film));
+          ctx.fillStyle = '#29231b';
+          ctx.fillRect(sl.x + 3, sl.y + 22, sl.w - 6, sl.h - 25);
+          ctx.strokeStyle = 'rgba(245, 158, 11, 0.7)'; ctx.lineWidth = 1.2; ctx.setLineDash([4, 3]);
+          ctx.strokeRect(sl.x + 5, sl.y + 24, sl.w - 10, sl.h - 29); ctx.setLineDash([]);
+          ctx.fillStyle = '#fde68a'; ctx.font = '700 10px "IBM Plex Mono", monospace';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(sl.filmLabel || 'ПРОТРИТЕ ПЛЁНКУ ПАЛЬЦЕМ', sl.x + sl.w * 0.5, sl.y + 22 + (sl.h - 22) * 0.5);
+          ctx.restore();
+        }
+      }
+
+      for (var p = filmParticles.length - 1; p >= 0; p--) {
+        var fp = filmParticles[p];
+        fp.x += fp.vx * dt; fp.y += fp.vy * dt; fp.alpha -= dt * 1.9;
+        if (fp.alpha <= 0) { filmParticles.splice(p, 1); continue; }
+        ctx.fillStyle = 'rgba(92, 74, 52, ' + fp.alpha.toFixed(2) + ')';
+        ctx.beginPath(); ctx.arc(fp.x, fp.y, fp.r, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    function scrubSlideFilm(px, py, distPx) {
+      for (var s = 0; s < slides.length; s++) {
+        var sl = slides[s];
+        if (sl.film <= 0) continue;
+        if (px >= sl.x && px <= sl.x + sl.w && py >= sl.y + 20 && py <= sl.y + sl.h) {
+          sl.film = Math.max(0, sl.film - Math.max(0.12, distPx * 0.008));
+          for (var k = 0; k < 2; k++) {
+            filmParticles.push({ x: px, y: py, vx: (Math.random() - 0.5) * 55, vy: (Math.random() - 0.3) * 40 + 12, r: 1.8, alpha: 0.9 });
+          }
+          if (sl.film <= 0.14) {
+            sl.film = 0;
+            sfx('sfxPaper'); haptic('medium');
+            showLabToast('Стекло №2 очищено — теперь капайте реагенты!', true, 1300);
+          }
         }
       }
     }
 
     function onPointerDown(e) {
-      if (destroyed || settled || refOpen) {
-        return;
-      }
+      if (destroyed || phase !== 'lab' || refOpen) return;
       e.preventDefault();
       var rect = canvas.getBoundingClientRect();
-      var px = e.clientX - rect.left;
-      var py = e.clientY - rect.top;
+      var px = e.clientX - rect.left, py = e.clientY - rect.top;
+      pointerDown = true; lastPx = px; lastPy = py;
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+
+      // If touching dirty film on a slide, scrub instead of dropping reagent
+      for (var s = 0; s < slides.length; s++) {
+        if (slides[s].film > 0.02 && px >= slides[s].x && px <= slides[s].x + slides[s].w && py >= slides[s].y + 20 && py <= slides[s].y + slides[s].h) {
+          scrubSlideFilm(px, py, 10);
+          return;
+        }
+      }
 
       var hitWell = null;
-      for (var s = 0; s < slides.length; s++) {
-        for (var w = 0; w < slides[s].wells.length; w++) {
-          var well = slides[s].wells[w];
-          if (Math.hypot(px - well.cx, py - well.cy) <= well.r + 10) {
-            hitWell = well;
-            break;
-          }
+      for (var si = 0; si < slides.length; si++) {
+        for (var wi = 0; wi < slides[si].wells.length; wi++) {
+          var w = slides[si].wells[wi];
+          if (Math.hypot(px - w.cx, py - w.cy) <= w.r + 10) { hitWell = w; break; }
         }
-        if (hitWell) {
-          break;
-        }
+        if (hitWell) break;
       }
+      if (!hitWell) return;
+      if (hitWell.reacted) { showLabToast('Реагент уже добавлен в эту лунку.', false, 900); return; }
+      if (!selectedReagent) { showLabToast('Выберите пипетку с реагентом внизу.', false, 1000); return; }
 
-      if (!hitWell) {
-        return;
-      }
-
-      if (hitWell.reacted) {
-        haptic('light');
-        showLabToast('Реагент уже добавлен в эту лунку', false, 850);
-        return;
-      }
-
-      if (!selectedReagent) {
-        haptic('warning');
-        showLabToast('Выберите пипетку с реагентом внизу', false, 1000);
+      if (BLOOD_REAGENTS[selectedReagent] && BLOOD_REAGENTS[selectedReagent].isDecoy) {
+        hitWell.errorFlashUntil = performance.now() + 500;
+        registerLabError('ЛОЖНЫЙ РЕАГЕНТ (+1): физраствор NaCl разбавляет пробу и не даёт серологической реакции!', 'decoy_reagent');
         return;
       }
 
       if (selectedReagent !== hitWell.reagent) {
-        hitWell.errorFlashUntil = performance.now() + 450;
-        sfx('sfxAlert');
-        haptic('error');
-        showLabToast('Неверный реагент для лунки', false, 1000);
+        hitWell.errorFlashUntil = performance.now() + 500;
+        registerLabError('Неверный реагент для лунки «' + hitWell.label + '» (+1 ошибка)!', 'wrong_reagent');
         return;
       }
 
       hitWell.reacted = true;
       hitWell.reactionTime = 0;
       reactedCount += 1;
-      counterEl.textContent = 'ЛУНОК ОБРАБОТАНО: ' + reactedCount + ' / 6';
-      sfx('sfxClick');
-      haptic('light');
+      counterEl.textContent = 'ЛУНОК: ' + reactedCount + ' / 6';
+      sfx('sfxClick'); haptic('light');
 
       if (reactedCount >= 6) {
-        sfx('sfxSuccess');
-        haptic('success');
-        counterEl.textContent = 'РЕАКЦИИ ЗАВЕРШЕНЫ — ВЫНЕСИТЕ ЗАКЛЮЧЕНИЕ';
+        phase = 'formula';
+        sfx('sfxSuccess'); haptic('success');
+        counterEl.textContent = 'ФАЗА 2: ФОРМУЛА КРОВИ';
         footer.classList.add('hidden');
         conclusionEl.classList.remove('hidden');
-        showLabToast('Изучите агглютинацию Образца №2 и подпишите протокол', true, 1700);
+        showLabToast('Изучите реакции на Стекле №2 и укажите группу крови!', true, 1600);
         window.requestAnimationFrame(resizeCanvas);
       }
     }
 
-    function onContextMenu(e) {
-      e.preventDefault();
+    function onPointerMove(e) {
+      if (!pointerDown || destroyed || phase !== 'lab') return;
+      var rect = canvas.getBoundingClientRect();
+      var px = e.clientX - rect.left, py = e.clientY - rect.top;
+      var dist = Math.hypot(px - lastPx, py - lastPy);
+      lastPx = px; lastPy = py;
+      scrubSlideFilm(px, py, dist);
     }
 
+    function onPointerUp() { pointerDown = false; }
+    function onContextMenu(e) { e.preventDefault(); }
+
     canvas.addEventListener('pointerdown', onPointerDown);
+    canvas.addEventListener('pointermove', onPointerMove);
+    canvas.addEventListener('pointerup', onPointerUp);
+    canvas.addEventListener('pointercancel', onPointerUp);
     canvas.addEventListener('contextmenu', onContextMenu);
 
     if (typeof window.ResizeObserver === 'function') {
-      resizeObserver = new window.ResizeObserver(function () {
-        resizeCanvas();
-      });
+      resizeObserver = new window.ResizeObserver(resizeCanvas);
       resizeObserver.observe(canvasWrap);
     }
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
     function tick(now) {
-      if (destroyed) {
-        return;
-      }
+      if (destroyed) return;
       var dt = Math.min((now - lastFrameTime) / 1000, 0.1);
       lastFrameTime = now;
-
       for (var s = 0; s < slides.length; s++) {
         for (var w = 0; w < slides[s].wells.length; w++) {
-          var well = slides[s].wells[w];
-          if (well.reacted && well.reactionTime < 3) {
-            well.reactionTime += dt;
+          if (slides[s].wells[w].reacted && slides[s].wells[w].reactionTime < 3) {
+            slides[s].wells[w].reactionTime += dt;
           }
         }
       }
-
-      renderLab(now);
+      renderLab(now, dt);
       rafId = window.requestAnimationFrame(tick);
     }
-
     rafId = window.requestAnimationFrame(tick);
 
     return function cleanup() {
       destroyed = true;
-      if (rafId !== null) {
-        window.cancelAnimationFrame(rafId);
-        rafId = null;
-      }
-      if (toastTimer !== null) {
-        window.clearTimeout(toastTimer);
-        toastTimer = null;
-      }
-      if (endTimer !== null) {
-        window.clearTimeout(endTimer);
-        endTimer = null;
-      }
-      if (resizeObserver) {
-        try {
-          resizeObserver.disconnect();
-        } catch (e) {
-          // Ignore disconnect errors
-        }
-        resizeObserver = null;
-      }
+      if (rafId !== null) window.cancelAnimationFrame(rafId);
+      if (toastTimer !== null) window.clearTimeout(toastTimer);
+      if (endTimer !== null) window.clearTimeout(endTimer);
+      if (resizeObserver) { try { resizeObserver.disconnect(); } catch (e) {} }
       window.removeEventListener('resize', resizeCanvas);
       canvas.removeEventListener('pointerdown', onPointerDown);
+      canvas.removeEventListener('pointermove', onPointerMove);
+      canvas.removeEventListener('pointerup', onPointerUp);
+      canvas.removeEventListener('pointercancel', onPointerUp);
       canvas.removeEventListener('contextmenu', onContextMenu);
     };
   });
