@@ -1,15 +1,15 @@
 (function () {
   'use strict';
 
-  var ASSET_VER = 'v20261122a';
+  var ASSET_VER = 'v20261122b';
 
   var CASES_REGISTRY = {
     case409: {
       id: 'case409',
       title: 'Дело №409 «Ветка»',
       theme: {
-        bg: '#090b0f',
-        bar: '#11141b'
+        bg: '#090c11',
+        bar: '#10141c'
       },
       scripts: [
         'story_core.js',
@@ -62,7 +62,7 @@
   var params = new URLSearchParams(window.location.search);
   var requested = params.get('case') || 'case409';
   var activeConfig = CASES_REGISTRY[requested] || CASES_REGISTRY.case409;
-  var activeTheme = activeConfig.theme || { bg: '#090b0f', bar: '#11141b' };
+  var activeTheme = activeConfig.theme || { bg: '#090c11', bar: '#10141c' };
 
   window.ACTIVE_CASE_ID = activeConfig.id;
   window.ACTIVE_CASE_CONFIG = activeConfig;

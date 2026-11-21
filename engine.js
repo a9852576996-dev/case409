@@ -1477,6 +1477,33 @@
     return true;
   }
 
+  function pickChoiceIconSvg(options) {
+    var src = ((options.text || '') + ' ' + (options.meta || '') + ' ' + (options.extraClass || '')).toLowerCase();
+    var svgOpen = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">';
+    if (/камер|видео|снимок|фото/.test(src)) {
+      return svgOpen + '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+    }
+    if (/замок|двер|гараж|ключ|взлом|вскрыт|пин/.test(src)) {
+      return svgOpen + '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+    }
+    if (/телефон|смартфон|аудио|запис|раци|диктофон|звон/.test(src)) {
+      return svgOpen + '<rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>';
+    }
+    if (/проб|гсм|кров|лаборатор|анализ|хим|экспертиз|рентген|баллистик|поджог/.test(src)) {
+      return svgOpen + '<path d="M9 3h6"/><path d="M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3"/></svg>';
+    }
+    if (/допрос|спрос|сказ|отве|поговор|свидетел|оговорк|сторож|молч|убед/.test(src) || /choice-trap/.test(src)) {
+      return svgOpen + '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+    }
+    if (/осмотр|уф|фонар|склон|колодец|канав|искат|провер|луп|изуч/.test(src)) {
+      return svgOpen + '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+    }
+    if (/архив|папк|улик|дело|дел|документ|подпис|свер|табел|биллинг|журнал/.test(src) || /choice-evidence/.test(src)) {
+      return svgOpen + '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>';
+    }
+    return svgOpen + '<polyline points="9 18 15 12 9 6"/></svg>';
+  }
+
   function createChoiceButton(options) {
     var btn = document.createElement('button');
     btn.type = 'button';
@@ -1490,6 +1517,18 @@
         }
       }
     }
+
+    if (options.meta && !btn.classList.contains('choice-evidence') && !btn.classList.contains('choice-trap')) {
+      if (/ЭКСПЕРТИЗА|ВЗЛОМ|АУДИО|АРХИВ|ОСМОТР|ТЕРМИНАЛ|ДОПРОС|АКТ\s|ФИНАЛ|BEATS/i.test(options.meta)) {
+        btn.classList.add('choice-action');
+      }
+    }
+
+    var iconSpan = document.createElement('span');
+    iconSpan.className = 'choice-icon';
+    iconSpan.setAttribute('aria-hidden', 'true');
+    iconSpan.innerHTML = pickChoiceIconSvg(options);
+    btn.appendChild(iconSpan);
 
     var textSpan = document.createElement('span');
     textSpan.className = 'choice-text';
@@ -1550,7 +1589,7 @@
     if (!state.clues.length) {
       var empty = document.createElement('div');
       empty.className = 'empty-state';
-      empty.textContent = 'Улики пока не приобщены к материалам дела №409.';
+      empty.textContent = 'Улики пока не приобщены к материалам дела ' + getCaseNumber() + '.';
       bodyEl.appendChild(empty);
       return;
     }
@@ -1746,7 +1785,7 @@
     playSfx('sfxClick');
     haptic('light');
 
-    openModal('ТЕРМИНАЛ ДЕЛА №409', function (bodyEl) {
+    openModal('ТЕРМИНАЛ ДЕЛА ' + getCaseNumber(), function (bodyEl) {
       var list = document.createElement('div');
       list.className = 'menu-list';
 
