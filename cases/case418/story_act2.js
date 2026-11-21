@@ -60,9 +60,9 @@ window.registerStoryNodes({
         "meta": "ЛАБОРАТОРИЯ // ХАБ",
         "next": "act2_morgue_hub"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act2_voronova_brief": {
     "act": "АКТ II // МОРГ И ЛАБОРАТОРИЯ",
     "location": "БЮРО СМЭ // СЕКЦИОННЫЙ ЗАЛ",
@@ -105,9 +105,9 @@ window.registerStoryNodes({
         "meta": "ЛАБОРАТОРИЯ // ХАБ",
         "next": "act2_morgue_hub"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act2_morgue_hub": {
     "act": "АКТ II // МОРГ И ЛАБОРАТОРИЯ",
     "location": "БЮРО СМЭ // СЕКЦИОННЫЙ ЗАЛ",
@@ -175,9 +175,9 @@ window.registerStoryNodes({
           "act2_dental_done"
         ]
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act2_sery_intel": {
     "act": "АКТ II // МОРГ И ЛАБОРАТОРИЯ",
     "location": "БЮРО СМЭ // СЕКЦИОННЫЙ ЗАЛ",
@@ -215,9 +215,9 @@ window.registerStoryNodes({
         "meta": "НАЗАД // ХАБ",
         "next": "act2_morgue_hub"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act2_chem_game": {
     "type": "minigame",
     "minigameId": "arson_lab",
@@ -236,9 +236,10 @@ window.registerStoryNodes({
     },
     "onCancel": {
       "next": "act2_morgue_hub"
-    }
+    },
+    "scene": "cases/case418/assets/scenes/forensic_samples.png",
+    "portrait": "cases/case418/assets/scenes/forensic_samples.png"
   },
-
   "act2_chem_win": {
     "act": "АКТ II // МОРГ И ЛАБОРАТОРИЯ",
     "location": "ЭКЦ // ХИМИЧЕСКАЯ ЛАБОРАТОРИЯ",
@@ -289,9 +290,9 @@ window.registerStoryNodes({
         "meta": "НАЗАД // ХАБ",
         "next": "act2_morgue_hub"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/forensic_samples.png"
   },
-
   "act2_dental_game": {
     "type": "minigame",
     "minigameId": "dental_xray",
@@ -308,9 +309,10 @@ window.registerStoryNodes({
     },
     "onCancel": {
       "next": "act2_morgue_hub"
-    }
+    },
+    "scene": "cases/case418/assets/scenes/night_fire.png",
+    "portrait": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act2_dental_win": {
     "act": "АКТ II // МОРГ И ЛАБОРАТОРИЯ",
     "location": "БЮРО СМЭ // СЕКЦИОННЫЙ ЗАЛ",
@@ -358,9 +360,9 @@ window.registerStoryNodes({
         "meta": "НАЗАД // ХАБ",
         "next": "act2_morgue_hub"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act2_dental_followup": {
     "act": "АКТ II // МОРГ И ЛАБОРАТОРИЯ",
     "location": "БЮРО СМЭ // СЕКЦИОННЫЙ ЗАЛ",
@@ -406,9 +408,9 @@ window.registerStoryNodes({
         "meta": "НАЗАД // ХАБ",
         "next": "act2_morgue_hub"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act2_talk_voronova": {
     "act": "АКТ II // МОРГ И ЛАБОРАТОРИЯ",
     "location": "БЮРО СМЭ // СЕКЦИОННЫЙ ЗАЛ",
@@ -451,9 +453,9 @@ window.registerStoryNodes({
         "meta": "НАЗАД // ХАБ",
         "next": "act2_morgue_hub"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act2_voronova_timing": {
     "act": "АКТ II // МОРГ И ЛАБОРАТОРИЯ",
     "location": "БЮРО СМЭ // СЕКЦИОННЫЙ ЗАЛ",
@@ -485,9 +487,9 @@ window.registerStoryNodes({
         "meta": "НАЗАД // ХАБ",
         "next": "act2_morgue_hub"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act2_deduction": {
     "act": "АКТ II // МОРГ И ЛАБОРАТОРИЯ",
     "location": "БЮРО СМЭ // СЕКЦИОННЫЙ ЗАЛ",
@@ -529,9 +531,9 @@ window.registerStoryNodes({
         "meta": "ВЕРСИЯ // ПОДСТАВА",
         "next": "act2_outro"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act2_outro": {
     "act": "АКТ II // МОРГ И ЛАБОРАТОРИЯ",
     "location": "ЭКЦ // ХИМИЧЕСКАЯ ЛАБОРАТОРИЯ",
@@ -574,6 +576,7 @@ window.registerStoryNodes({
         "meta": "АКТ III // БАЛЛИСТИКА И СТВОЛ",
         "next": "act3_start"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/forensic_samples.png"
   }
 });

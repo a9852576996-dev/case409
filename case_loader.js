@@ -60,6 +60,6 @@
   ]);
 
   for (var i = 0; i < queue.length; i++) {
-    document.write('<script src="' + queue[i] + '"><\/script>');
+    document.write('<script src="' + queue[i] + '?v=v20261121"><\/script>');
   }
 })();

@@ -36,7 +36,9 @@ window.registerStoryNodes({
         "text": "«Погоди, Лен. Из канавы и старого колодца вы успели достать то, что сбросил Кравцов?»",
         "next": "act4_voronova_ditch"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/notes_and_keys.png",
+    "portrait": "cases/case412/assets/portraits/voronova.png"
   },
   "act4_voronova_ditch": {
     "act": "АКТ IV",
@@ -60,7 +62,9 @@ window.registerStoryNodes({
         "text": "Выйти под дождь и перехватить Беляева на парковке.",
         "next": "act4_belyaev_intercept"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/village_street.png",
+    "portrait": "cases/case412/assets/portraits/voronova.png"
   },
   "act4_belyaev_intercept": {
     "act": "АКТ IV",
@@ -93,7 +97,9 @@ window.registerStoryNodes({
         "text": "«Громов сольёт тебя первым, когда под гаражом найдут мёртвую девчонку. Твоя стройбаза не отмажет тебя от убийства, Дмитрий».",
         "next": "act4_belyaev_breaks"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/belyaev_gate_cameras.png",
+    "portrait": "cases/case412/assets/portraits/belyaev.png"
   },
   "act4_belyaev_breaks": {
     "act": "АКТ IV",
@@ -128,7 +134,9 @@ window.registerStoryNodes({
         "text": "Записать признание Беляева на видео телефона и идти в опорный пункт.",
         "next": "act4_belyaev_signed"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/belyaev_gate_cameras.png",
+    "portrait": "cases/case412/assets/portraits/belyaev.png"
   },
   "act4_belyaev_signed": {
     "act": "АКТ IV",
@@ -158,7 +166,8 @@ window.registerStoryNodes({
         "next": "act4_precinct_clash"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act4_precinct_clash": {
     "act": "АКТ IV",
@@ -190,7 +199,9 @@ window.registerStoryNodes({
         "text": "Включить на телефоне видео признания Беляева и положить его на стол Громова.",
         "next": "act4_gromov_showdown"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/village_street.png",
+    "portrait": "cases/case412/assets/portraits/artem.png"
   },
   "act4_gromov_showdown": {
     "act": "АКТ IV",
@@ -231,7 +242,8 @@ window.registerStoryNodes({
         "next": "act4_artem_freed"
       }
     ],
-    "portrait": "assets/portraits/gromov.jpg"
+    "portrait": "cases/case412/assets/portraits/gromov.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act4_artem_freed": {
     "act": "АКТ IV",
@@ -269,7 +281,9 @@ window.registerStoryNodes({
         "text": "Войти в мобильную лабораторию и провести экспертизу улик.",
         "next": "act4_hub"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/village_street.png",
+    "portrait": "cases/case412/assets/portraits/artem.png"
   },
   "act4_hub": {
     "act": "АКТ IV",
@@ -320,7 +334,9 @@ window.registerStoryNodes({
           "act4_print_done"
         ]
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/forest_edge.png",
+    "portrait": "cases/case412/assets/scenes/forest_edge.png"
   },
   "act4_mg_blood": {
     "act": "АКТ IV",
@@ -341,7 +357,9 @@ window.registerStoryNodes({
     },
     "onCancel": {
       "next": "act4_hub"
-    }
+    },
+    "scene": "cases/case412/assets/scenes/village_street.png",
+    "portrait": "cases/case412/assets/scenes/village_street.png"
   },
   "act4_chloroform_found": {
     "act": "АКТ IV",
@@ -371,7 +389,9 @@ window.registerStoryNodes({
         "text": "Зафиксировать протокол анализа и вернуться к столу.",
         "next": "act4_hub"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/village_street.png",
+    "portrait": "cases/case412/assets/portraits/voronova.png"
   },
   "act4_mg_fingerprint": {
     "act": "АКТ IV",
@@ -393,7 +413,8 @@ window.registerStoryNodes({
     "onCancel": {
       "next": "act4_hub"
     },
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/scenes/forensic_prints.png",
+    "scene": "cases/case412/assets/scenes/forensic_prints.png"
   },
   "act4_print_found": {
     "act": "АКТ IV",
@@ -423,7 +444,8 @@ window.registerStoryNodes({
         "next": "act4_hub"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/forensic_prints.png"
   },
   "act4_timeline_check": {
     "act": "АКТ IV",
@@ -456,7 +478,9 @@ window.registerStoryNodes({
           "act4_route_done": true
         }
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/notes_and_keys.png",
+    "portrait": "cases/case412/assets/portraits/voronova.png"
   },
   "act4_prosecutor_call": {
     "act": "АКТ IV",
@@ -486,7 +510,8 @@ window.registerStoryNodes({
         "next": "act4_gromov_final_warning"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act4_gromov_final_warning": {
     "act": "АКТ IV",
@@ -522,7 +547,8 @@ window.registerStoryNodes({
         }
       }
     ],
-    "portrait": "assets/portraits/gromov.jpg"
+    "portrait": "cases/case412/assets/portraits/gromov.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act4_finale": {
     "act": "АКТ IV",
@@ -552,6 +578,7 @@ window.registerStoryNodes({
         "next": "act5_start"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   }
 });

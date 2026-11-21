@@ -58,9 +58,9 @@ window.registerStoryNodes({
         "meta": "ДИАЛОГ // МЧС",
         "next": "act1_melnikov_intro"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act1_melnikov_intro": {
     "act": "АКТ I // ПЕПЕЛИЩЕ",
     "location": "СНТ «БЕРЁЗКА» // КРЫЛЬЦО КОТТЕДЖА",
@@ -108,9 +108,9 @@ window.registerStoryNodes({
         "meta": "ХИТРОСТЬ // РАЗГОВОР",
         "next": "act1_melnikov_soft"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act1_melnikov_hard": {
     "act": "АКТ I // ПЕПЕЛИЩЕ",
     "location": "СНТ «БЕРЁЗКА» // КРЫЛЬЦО КОТТЕДЖА",
@@ -159,9 +159,9 @@ window.registerStoryNodes({
         "meta": "ОСМОТР // ХАБ",
         "next": "act1_yard_hub"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act1_melnikov_soft": {
     "act": "АКТ I // ПЕПЕЛИЩЕ",
     "location": "СНТ «БЕРЁЗКА» // КРЫЛЬЦО КОТТЕДЖА",
@@ -216,9 +216,9 @@ window.registerStoryNodes({
         "meta": "ОСМОТР // ХАБ",
         "next": "act1_yard_hub"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act1_yard_hub": {
     "act": "АКТ I // ПЕПЕЛИЩЕ",
     "location": "СНТ «БЕРЁЗКА» // ДВОР У ОЦЕПЛЕНИЯ",
@@ -286,9 +286,9 @@ window.registerStoryNodes({
           "act1_burnmap_done"
         ]
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act1_sery_check": {
     "act": "АКТ I // ПЕПЕЛИЩЕ",
     "location": "СНТ «БЕРЁЗКА» // ДВОР У ОЦЕПЛЕНИЯ",
@@ -325,9 +325,9 @@ window.registerStoryNodes({
         "meta": "НАЗАД // ХАБ",
         "next": "act1_yard_hub"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act1_camera_game": {
     "type": "minigame",
     "minigameId": "crime_camera",
@@ -344,9 +344,10 @@ window.registerStoryNodes({
     },
     "onCancel": {
       "next": "act1_yard_hub"
-    }
+    },
+    "scene": "cases/case418/assets/scenes/night_fire.png",
+    "portrait": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act1_camera_win": {
     "act": "АКТ I // ПЕПЕЛИЩЕ",
     "location": "СНТ «БЕРЁЗКА» // ГОСТИНАЯ КОТТЕДЖА",
@@ -397,9 +398,9 @@ window.registerStoryNodes({
         "meta": "НАЗАД // ХАБ",
         "next": "act1_yard_hub"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act1_burnmap_game": {
     "type": "minigame",
     "minigameId": "arson_lab",
@@ -418,9 +419,10 @@ window.registerStoryNodes({
     },
     "onCancel": {
       "next": "act1_yard_hub"
-    }
+    },
+    "scene": "cases/case418/assets/scenes/night_fire.png",
+    "portrait": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act1_burnmap_win": {
     "act": "АКТ I // ПЕПЕЛИЩЕ",
     "location": "СНТ «БЕРЁЗКА» // ПЕРВЫЙ ЭТАЖ КОТТЕДЖА",
@@ -471,9 +473,9 @@ window.registerStoryNodes({
         "meta": "НАЗАД // ХАБ",
         "next": "act1_yard_hub"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act1_talk_zuev": {
     "act": "АКТ I // ПЕПЕЛИЩЕ",
     "location": "СНТ «БЕРЁЗКА» // У СИГНАЛЬНОЙ ЛЕНТЫ",
@@ -527,9 +529,9 @@ window.registerStoryNodes({
         "meta": "ВОПРОС // ХРОНОЛОГИЯ",
         "next": "act1_zuev_lastseen"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act1_zuev_enemies": {
     "act": "АКТ I // ПЕПЕЛИЩЕ",
     "location": "СНТ «БЕРЁЗКА» // У СИГНАЛЬНОЙ ЛЕНТЫ",
@@ -581,9 +583,9 @@ window.registerStoryNodes({
         "meta": "НАЗАД // ХАБ",
         "next": "act1_yard_hub"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act1_zuev_lastseen": {
     "act": "АКТ I // ПЕПЕЛИЩЕ",
     "location": "СНТ «БЕРЁЗКА» // У СИГНАЛЬНОЙ ЛЕНТЫ",
@@ -633,9 +635,9 @@ window.registerStoryNodes({
         "meta": "НАЗАД // ХАБ",
         "next": "act1_yard_hub"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act1_confront_melnikov": {
     "act": "АКТ I // ПЕПЕЛИЩЕ",
     "location": "СНТ «БЕРЁЗКА» // У СЛУЖЕБНОГО УАЗА МЧС",
@@ -705,9 +707,9 @@ window.registerStoryNodes({
         "meta": "ПРОТОКОЛ // ХОЛОДНО",
         "next": "act1_outro"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   },
-
   "act1_outro": {
     "act": "АКТ I // ПЕПЕЛИЩЕ",
     "location": "СНТ «БЕРЁЗКА» // ВЫЕЗД ОТ КОТТЕДЖА",
@@ -756,6 +758,7 @@ window.registerStoryNodes({
         "meta": "АКТ II // МОРГ И ЛАБОРАТОРИЯ",
         "next": "act2_start"
       }
-    ]
+    ],
+    "scene": "cases/case418/assets/scenes/night_fire.png"
   }
 });

@@ -597,7 +597,7 @@
       '<circle cx="11" cy="10" r="3" fill="#dc2626"/>' +
       '<text x="20" y="13.5" fill="#f0b4b4" font-family="IBM Plex Mono, monospace" font-size="9.5" font-weight="600" letter-spacing="0.8">АРХИВ // НЕТ ФОТО</text>' +
       '</g>' +
-      '<text x="382" y="37" text-anchor="end" fill="#6f7582" font-family="IBM Plex Mono, monospace" font-size="9" letter-spacing="1">СК-409</text>' +
+      '<text x="382" y="37" text-anchor="end" fill="#6f7582" font-family="IBM Plex Mono, monospace" font-size="9" letter-spacing="1">' + getCaseCode() + '</text>' +
       '<text x="200" y="160" text-anchor="middle" fill="#b7afa0" fill-opacity="0.72" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="1.4">' +
       safeLabel +
       '</text>' +
@@ -620,15 +620,43 @@
     personal_ruins: 'assets/items/personal_ruins.jpg'
   };
 
+  function getCaseCode() {
+    var cid = (window.ACTIVE_CASE_ID || 'case409').toLowerCase();
+    if (cid === 'case412') return 'СК-412';
+    if (cid === 'case418') return 'СК-418';
+    return 'СК-409';
+  }
+
+  function getCaseNumber() {
+    var cid = (window.ACTIVE_CASE_ID || 'case409').toLowerCase();
+    if (cid === 'case412') return '№412';
+    if (cid === 'case418') return '№418';
+    return '№409';
+  }
+
+  var ASSET_CACHE_VER = 'v20261121';
+
+  function withCacheBust(url) {
+    if (typeof url !== 'string' || !url || url.indexOf('data:') === 0) return url;
+    return url.indexOf('?') === -1 ? (url + '?' + ASSET_CACHE_VER) : url;
+  }
+
   function resolveAssetPath(src) {
     if (typeof src !== 'string') return src;
     var clean = src.trim();
-    var m = clean.match(/([^/\\]+)\.(?:jpg|jpeg|png|webp)$/i);
-    if (m) {
-      var key = m[1].toLowerCase();
-      if (ASSET_MAP[key]) return ASSET_MAP[key];
+    if (!clean) return clean;
+    if (clean.indexOf('cases/') === 0 || clean.indexOf('/cases/') === 0) {
+      return withCacheBust(clean);
     }
-    return clean;
+    var cid = (window.ACTIVE_CASE_ID || 'case409').toLowerCase();
+    if (cid === 'case409') {
+      var m = clean.match(/([^/\\]+)\.(?:jpg|jpeg|png|webp)$/i);
+      if (m) {
+        var key = m[1].toLowerCase();
+        if (ASSET_MAP[key]) return withCacheBust(ASSET_MAP[key]);
+      }
+    }
+    return withCacheBust(clean);
   }
 
   function renderPortrait(portraitSrc, fallbackLabel) {
@@ -1824,7 +1852,7 @@
       dom.sceneSpeaker.textContent = 'ОЖИДАНИЕ МАТЕРИАЛОВ ДЕЛА №409';
     }
 
-    renderPortrait(null, 'ТЕРМИНАЛ СК // ДЕЛО №409');
+    renderPortrait(null, 'ТЕРМИНАЛ СК // ДЕЛО ' + getCaseNumber());
 
     typewriteText(
       'Ядро движка, система поэтапных реплик (beats), озвучка и процедурный звук готовы к работе.\n\n' +
@@ -2185,7 +2213,7 @@
       dom.sceneSpeaker.textContent = node.speaker || '';
     }
 
-    renderPortrait(node.portrait, node.speaker || node.location || 'ЭКСПЕРТИЗА');
+    renderPortrait(node.portrait || node.scene, node.speaker || node.location || 'ЭКСПЕРТИЗА');
     typewriteText(
       node.text ||
         'Криминалистическая процедура приостановлена. Вы можете свериться с уликами и возобновить проверку.'
@@ -2486,7 +2514,7 @@
       dom.sceneSpeaker.textContent = step.speaker !== undefined ? step.speaker : node.speaker || '';
     }
 
-    var portrait = step.portrait !== undefined ? step.portrait : node.portrait;
+    var portrait = step.portrait !== undefined ? step.portrait : (node.portrait || node.scene);
     renderPortrait(portrait, step.speaker || node.speaker || node.location || 'ДОПРОС');
     updateComposureUI(interrogationState.composure, interrogationState.maxComposure);
 
@@ -2637,7 +2665,7 @@
       dom.sceneSpeaker.textContent = node.speaker || '';
     }
 
-    renderPortrait(node.portrait, node.speaker || node.location || 'ДЕЛО №409');
+    renderPortrait(node.portrait || node.scene, node.speaker || node.location || ('ДЕЛО ' + getCaseNumber()));
 
     if (dom.choicesContainer) {
       dom.choicesContainer.innerHTML = '';

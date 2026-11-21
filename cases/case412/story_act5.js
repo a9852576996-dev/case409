@@ -32,7 +32,8 @@ window.registerStoryNodes({
         "next": "act5_gromov_last_stall"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act5_gromov_last_stall": {
     "act": "АКТ V",
@@ -61,7 +62,8 @@ window.registerStoryNodes({
         "next": "act5_gromov_crushed"
       }
     ],
-    "portrait": "assets/portraits/gromov.jpg"
+    "portrait": "cases/case412/assets/portraits/gromov.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act5_gromov_crushed": {
     "act": "АКТ V",
@@ -90,7 +92,9 @@ window.registerStoryNodes({
         "text": "Встретить Виктора Кравцова на пороге.",
         "next": "act5_kravtsov_door"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/village_street.png",
+    "portrait": "cases/case412/assets/portraits/voronova.png"
   },
   "act5_kravtsov_door": {
     "act": "АКТ V",
@@ -124,7 +128,8 @@ window.registerStoryNodes({
         "next": "act5_kravtsov_deflect"
       }
     ],
-    "portrait": "assets/portraits/kravtsov.jpg"
+    "portrait": "cases/case412/assets/portraits/kravtsov.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act5_kravtsov_deflect": {
     "act": "АКТ V",
@@ -154,7 +159,8 @@ window.registerStoryNodes({
         "next": "act5_hub"
       }
     ],
-    "portrait": "assets/portraits/kravtsov.jpg"
+    "portrait": "cases/case412/assets/portraits/kravtsov.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act5_hub": {
     "act": "АКТ V",
@@ -205,7 +211,9 @@ window.registerStoryNodes({
           "act5_pin_done"
         ]
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/kravtsov_garage.png",
+    "portrait": "cases/case412/assets/scenes/kravtsov_garage.png"
   },
   "act5_house_search": {
     "act": "АКТ V",
@@ -238,7 +246,8 @@ window.registerStoryNodes({
         }
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act5_mg_uv": {
     "act": "АКТ V",
@@ -260,7 +269,8 @@ window.registerStoryNodes({
     "onCancel": {
       "next": "act5_hub"
     },
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/scenes/kravtsov_garage.png",
+    "scene": "cases/case412/assets/scenes/kravtsov_garage.png"
   },
   "act5_hatch_found": {
     "act": "АКТ V",
@@ -295,7 +305,8 @@ window.registerStoryNodes({
         "next": "act5_hatch_reaction"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/cellar_hatch.png"
   },
   "act5_hatch_reaction": {
     "act": "АКТ V",
@@ -324,7 +335,9 @@ window.registerStoryNodes({
         "text": "Перейти к дальнейшим действиям в гараже.",
         "next": "act5_hub"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/cellar_hatch.png",
+    "portrait": "cases/case412/assets/portraits/voronova.png"
   },
   "act5_mg_pin": {
     "act": "АКТ V",
@@ -346,7 +359,8 @@ window.registerStoryNodes({
     "onCancel": {
       "next": "act5_hub"
     },
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/scenes/kravtsov_garage.png",
+    "scene": "cases/case412/assets/scenes/kravtsov_garage.png"
   },
   "act5_panel_cracked": {
     "act": "АКТ V",
@@ -380,7 +394,9 @@ window.registerStoryNodes({
         "text": "Обернуться к Кравцову.",
         "next": "act5_hub"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/kravtsov_garage.png",
+    "portrait": "cases/case412/assets/portraits/voronova.png"
   },
   "act5_mask_breaks": {
     "act": "АКТ V",
@@ -419,7 +435,8 @@ window.registerStoryNodes({
         "next": "act5_standoff_rush"
       }
     ],
-    "portrait": "assets/portraits/kravtsov.jpg"
+    "portrait": "cases/case412/assets/portraits/kravtsov.png",
+    "scene": "cases/case412/assets/scenes/kravtsov_garage.png"
   },
   "act5_standoff_gun": {
     "act": "АКТ V",
@@ -449,7 +466,8 @@ window.registerStoryNodes({
         "next": "act5_predator_monologue"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/kravtsov_garage.png"
   },
   "act5_standoff_rush": {
     "act": "АКТ V",
@@ -479,7 +497,8 @@ window.registerStoryNodes({
         "next": "act5_predator_monologue"
       }
     ],
-    "portrait": "assets/portraits/kravtsov.jpg"
+    "portrait": "cases/case412/assets/portraits/kravtsov.png",
+    "scene": "cases/case412/assets/scenes/kravtsov_garage.png"
   },
   "act5_predator_monologue": {
     "act": "АКТ V",
@@ -515,7 +534,8 @@ window.registerStoryNodes({
         "next": "act5_finale"
       }
     ],
-    "portrait": "assets/portraits/kravtsov.jpg"
+    "portrait": "cases/case412/assets/portraits/kravtsov.png",
+    "scene": "cases/case412/assets/scenes/cellar_hatch.png"
   },
   "act5_finale": {
     "act": "АКТ V",
@@ -550,6 +570,7 @@ window.registerStoryNodes({
         "next": "act6_start"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/kravtsov_garage.png"
   }
 });

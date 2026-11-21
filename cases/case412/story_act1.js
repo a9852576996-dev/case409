@@ -36,7 +36,8 @@ window.registerStoryNodes({
         "next": "act1_gromov_cold"
       }
     ],
-    "portrait": "assets/portraits/gromov.jpg"
+    "portrait": "cases/case412/assets/portraits/gromov.png",
+    "scene": "cases/case412/assets/scenes/notes_and_keys.png"
   },
   "act1_gromov_push": {
     "act": "АКТ I",
@@ -66,7 +67,8 @@ window.registerStoryNodes({
         "next": "act1_porch_arrival"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act1_gromov_cold": {
     "act": "АКТ I",
@@ -96,7 +98,8 @@ window.registerStoryNodes({
         "next": "act1_porch_arrival"
       }
     ],
-    "portrait": "assets/portraits/gromov.jpg"
+    "portrait": "cases/case412/assets/portraits/gromov.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act1_porch_arrival": {
     "act": "АКТ I",
@@ -135,7 +138,9 @@ window.registerStoryNodes({
         "text": "«Вы всё время смотрите на дома напротив. Вы кого-то из соседей боитесь?»",
         "next": "act1_marina_neighbors"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/village_street.png",
+    "portrait": "cases/case412/assets/portraits/marina.png"
   },
   "act1_marina_artem": {
     "act": "АКТ I",
@@ -165,7 +170,9 @@ window.registerStoryNodes({
         "text": "Уточнить, что произошло после того, как она подала заявление.",
         "next": "act1_marina_plea"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/village_street.png",
+    "portrait": "cases/case412/assets/portraits/marina.png"
   },
   "act1_marina_neighbors": {
     "act": "АКТ I",
@@ -195,7 +202,9 @@ window.registerStoryNodes({
         "text": "Завершить разговор на крыльце и выйти на улицу.",
         "next": "act1_marina_plea"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/village_street.png",
+    "portrait": "cases/case412/assets/portraits/marina.png"
   },
   "act1_marina_plea": {
     "act": "АКТ I",
@@ -225,7 +234,8 @@ window.registerStoryNodes({
         "next": "act1_hub"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act1_hub": {
     "act": "АКТ I",
@@ -284,7 +294,9 @@ window.registerStoryNodes({
           "act1_kravtsov_met"
         ]
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/village_street.png",
+    "portrait": "cases/case412/assets/scenes/village_street.png"
   },
   "act1_mg_uv": {
     "act": "АКТ I",
@@ -306,7 +318,8 @@ window.registerStoryNodes({
     "onCancel": {
       "next": "act1_hub"
     },
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/scenes/village_street.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act1_nail_found": {
     "act": "АКТ I",
@@ -341,7 +354,8 @@ window.registerStoryNodes({
         "next": "act1_hub"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act1_mg_billing": {
     "act": "АКТ I",
@@ -363,7 +377,8 @@ window.registerStoryNodes({
     "onCancel": {
       "next": "act1_hub"
     },
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/scenes/broken_phone.png",
+    "scene": "cases/case412/assets/scenes/broken_phone.png"
   },
   "act1_billing_found": {
     "act": "АКТ I",
@@ -393,7 +408,8 @@ window.registerStoryNodes({
         "next": "act1_hub"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/broken_phone.png"
   },
   "act1_inspect_belyaev": {
     "act": "АКТ I",
@@ -426,7 +442,8 @@ window.registerStoryNodes({
         }
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/belyaev_gate_cameras.png"
   },
   "act1_kravtsov_intro": {
     "act": "АКТ I",
@@ -466,7 +483,8 @@ window.registerStoryNodes({
         "next": "act1_kravtsov_alibi"
       }
     ],
-    "portrait": "assets/portraits/kravtsov.jpg"
+    "portrait": "cases/case412/assets/portraits/kravtsov.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act1_kravtsov_cement": {
     "act": "АКТ I",
@@ -505,7 +523,8 @@ window.registerStoryNodes({
         }
       }
     ],
-    "portrait": "assets/portraits/kravtsov.jpg"
+    "portrait": "cases/case412/assets/portraits/kravtsov.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act1_kravtsov_alibi": {
     "act": "АКТ I",
@@ -539,7 +558,8 @@ window.registerStoryNodes({
         }
       }
     ],
-    "portrait": "assets/portraits/kravtsov.jpg"
+    "portrait": "cases/case412/assets/portraits/kravtsov.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act1_kravtsov_depart": {
     "act": "АКТ I",
@@ -572,7 +592,8 @@ window.registerStoryNodes({
         }
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act1_finale": {
     "act": "АКТ I",
@@ -607,6 +628,7 @@ window.registerStoryNodes({
         "next": "act2_start"
       }
     ],
-    "portrait": "assets/portraits/gromov.jpg"
+    "portrait": "cases/case412/assets/portraits/gromov.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   }
 });

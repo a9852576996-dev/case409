@@ -1,39 +1,76 @@
 (function () {
   'use strict';
 
-  var PHOTOS = [
-    {
-      src: 'assets/locations/ditch_night.jpg',
-      title: 'СНИМОК №1 // КАНАВА, КМ 14',
-      desc: 'Ночной осмотр места обнаружения тела. Жёлтые маркеры вещдоков.'
-    },
-    {
-      src: 'assets/locations/ditch_climax.jpg.jpg',
-      fallback: 'assets/locations/ditch_climax.jpg',
-      title: 'СНИМОК №2 // ОЦЕПЛЕНИЕ',
-      desc: 'Осмотр склона у товарной ветки под светом прожекторов.'
-    },
-    {
-      src: 'assets/items/personal_ruins.jpg.jpg',
-      title: 'ВЕЩДОК №1 // ЛИЧНЫЕ ВЕЩИ',
-      desc: 'Повреждённая куртка, сумка и документы А. Савельевой.'
-    },
-    {
-      src: 'assets/items/knife_uv.jpg.jpg',
-      title: 'ВЕЩДОК №2 // НОЖ (УФ-СЪЁМКА)',
-      desc: 'Следы люминола на лезвии, флакон антисептика и обрывок форменной ткани.'
-    },
-    {
-      src: 'assets/items/phone_broken.jpg.jpg',
-      title: 'ВЕЩДОК №3 // СМАРТФОН',
-      desc: 'Разбитый телефон в грязи у щебня, кровавый отпечаток на экране.'
-    },
-    {
-      src: 'assets/items/archive_falsification.jpg.jpg',
-      title: 'АРХИВ // ЭКСПЕРТИЗЫ',
-      desc: 'Подложные бланки и старые протокольные фото по прошлым эпизодам.'
-    }
-  ];
+  var CACHE_VER = 'v20261121';
+  var ACTIVE_CASE = (window.ACTIVE_CASE_ID || 'case409').toLowerCase();
+  var CASE_CODE = ACTIVE_CASE === 'case412' ? 'СК-412' : (ACTIVE_CASE === 'case418' ? 'СК-418' : 'СК-409');
+
+  var PHOTOS_BY_CASE = {
+    case409: [
+      {
+        src: 'assets/locations/ditch_night.jpg',
+        title: 'СНИМОК №1 // КАНАВА, КМ 14',
+        desc: 'Ночной осмотр места обнаружения тела. Жёлтые маркеры вещдоков.'
+      },
+      {
+        src: 'assets/locations/ditch_climax.jpg.jpg',
+        fallback: 'assets/locations/ditch_climax.jpg',
+        title: 'СНИМОК №2 // ОЦЕПЛЕНИЕ',
+        desc: 'Осмотр склона у товарной ветки под светом прожекторов.'
+      },
+      {
+        src: 'assets/items/personal_ruins.jpg.jpg',
+        title: 'ВЕЩДОК №1 // ЛИЧНЫЕ ВЕЩИ',
+        desc: 'Повреждённая куртка, сумка и документы А. Савельевой.'
+      },
+      {
+        src: 'assets/items/knife_uv.jpg.jpg',
+        title: 'ВЕЩДОК №2 // НОЖ (УФ-СЪЁМКА)',
+        desc: 'Следы люминола на лезвии, флакон антисептика и обрывок форменной ткани.'
+      },
+      {
+        src: 'assets/items/phone_broken.jpg.jpg',
+        title: 'ВЕЩДОК №3 // СМАРТФОН',
+        desc: 'Разбитый телефон в грязи у щебня, кровавый отпечаток на экране.'
+      },
+      {
+        src: 'assets/items/archive_falsification.jpg.jpg',
+        title: 'АРХИВ // ЭКСПЕРТИЗЫ',
+        desc: 'Подложные бланки и старые протокольные фото по прошлым эпизодам.'
+      }
+    ],
+    case412: [
+      { src: 'cases/case412/assets/scenes/village_street.png?' + CACHE_VER, title: 'СНИМОК №1 // САДОВАЯ УЛИЦА', desc: 'Глухие заборы посёлка «Тихие Ключи» под холодным осенним дождём.' },
+      { src: 'cases/case412/assets/scenes/bus_stop.png?' + CACHE_VER, title: 'СНИМОК №2 // ОСТАНОВКА', desc: 'Пустая окраинная остановка в сумерках — место последней ссоры.' },
+      { src: 'cases/case412/assets/scenes/belyaev_gate_cameras.png?' + CACHE_VER, title: 'СНИМОК №3 // ПЕРИМЕТР БЕЛЯЕВА', desc: 'Ворота и камеры видеонаблюдения на участке соседа напротив.' },
+      { src: 'cases/case412/assets/scenes/kravtsov_garage.png?' + CACHE_VER, title: 'СНИМОК №4 // ГАРАЖ КРАВЦОВА', desc: 'Старый кирпичный гараж с массивным навесным замком.' },
+      { src: 'cases/case412/assets/scenes/garage_interior.png?' + CACHE_VER, title: 'СНИМОК №5 // ВНУТРИ ГАРАЖА', desc: 'Верстак, слесарный инструмент и запасные замки в луче фонаря.' },
+      { src: 'cases/case412/assets/scenes/cellar_hatch.png?' + CACHE_VER, title: 'СНИМОК №6 // ЛЮК ПОГРЕБА', desc: 'Приоткрытый металлический люк со свежими царапинами и ступени вниз.' },
+      { src: 'cases/case412/assets/scenes/forest_edge.png?' + CACHE_VER, title: 'СНИМОК №7 // ОКРАИНА ЛЕСА', desc: 'Узкая грязная тропа вдоль задних заборов у сырой лесополосы.' },
+      { src: 'cases/case412/assets/scenes/broken_phone.png?' + CACHE_VER, title: 'ВЕЩДОК №1 // СМАРТФОН', desc: 'Разбитый телефон с треснутым экраном, найденный в мокрой глине.' },
+      { src: 'cases/case412/assets/scenes/muddy_tracks.png?' + CACHE_VER, title: 'ВЕЩДОК №2 // СЛЕДЫ В ГЛИНЕ', desc: 'Отпечатки мужских ботинок поверх свежего протектора шин у обочины.' },
+      { src: 'cases/case412/assets/scenes/forensic_prints.png?' + CACHE_VER, title: 'ВЕЩДОК №3 // ОТПЕЧАТКИ', desc: 'Проявленные порошком следы пальцев на холодном металле замка.' },
+      { src: 'cases/case412/assets/scenes/notes_and_keys.png?' + CACHE_VER, title: 'ВЕЩДОК №4 // ЗАПИСКА И КЛЮЧИ', desc: 'Помятый листок из блокнота и связка запасных ключей.' },
+      { src: 'cases/case412/assets/scenes/cctv_monitor.png?' + CACHE_VER, title: 'ВЕЩДОК №5 // ЗАПИСЬ КАМЕР', desc: 'Ночной монитор с пустыми воротами для сверки таймлайна.' },
+      { src: 'cases/case412/assets/scenes/timeline_desk.png?' + CACHE_VER, title: 'СХЕМА // ТАЙМЛАЙН', desc: 'Полевой разбор маршрута, схема посёлка и листы детализации.' },
+      { src: 'cases/case412/assets/scenes/climax_night.png?' + CACHE_VER, title: 'СНИМОК №8 // НОЧНАЯ РАЗВЯЗКА', desc: 'Свет фар и проблесковых маяков под ливнем у открытого гаража.' }
+    ],
+    case418: [
+      { src: 'cases/case418/assets/scenes/night_fire.png?' + CACHE_VER, title: 'СНИМОК №1 // НОЧНОЙ ПОЖАР', desc: 'Охваченная пламенем постройка и густой чёрный дым над промзоной.' },
+      { src: 'cases/case418/assets/scenes/charred_ruins.png?' + CACHE_VER, title: 'СНИМОК №2 // ОБУГЛЕННЫЕ РУИНЫ', desc: 'Обрушенные балки, скрученный металл и тлеющий пепел внутри сгоревшего здания.' },
+      { src: 'cases/case418/assets/scenes/morning_mist.png?' + CACHE_VER, title: 'СНИМОК №3 // ПЕПЕЛИЩЕ НА РАССВЕТЕ', desc: 'Остывшие стены в сером утреннем тумане и лужи с плавающей сажей.' },
+      { src: 'cases/case418/assets/scenes/checkpoint.png?' + CACHE_VER, title: 'СНИМОК №4 // КПП ПРОМЗОНЫ', desc: 'Шлагбаум и въезд на территорию в ночном тумане под тусклым фонарём.' },
+      { src: 'cases/case418/assets/scenes/checkpoint_booth.png?' + CACHE_VER, title: 'СНИМОК №5 // СТОРОЖКА КПП', desc: 'Интерьер поста охраны: пустые крючки для ключей и вид на проезд.' },
+      { src: 'cases/case418/assets/scenes/well_and_cellar.png?' + CACHE_VER, title: 'СНИМОК №6 // КОЛОДЕЦ И ПОГРЕБ', desc: 'Закопчённый бетонный колодец и полуразрушенный спуск в погреб.' },
+      { src: 'cases/case418/assets/scenes/arson_accelerant.png?' + CACHE_VER, title: 'ВЕЩДОК №1 // СЛЕДЫ ГСМ', desc: 'Радужная масляная плёнка горючего и оплавленная пластиковая канистра.' },
+      { src: 'cases/case418/assets/scenes/forensic_samples.png?' + CACHE_VER, title: 'ВЕЩДОК №2 // ПРОБЫ И ПРОВОДКА', desc: 'Пробирки с золой, химическими следами и оплавленная медная проводка.' },
+      { src: 'cases/case418/assets/scenes/burnt_documents.png?' + CACHE_VER, title: 'ВЕЩДОК №3 // ОБГОРЕВШИЕ ДОКУМЕНТЫ', desc: 'Вскрытый металлический ящик с обугленными страницами учётной книги.' },
+      { src: 'cases/case418/assets/scenes/cellar_evidence.png?' + CACHE_VER, title: 'ВЕЩДОК №4 // ДНО ПОГРЕБА', desc: 'Сброшенные в мутную воду обгоревший лом, тряпка и сбитый замок.' },
+      { src: 'cases/case418/assets/scenes/night_confrontation.png?' + CACHE_VER, title: 'СНИМОК №7 // НОЧНАЯ ВСТРЕЧА', desc: 'Заброшенный двор промзоны, две машины с включёнными фарами в дыму.' }
+    ]
+  };
+
+  var PHOTOS = PHOTOS_BY_CASE[ACTIVE_CASE] || PHOTOS_BY_CASE.case409;
 
   var CAMERA_SVG =
     '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
@@ -135,7 +172,7 @@
     modal.innerHTML =
       '<div class="ev-panel">' +
         '<div class="ev-header">' +
-          '<div class="ev-title"><span>СК-409 //</span> ФОТОТАБЛИЦА (' + PHOTOS.length + ')</div>' +
+          '<div class="ev-title"><span>' + CASE_CODE + ' //</span> ФОТОТАБЛИЦА (' + PHOTOS.length + ')</div>' +
           '<button type="button" class="ev-close" id="ev-close-modal">ЗАКРЫТЬ [ESC]</button>' +
         '</div>' +
         '<div class="ev-grid" id="ev-grid"></div>' +

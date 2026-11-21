@@ -36,7 +36,9 @@ window.registerStoryNodes({
         "text": "«Сначала подойду к гаражу Кравцова и посмотрю на его проводку вживую».",
         "next": "act3_marina_intercept"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/village_street.png",
+    "portrait": "cases/case412/assets/portraits/voronova.png"
   },
   "act3_marina_intercept": {
     "act": "АКТ III",
@@ -66,7 +68,8 @@ window.registerStoryNodes({
         "next": "act3_marina_yard"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act3_marina_yard": {
     "act": "АКТ III",
@@ -100,7 +103,9 @@ window.registerStoryNodes({
         "text": "«Вы участковому Громову про этот стук говорили?»",
         "next": "act3_marina_gromov"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/village_street.png",
+    "portrait": "cases/case412/assets/portraits/marina.png"
   },
   "act3_marina_gromov": {
     "act": "АКТ III",
@@ -124,7 +129,9 @@ window.registerStoryNodes({
         "text": "Забрать диктофон и направиться к гаражу Кравцова.",
         "next": "act3_marina_trust"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/village_street.png",
+    "portrait": "cases/case412/assets/portraits/marina.png"
   },
   "act3_marina_trust": {
     "act": "АКТ III",
@@ -149,7 +156,8 @@ window.registerStoryNodes({
         "next": "act3_kravtsov_garage"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act3_kravtsov_garage": {
     "act": "АКТ III",
@@ -189,7 +197,8 @@ window.registerStoryNodes({
         "next": "act3_kravtsov_cold"
       }
     ],
-    "portrait": "assets/portraits/kravtsov.jpg"
+    "portrait": "cases/case412/assets/portraits/kravtsov.png",
+    "scene": "cases/case412/assets/scenes/kravtsov_garage.png"
   },
   "act3_kravtsov_cold": {
     "act": "АКТ III",
@@ -219,7 +228,8 @@ window.registerStoryNodes({
         "next": "act3_gromov_stall"
       }
     ],
-    "portrait": "assets/portraits/kravtsov.jpg"
+    "portrait": "cases/case412/assets/portraits/kravtsov.png",
+    "scene": "cases/case412/assets/scenes/kravtsov_garage.png"
   },
   "act3_gromov_stall": {
     "act": "АКТ III",
@@ -255,7 +265,8 @@ window.registerStoryNodes({
         "next": "act3_hub"
       }
     ],
-    "portrait": "assets/portraits/gromov.jpg"
+    "portrait": "cases/case412/assets/portraits/gromov.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act3_hub": {
     "act": "АКТ III",
@@ -304,7 +315,9 @@ window.registerStoryNodes({
           "act3_cam_done"
         ]
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/village_street.png",
+    "portrait": "cases/case412/assets/scenes/village_street.png"
   },
   "act3_mg_audio": {
     "act": "АКТ III",
@@ -323,7 +336,9 @@ window.registerStoryNodes({
     },
     "onCancel": {
       "next": "act3_hub"
-    }
+    },
+    "scene": "cases/case412/assets/scenes/cellar_hatch.png",
+    "portrait": "cases/case412/assets/scenes/cellar_hatch.png"
   },
   "act3_audio_result": {
     "act": "АКТ III",
@@ -352,7 +367,9 @@ window.registerStoryNodes({
         "text": "Вернуться к разбору остальных улик.",
         "next": "act3_hub"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/village_street.png",
+    "portrait": "cases/case412/assets/portraits/voronova.png"
   },
   "act3_mg_archive": {
     "act": "АКТ III",
@@ -374,7 +391,8 @@ window.registerStoryNodes({
     "onCancel": {
       "next": "act3_hub"
     },
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/scenes/timeline_desk.png",
+    "scene": "cases/case412/assets/scenes/timeline_desk.png"
   },
   "act3_power_result": {
     "act": "АКТ III",
@@ -404,7 +422,8 @@ window.registerStoryNodes({
         "next": "act3_hub"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/cctv_monitor.png"
   },
   "act3_belyaev_recovered": {
     "act": "АКТ III",
@@ -445,7 +464,9 @@ window.registerStoryNodes({
           "clue_belyaev_cam"
         ]
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/belyaev_gate_cameras.png",
+    "portrait": "cases/case412/assets/portraits/voronova.png"
   },
   "act3_confront_belyaev": {
     "act": "АКТ III",
@@ -484,7 +505,9 @@ window.registerStoryNodes({
         "text": "«Тыкай на карте, куда именно он пошёл в четыре утра, и расписывайся в показаниях. Живо».",
         "next": "act3_gromov_cornered"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/belyaev_gate_cameras.png",
+    "portrait": "cases/case412/assets/portraits/belyaev.png"
   },
   "act3_gromov_cornered": {
     "act": "АКТ III",
@@ -509,7 +532,8 @@ window.registerStoryNodes({
         "next": "act3_finale"
       }
     ],
-    "portrait": "assets/portraits/gromov.jpg"
+    "portrait": "cases/case412/assets/portraits/gromov.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act3_finale": {
     "act": "АКТ III",
@@ -539,6 +563,7 @@ window.registerStoryNodes({
         "next": "act4_start"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   }
 });

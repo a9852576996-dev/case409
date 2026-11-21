@@ -32,7 +32,8 @@ window.registerStoryNodes({
         "next": "act6_ambush"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/cellar_hatch.png"
   },
   "act6_ambush": {
     "act": "АКТ VI",
@@ -66,7 +67,8 @@ window.registerStoryNodes({
         "next": "act6_voronova_saves"
       }
     ],
-    "portrait": "assets/portraits/kravtsov.jpg"
+    "portrait": "cases/case412/assets/portraits/kravtsov.png",
+    "scene": "cases/case412/assets/scenes/cellar_hatch.png"
   },
   "act6_voronova_saves": {
     "act": "АКТ VI",
@@ -95,7 +97,9 @@ window.registerStoryNodes({
         "text": "Отозваться Марине сверху.",
         "next": "act6_marina_above"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/cellar_hatch.png",
+    "portrait": "cases/case412/assets/portraits/voronova.png"
   },
   "act6_marina_above": {
     "act": "АКТ VI",
@@ -124,7 +128,9 @@ window.registerStoryNodes({
         "text": "Посмотреть, что притащил участковый.",
         "next": "act6_gromov_last_card"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/cellar_hatch.png",
+    "portrait": "cases/case412/assets/portraits/marina.png"
   },
   "act6_gromov_last_card": {
     "act": "АКТ VI",
@@ -160,7 +166,8 @@ window.registerStoryNodes({
         "next": "act6_cellar_hub"
       }
     ],
-    "portrait": "assets/portraits/gromov.jpg"
+    "portrait": "cases/case412/assets/portraits/gromov.png",
+    "scene": "cases/case412/assets/scenes/muddy_tracks.png"
   },
   "act6_cellar_hub": {
     "act": "АКТ VI",
@@ -204,7 +211,9 @@ window.registerStoryNodes({
         "text": "[Финальное решение] Определить исход дела №412.",
         "next": "act6_final_choice"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/cellar_hatch.png",
+    "portrait": "cases/case412/assets/scenes/cellar_hatch.png"
   },
   "act6_mg_lock": {
     "act": "АКТ VI",
@@ -224,7 +233,8 @@ window.registerStoryNodes({
     "onCancel": {
       "next": "act6_cellar_hub"
     },
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/scenes/cctv_monitor.png",
+    "scene": "cases/case412/assets/scenes/cctv_monitor.png"
   },
   "act6_lock_success": {
     "act": "АКТ VI",
@@ -249,7 +259,8 @@ window.registerStoryNodes({
         "next": "act6_cellar_hub"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/cellar_hatch.png"
   },
   "act6_receipt_check": {
     "act": "АКТ VI",
@@ -285,7 +296,9 @@ window.registerStoryNodes({
           "clue_fake_receipt"
         ]
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/cellar_hatch.png",
+    "portrait": "cases/case412/assets/portraits/voronova.png"
   },
   "act6_mg_timeline": {
     "act": "АКТ VI",
@@ -307,7 +320,8 @@ window.registerStoryNodes({
     "onCancel": {
       "next": "act6_cellar_hub"
     },
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/scenes/timeline_desk.png",
+    "scene": "cases/case412/assets/scenes/timeline_desk.png"
   },
   "act6_timeline_complete": {
     "act": "АКТ VI",
@@ -337,7 +351,8 @@ window.registerStoryNodes({
         "next": "act6_cellar_hub"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/timeline_desk.png"
   },
   "act6_final_choice": {
     "act": "АКТ VI",
@@ -379,7 +394,8 @@ window.registerStoryNodes({
         "next": "act6_cellar_hub"
       }
     ],
-    "portrait": "assets/portraits/kravtsov.jpg"
+    "portrait": "cases/case412/assets/portraits/kravtsov.png",
+    "scene": "cases/case412/assets/scenes/cellar_hatch.png"
   },
   "act6_rescue_scene": {
     "act": "АКТ VI",
@@ -414,7 +430,8 @@ window.registerStoryNodes({
         "next": "ending_rescue"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/cctv_monitor.png"
   },
   "ending_rescue": {
     "act": "АКТ VI",
@@ -452,7 +469,9 @@ window.registerStoryNodes({
         "delay": 1100
       }
     ],
-    "choices": []
+    "choices": [],
+    "scene": "cases/case412/assets/scenes/notes_and_keys.png",
+    "portrait": "cases/case412/assets/portraits/marina.png"
   },
   "act6_late_scene": {
     "act": "АКТ VI",
@@ -481,7 +500,9 @@ window.registerStoryNodes({
         "text": "Шагнуть внутрь остывшей бетонной камеры.",
         "next": "ending_late"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/cellar_hatch.png",
+    "portrait": "cases/case412/assets/portraits/voronova.png"
   },
   "ending_late": {
     "act": "АКТ VI",
@@ -520,7 +541,8 @@ window.registerStoryNodes({
       }
     ],
     "choices": [],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/climax_night.png"
   },
   "act6_coverup_scene": {
     "act": "АКТ VI",
@@ -550,7 +572,8 @@ window.registerStoryNodes({
         "next": "ending_coverup"
       }
     ],
-    "portrait": "assets/portraits/gromov.jpg"
+    "portrait": "cases/case412/assets/portraits/gromov.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "ending_coverup": {
     "act": "АКТ VI",
@@ -589,6 +612,7 @@ window.registerStoryNodes({
       }
     ],
     "choices": [],
-    "portrait": "assets/portraits/kravtsov.jpg"
+    "portrait": "cases/case412/assets/portraits/kravtsov.png",
+    "scene": "cases/case412/assets/scenes/notes_and_keys.png"
   }
 });

@@ -36,7 +36,9 @@ window.registerStoryNodes({
         "text": "«Сначала расскажи, как соседи отреагировали на фургон криминалистов с утра».",
         "next": "act2_voronova_morning"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/notes_and_keys.png",
+    "portrait": "cases/case412/assets/portraits/voronova.png"
   },
   "act2_voronova_morning": {
     "act": "АКТ II",
@@ -71,7 +73,9 @@ window.registerStoryNodes({
         "text": "Выехать в автомастерскую к Артёму «Рыжему».",
         "next": "act2_artem_intro"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/village_street.png",
+    "portrait": "cases/case412/assets/portraits/voronova.png"
   },
   "act2_artem_intro": {
     "act": "АКТ II",
@@ -108,7 +112,9 @@ window.registerStoryNodes({
         "text": "Повернуться к Громову: «Павел, ты хоть раз запросил камеры с той заправки?»",
         "next": "act2_gromov_frame"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/kravtsov_garage.png",
+    "portrait": "cases/case412/assets/portraits/artem.png"
   },
   "act2_artem_cooperate": {
     "act": "АКТ II",
@@ -136,7 +142,9 @@ window.registerStoryNodes({
         "text": "Выслушать возражения Громова.",
         "next": "act2_gromov_frame"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/kravtsov_garage.png",
+    "portrait": "cases/case412/assets/portraits/artem.png"
   },
   "act2_gromov_frame": {
     "act": "АКТ II",
@@ -171,7 +179,8 @@ window.registerStoryNodes({
         "next": "act2_belyaev_gate"
       }
     ],
-    "portrait": "assets/portraits/gromov.jpg"
+    "portrait": "cases/case412/assets/portraits/gromov.png",
+    "scene": "cases/case412/assets/scenes/kravtsov_garage.png"
   },
   "act2_belyaev_gate": {
     "act": "АКТ II",
@@ -210,7 +219,9 @@ window.registerStoryNodes({
         "text": "«Ваша угловая камера смотрит прямо на гараж Кравцова. Что именно вы так боитесь показать?»",
         "next": "act2_belyaev_kravtsov"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/belyaev_gate_cameras.png",
+    "portrait": "cases/case412/assets/portraits/belyaev.png"
   },
   "act2_belyaev_push": {
     "act": "АКТ II",
@@ -239,7 +250,9 @@ window.registerStoryNodes({
         "text": "Пройти в фургон криминалистов и разобрать собранный материал.",
         "next": "act2_hub"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/belyaev_gate_cameras.png",
+    "portrait": "cases/case412/assets/portraits/belyaev.png"
   },
   "act2_belyaev_kravtsov": {
     "act": "АКТ II",
@@ -268,7 +281,9 @@ window.registerStoryNodes({
         "text": "Вернуться в фургон криминалистов на Садовой.",
         "next": "act2_hub"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/belyaev_gate_cameras.png",
+    "portrait": "cases/case412/assets/portraits/belyaev.png"
   },
   "act2_hub": {
     "act": "АКТ II",
@@ -319,7 +334,9 @@ window.registerStoryNodes({
           "act2_cam_done"
         ]
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/village_street.png",
+    "portrait": "cases/case412/assets/scenes/village_street.png"
   },
   "act2_mg_phone": {
     "act": "АКТ II",
@@ -341,7 +358,8 @@ window.registerStoryNodes({
     "onCancel": {
       "next": "act2_hub"
     },
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/scenes/broken_phone.png",
+    "scene": "cases/case412/assets/scenes/broken_phone.png"
   },
   "act2_phone_unlocked": {
     "act": "АКТ II",
@@ -371,7 +389,8 @@ window.registerStoryNodes({
         "next": "act2_hub"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/broken_phone.png"
   },
   "act2_mg_camera": {
     "act": "АКТ II",
@@ -392,7 +411,9 @@ window.registerStoryNodes({
     },
     "onCancel": {
       "next": "act2_hub"
-    }
+    },
+    "scene": "cases/case412/assets/scenes/cctv_monitor.png",
+    "portrait": "cases/case412/assets/scenes/cctv_monitor.png"
   },
   "act2_cam_recovered": {
     "act": "АКТ II",
@@ -427,7 +448,9 @@ window.registerStoryNodes({
         "text": "Обдумать, зачем Беляеву прикрывать соседа.",
         "next": "act2_cam_implication"
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/cctv_monitor.png",
+    "portrait": "cases/case412/assets/portraits/voronova.png"
   },
   "act2_cam_implication": {
     "act": "АКТ II",
@@ -452,7 +475,8 @@ window.registerStoryNodes({
         "next": "act2_hub"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act2_voronova_traces": {
     "act": "АКТ II",
@@ -484,7 +508,9 @@ window.registerStoryNodes({
           "act2_traces_done": true
         }
       }
-    ]
+    ],
+    "scene": "cases/case412/assets/scenes/village_street.png",
+    "portrait": "cases/case412/assets/portraits/voronova.png"
   },
   "act2_confront_gromov": {
     "act": "АКТ II",
@@ -530,7 +556,8 @@ window.registerStoryNodes({
         }
       }
     ],
-    "portrait": "assets/portraits/gromov.jpg"
+    "portrait": "cases/case412/assets/portraits/gromov.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   },
   "act2_finale": {
     "act": "АКТ II",
@@ -560,6 +587,7 @@ window.registerStoryNodes({
         "next": "act3_start"
       }
     ],
-    "portrait": "assets/portraits/sery.jpg"
+    "portrait": "cases/case412/assets/portraits/sery.png",
+    "scene": "cases/case412/assets/scenes/village_street.png"
   }
 });

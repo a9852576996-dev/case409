@@ -1672,3 +1672,22 @@ button {
   left: 10px;
   z-index: 950;
 }
+
+/* === NOIR_VISUAL_POLISH === */
+#portrait-wrap {
+  overflow: hidden;
+}
+#portrait-wrap img {
+  animation: noirFrameIn 0.4s ease-out, noirKenBurns 22s ease-in-out infinite alternate;
+  transform-origin: center 32%;
+  will-change: transform, opacity;
+}
+@keyframes noirFrameIn {
+  from { opacity: 0.25; filter: brightness(0.85); }
+  to   { opacity: 1; filter: brightness(1); }
+}
+@keyframes noirKenBurns {
+  from { transform: scale(1.0); }
+  to   { transform: scale(1.055); }
+}
+/* === /NOIR_VISUAL_POLISH === */
