@@ -1,4 +1,5 @@
-(function () {  'use strict';
+(function () {
+  'use strict';
 
   var ASSET_VER = 'v20261122a';
 
@@ -105,6 +106,6 @@
   ]);
 
   for (var i = 0; i < queue.length; i++) {
-    document.write('<script src="' + queue[i] + '?v=v20261122a"><\/script>');
+    document.write('<script src="' + queue[i] + '?v=' + ASSET_VER + '"><\/script>');
   }
 })();
