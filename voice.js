@@ -4,7 +4,7 @@ window.GameVoice = (function () {
   var muted = false;
   var unlocked = false;
   var playId = 0;
-  var rate = 1.25;
+  var rate = 1.15;
   var SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
 
   function applyRate() {
