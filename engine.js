@@ -823,7 +823,7 @@
           doneCb();
         }
       }
-    }, intervalMs);
+    }, Math.max(10, Math.round((intervalMs) / (window.GameVoice && typeof window.GameVoice.getRate === 'function' ? window.GameVoice.getRate() : 1.5))));
   }
 
   function typewriteText(rawText) {
@@ -923,7 +923,7 @@
       }
       beatsState.index += 1;
       runCurrentBeat(sessionId);
-    }, Math.max(0, Number(delayMs) || 0));
+    }, Math.max(0, Math.round((Number(delayMs) || 0) / (window.GameVoice && typeof window.GameVoice.getRate === 'function' ? window.GameVoice.getRate() : 1.5))));
   }
 
   function skipCurrentBeat() {

@@ -4,7 +4,20 @@ window.GameVoice = (function () {
   var muted = false;
   var unlocked = false;
   var playId = 0;
+  var rate = 1.5;
   var SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+
+  function applyRate() {
+    try {
+      audio.defaultPlaybackRate = rate;
+      audio.playbackRate = rate;
+      if ('preservesPitch' in audio) audio.preservesPitch = true;
+      if ('mozPreservesPitch' in audio) audio.mozPreservesPitch = true;
+      if ('webkitPreservesPitch' in audio) audio.webkitPreservesPitch = true;
+    } catch (e) {}
+  }
+
+  applyRate();
 
   function unlockAudio() {
     if (unlocked) return;
@@ -42,6 +55,8 @@ window.GameVoice = (function () {
   function clearHandlers() {
     audio.onended = null;
     audio.onerror = null;
+    audio.onloadedmetadata = null;
+    audio.onplaying = null;
   }
 
   function stop() {
@@ -75,13 +90,17 @@ window.GameVoice = (function () {
     audio.muted = false;
     audio.onended = done;
     audio.onerror = done;
+    audio.onloadedmetadata = applyRate;
+    audio.onplaying = applyRate;
     audio.src = src;
 
     try {
       audio.load();
+      applyRate();
       var playPromise = audio.play();
-      if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch(function (err) {
+      applyRate();
+      if (playPromise && typeof playPromise.then === 'function') {
+        playPromise.then(applyRate).catch(function (err) {
           console.warn('[GameVoice] play failed:', src, err);
           done();
         });
@@ -101,10 +120,24 @@ window.GameVoice = (function () {
     return muted;
   }
 
+  function setRate(val) {
+    var n = Number(val);
+    if (!isNaN(n) && n >= 0.5 && n <= 3.0) {
+      rate = n;
+      applyRate();
+    }
+  }
+
+  function getRate() {
+    return rate;
+  }
+
   return {
     play: play,
     stop: stop,
     setMuted: setMuted,
-    isMuted: isMuted
+    isMuted: isMuted,
+    setRate: setRate,
+    getRate: getRate
   };
 })();
