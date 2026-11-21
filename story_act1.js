@@ -3,7 +3,7 @@ window.registerStoryNodes({
     "act": "АКТ I // ВЕТКА",
     "location": "ДРЕНАЖНАЯ КАНАВА, КМ 14",
     "speaker": "СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ",
-    "portrait": "assets/sery.jpg",
+    "portrait": "assets/portraits/sery.jpg",
     "mood": "default",
     "onEnter": {
       "addLog": "01:15. Прибытие на 14-й километр товарной ветки. В дренажной канаве обнаружено тело Алины Савельевой (19 лет).",
@@ -69,7 +69,7 @@ window.registerStoryNodes({
     "act": "АКТ I // ВЕТКА",
     "location": "ДРЕНАЖНАЯ КАНАВА, КМ 14",
     "speaker": "СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ",
-    "portrait": "assets/sery.jpg",
+    "portrait": "assets/portraits/sery.jpg",
     "mood": "default",
     "onEnter": {
       "addSuspectNote": {
@@ -233,7 +233,7 @@ window.registerStoryNodes({
     "act": "АКТ I // ВЕТКА",
     "location": "У СЛУЖЕБНОГО УАЗА, КМ 14",
     "speaker": "ПОДПОЛКОВНИК КРАВЦОВ П.Н.",
-    "portrait": "assets/kravtsov.jpg",
+    "portrait": "assets/portraits/kravtsov.jpg",
     "mood": "default",
     "onEnter": {
       "setFlags": {
@@ -301,7 +301,7 @@ window.registerStoryNodes({
     "act": "АКТ I // ВЕТКА",
     "location": "У СЛУЖЕБНОГО УАЗА, КМ 14",
     "speaker": "КРАСНОВ ИГОРЬ СЕРГЕЕВИЧ",
-    "portrait": "assets/krasnov.jpg",
+    "portrait": "assets/portraits/krasnov.jpg",
     "mood": "default",
     "onEnter": {
       "addSuspectNote": {
@@ -358,7 +358,7 @@ window.registerStoryNodes({
     "act": "АКТ I // ВЕТКА",
     "location": "У СЛУЖЕБНОГО УАЗА, КМ 14",
     "speaker": "КРАСНОВ ИГОРЬ СЕРГЕЕВИЧ",
-    "portrait": "assets/krasnov.jpg",
+    "portrait": "assets/portraits/krasnov.jpg",
     "mood": "default",
     "onEnter": {
       "addLog": "Краснов объяснил замечание об антисептике своим прошлым опытом работы фельдшером и словами дежурного криминалиста.",
@@ -431,7 +431,7 @@ window.registerStoryNodes({
     "act": "АКТ I // ВЕТКА",
     "location": "ДРЕНАЖНАЯ КАНАВА, КМ 14",
     "speaker": "СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ",
-    "portrait": "assets/sery.jpg",
+    "portrait": "assets/portraits/sery.jpg",
     "mood": "default",
     "onEnter": {
       "addSuspectNote": {
@@ -483,7 +483,7 @@ window.registerStoryNodes({
     "act": "АКТ I // ВЕТКА",
     "location": "ДРЕНАЖНАЯ КАНАВА, КМ 14",
     "speaker": "СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ",
-    "portrait": "assets/sery.jpg",
+    "portrait": "assets/portraits/sery.jpg",
     "mood": "default",
     "onEnter": {
       "addLog": "Попытка УФ-осмотра в канаве сорвалась из-за ливня и мутной воды. Вещественные доказательства в грязи не собраны.",
@@ -521,7 +521,7 @@ window.registerStoryNodes({
     "act": "АКТ I // ВЕТКА",
     "location": "БУДКА ПЕРЕЕЗДА, КМ 14",
     "speaker": "РЯБОВА ТАМАРА ВАСИЛЬЕВНА",
-    "portrait": "assets/ryabova.jpg",
+    "portrait": "assets/portraits/ryabova.jpg",
     "mood": "default",
     "onEnter": {
       "setFlags": {
@@ -567,7 +567,7 @@ window.registerStoryNodes({
     "act": "АКТ I // ВЕТКА",
     "location": "БУДКА ПЕРЕЕЗДА, КМ 14",
     "speaker": "РЯБОВА ТАМАРА ВАСИЛЬЕВНА",
-    "portrait": "assets/ryabova.jpg",
+    "portrait": "assets/portraits/ryabova.jpg",
     "mood": "default",
     "onEnter": {
       "addSuspectNote": {
@@ -608,7 +608,7 @@ window.registerStoryNodes({
     "act": "АКТ I // ВЕТКА",
     "location": "БУДКА ПЕРЕЕЗДА, КМ 14",
     "speaker": "РЯБОВА ТАМАРА ВАСИЛЬЕВНА",
-    "portrait": "assets/ryabova.jpg",
+    "portrait": "assets/portraits/ryabova.jpg",
     "mood": "default",
     "onEnter": {
       "setFlags": {
@@ -658,7 +658,7 @@ window.registerStoryNodes({
     "act": "АКТ I // ВЕТКА",
     "location": "СЛУЖЕБНАЯ «НИВА» // ДОРОГА В ОТДЕЛ",
     "speaker": "СЕРГЕЙ «СЕРЫЙ» МОРОЗОВ",
-    "portrait": "assets/sery.jpg",
+    "portrait": "assets/portraits/sery.jpg",
     "mood": "default",
     "onEnter": {
       "addLog": "Осмотр 14-го километра завершён. Выдвигаемся в райотдел: впереди лаборатория и первый допрос Громова.",
