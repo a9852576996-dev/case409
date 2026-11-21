@@ -311,6 +311,22 @@
     return v < min ? min : v > max ? max : v;
   }
 
+  function roundRectPath(ctx, x, y, w, h, r) {
+    var rad = Math.min(r || 0, Math.abs(w) * 0.5, Math.abs(h) * 0.5);
+    ctx.beginPath();
+    ctx.moveTo(x + rad, y);
+    ctx.lineTo(x + w - rad, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + rad);
+    ctx.lineTo(x + w, y + h - rad);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - rad, y + h);
+    ctx.lineTo(x + rad, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - rad);
+    ctx.lineTo(x, y + rad);
+    ctx.quadraticCurveTo(x, y, x + rad, y);
+    ctx.closePath();
+  }
+
+
   /* ===== UV_SEARCH: 3-РАКУРСНЫЙ ОСМОТР НОЖА И СКРЫТЫХ СЛЕДОВ ===== */
 
   function buildKnifeDataset(config) {
@@ -382,7 +398,7 @@
         foundLabel: ''
       },
       {
-        id: 'notch_microglass', view: 'edge', ux: -38, uy: 2, hitR: 26,
+        id: 'notch_microglass', view: 'edge', ux: 54, uy: 2, hitR: 26,
         isEvidence: true, requiredMode: 'loupe', mud: 0, title: 'Поперечная насечка рукояти',
         readings: {
           white: 'С торца в пазу рукояти блестит крошечная песчинка.',
@@ -393,7 +409,7 @@
         foundLabel: 'Осколок стекла экрана в насечке рукояти'
       },
       {
-        id: 'noise_chip', view: 'edge', ux: -112, uy: 0, hitR: 22,
+        id: 'noise_chip', view: 'edge', ux: 122, uy: 0, hitR: 22,
         isEvidence: false, requiredMode: 'none', mud: 0, title: 'Скол на торце тыльника',
         readings: {
           white: 'Старый вырванный кусочек резинового тыльника.',
@@ -546,23 +562,24 @@
         ctx.lineWidth = 2.2;
         ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(132, 0); ctx.stroke();
 
-        // Deep cross notches along bottom edge
+        // Поперечные насечки по торцу рукояти (+x)
         ctx.fillStyle = '#07090c';
         for (var nx = 24; nx <= 104; nx += 20) {
-          ctx.fillRect(-nx - 5, -15, 7, 30); //Wait: handle is +x, let's place on blade/handle!
+          roundRectPath(ctx, nx - 4, -14, 8, 28, 2);
+          ctx.fill();
         }
-        // Correct notches on handle (+22..+114) AND guard seam (-38 is on blade-side? Let's match spot ux=-38!)
-        ctx.fillStyle = '#07090c';
-        roundRectPath(ctx, -45, -11, 14, 22, 2); // Recessed serration/notch at ux=-38!
+        // Выделенная глубокая насечка на ux = 54 (место осколка стекла)
+        ctx.fillStyle = '#050608';
+        roundRectPath(ctx, 48, -13, 12, 26, 2);
         ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        // Chipped pommel edge at ux=-112? Wait: ux=-112 is near tip! Let's render protective rubber sleeve / tip guard chip OR move noise_chip to +122!
-        ctx.fillStyle = '#181a20';
+        // Скол на торце тыльника рукояти (ux = 122)
+        ctx.fillStyle = '#0b0c10';
         ctx.beginPath();
-        ctx.arc(-112, 0, 8, 0, Math.PI * 2);
+        ctx.arc(122, 0, 7, 0, Math.PI * 2);
         ctx.fill();
       }
 
